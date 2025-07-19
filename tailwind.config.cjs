@@ -1,12 +1,11 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     "./pages/**/*.{js,jsx}",
     "./components/**/*.{js,jsx}",
     "./app/**/*.{js,jsx}",
     "./src/**/*.{js,jsx}",
   ],
-  prefix: "",
   theme: {
     container: {
       center: true,
@@ -17,7 +16,7 @@ export default {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border) / <alpha-value>)", // ✅ This is the correct usage
+        border: "hsl(var(--border) / <alpha-value>)",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
