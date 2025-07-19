@@ -1,0 +1,149 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 262.1 83.3% 57.8%;
+    --primary-rgb: 124 58 237;
+    --radius: 0.75rem;
+    --gold: 41 74% 73%;
+    --silver: 220 13% 91%;
+    --bronze: 29 58% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Enhanced scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)/30) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary)/30);
+    border-radius: 20px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary)/50);
+  }
+  
+  /* Enhanced animations */
+  .animate-pulse-subtle {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-gradient-shift {
+    animation: gradientShift 8s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes gradientShift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  /* Professional card styles */
+  .glass-card {
+    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Enhanced toast animations */
+  .toast-enter {
+    animation: toast-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  @keyframes toast-enter {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  /* Gradient text effect */
+  .text-shimmer {
+    background: linear-gradient(120deg, #1e40af, #7c3aed, #059669);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}
