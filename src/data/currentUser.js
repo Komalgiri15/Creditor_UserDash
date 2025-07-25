@@ -1,2 +1,2 @@
 // This file simulates the current logged-in user
-export const currentUserId = 'user3';
+export const currentUserId = 'user8';
