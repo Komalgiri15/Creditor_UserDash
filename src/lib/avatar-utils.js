@@ -15,7 +15,7 @@ export const notifyAvatarChange = () => {
  * @returns The URL of the current avatar
  */
 export const getUserAvatarUrl = () => {
-  return localStorage.getItem('userAvatar') || getRandomProfessionalAvatar();
+  return localStorage.getItem('userAvatar') || '/default-avatar.png';
 };
 
 /**

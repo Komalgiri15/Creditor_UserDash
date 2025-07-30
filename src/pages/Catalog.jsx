@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,157 +9,175 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BookOpen, Clock, Search } from "lucide-react";
+import { BookOpen, Clock, Search, Loader2, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const courses = [
-  {
-    id: "1",
-    title: "Complete React Developer in 2023",
-    description: "Learn React with Redux, Hooks, GraphQL from industry experts. Build real projects.",
-    image: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000",
-    category: "Web Development",
-    level: "Intermediate",
-    duration: "25 hours",
-    lessons: 42,
-    instructor: "John Smith",
-    price: 89.99
-  },
-  {
-    id: "2",
-    title: "Advanced JavaScript Concepts",
-    description: "Master advanced JavaScript concepts: prototypal inheritance, closures, and more.",
-    image: "https://images.unsplash.com/photo-1627398242454-45a1465c2479?q=80&w=1000",
-    category: "Programming",
-    level: "Advanced",
-    duration: "18 hours",
-    lessons: 28,
-    instructor: "Sarah Johnson",
-    price: 79.99
-  },
-  {
-    id: "3",
-    title: "UI/UX Design Masterclass",
-    description: "Create stunning user interfaces and improve user experiences for web applications.",
-    image: "https://images.unsplash.com/photo-1545235617-9465d2a55698?q=80&w=1000",
-    
-  },
-  {
-    id: "4",
-    title: "Node.js Complete Guide",
-    description: "Build complete backend solutions with Node.js, Express, and MongoDB.",
-    image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1000",
-    category: "Backend",
-    level: "Intermediate",
-    duration: "28 hours",
-    lessons: 38,
-    instructor: "David Wilson",
-    price: 94.99
-  },
-  {
-    id: "5",
-    title: "TypeScript Fundamentals",
-    description: "Learn TypeScript from basics to advanced concepts with practical examples.",
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000",
-    category: "Programming",
-    level: "Beginner",
-    duration: "20 hours",
-    lessons: 32,
-    instructor: "Emma Davis",
-    price: 69.99
-  }
-];
+import { fetchAllCatalogs, searchCatalogs, fetchCatalogCourses } from "@/services/catalogService";
 
 export function CatalogPage() {
+  const [catalogs, setCatalogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [courseCounts, setCourseCounts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedLevel, setSelectedLevel] = useState("all");
 
-  const categories = Array.from(new Set(courses.map(course => course.category)));
-  const levels = Array.from(new Set(courses.map(course => course.level)));
+  
+  // Fetch catalogs from backend
+  useEffect(() => {
+    const fetchCatalogsAndCounts = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchAllCatalogs();
+        console.log('Fetched catalogs:', data);
+        console.log('Data type:', typeof data);
+        console.log('Is array:', Array.isArray(data));
+        setCatalogs(data || []);
+        // Fetch course counts for each catalog
+        const counts = {};
+        await Promise.all(
+          (data || []).map(async (catalog) => {
+            const courses = await fetchCatalogCourses(catalog.id);
+            counts[catalog.id] = courses.length;
+          })
+        );
+        setCourseCounts(counts);
+      } catch (err) {
+        console.error("Failed to fetch catalogs:", err);
+        setError("Failed to load catalogs. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || course.category === selectedCategory;
-    const matchesLevel = selectedLevel === "all" || course.level === selectedLevel;
+    fetchCatalogsAndCounts();
+  }, []);
+
+  // Extract categories from fetched catalogs
+  const categories = Array.from(new Set((catalogs || []).map(catalog => catalog.category || "General")));
+
+  const filteredCatalogs = (catalogs || []).filter(catalog => {
+    const matchesSearch = catalog.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         catalog.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || 
+                           (catalog.category || "General") === selectedCategory;
     
-    return matchesSearch && matchesCategory && matchesLevel;
+    return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-1">
+          <div className="container py-6 max-w-7xl">
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Loading catalogs...</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-1">
+          <div className="container py-6 max-w-7xl">
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         <div className="container py-6 max-w-7xl">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold">Course Catalog</h1>
+            <h1 className="text-2xl font-bold">Course Catalogs</h1>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search courses..."
+                  placeholder="Search catalogs..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-[200px]"
+                  className="w-[360px]"
                 />
               </div>
               
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
-                  {levels.map(level => (
-                    <SelectItem key={level} value={level}>{level}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Remove Select for All Categories and category filter logic */}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
-            <div key={course.id} className="group overflow-hidden rounded-lg border bg-card hover:shadow-md transition-all">
-              <div className="aspect-video w-full relative overflow-hidden">
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="object-cover w-full h-full transition-transform group-hover:scale-105"
-                />
-                <Badge 
-                  className="absolute top-2 right-2"
-                  variant="secondary"
-                >
-                  {course.category}
-                </Badge>
-              </div>
-
-              <div className="p-4 space-y-2">
-                <h3 className="font-semibold text-lg line-clamp-1">{course.title}</h3>
-                <p className="text-muted-foreground text-sm line-clamp-2">{course.description}</p>
-
-                <Button className="w-full mt-2" asChild>
-                  <Link to={`/catalog/category/${encodeURIComponent(course.category)}`}>
-                    Explore
-                  </Link>
-                </Button>
-              </div>
+          {filteredCatalogs.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No catalogs found matching your criteria.</p>
             </div>
-          ))}
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredCatalogs.map((catalog) => (
+                <div key={catalog.id} className="group overflow-hidden rounded-lg border bg-card hover:shadow-md transition-all">
+                  <div className="aspect-video w-full relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100">
+                    {catalog.thumbnail ? (
+                      <img
+                        src={catalog.thumbnail}
+                        alt={catalog.name}
+                        className="w-full h-full object-cover"
+                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                      />
+                    ) : null}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{ display: catalog.thumbnail ? 'none' : 'flex' }}
+                    >
+                      <FolderOpen className="h-16 w-16 text-blue-500" />
+                    </div>
+                    {/* Remove all Badge components that display catalog.category or 'General' in catalog cards */}
+                  </div>
+
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-semibold text-lg line-clamp-1">{catalog.name}</h3>
+                    <p className="text-muted-foreground text-sm line-clamp-2">{catalog.description}</p>
+
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <BookOpen className="h-4 w-4" />
+                        {courseCounts[catalog.id] || 0} courses
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      {/* Remove all Badge components that display catalog.category or 'General' in catalog cards */}
+                      <span className="text-sm text-muted-foreground">
+                        Created: {new Date(catalog.created_at || Date.now()).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    <Button className="w-full mt-2" asChild>
+                      <Link 
+                        to={`/dashboard/catalog/${catalog.id}`}
+                        state={{ catalog: catalog }}
+                      >
+                        View Courses
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

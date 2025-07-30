@@ -219,10 +219,6 @@ export function UpcomingLiveClasses() {
                       <MapPin className="w-4 h-4 text-purple-500" />
                       <span>{classItem.duration}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Users className="w-4 h-4 text-orange-500" />
-                      <span>{classItem.attendees}/{classItem.maxAttendees}</span>
-                    </div>
                   </div>
 
                   <p className="text-sm text-gray-600 leading-relaxed">

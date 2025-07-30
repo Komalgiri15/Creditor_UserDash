@@ -20,43 +20,43 @@ import { Input } from '@/components/ui/input';
 const carouselItems = [
   {
     id: 1,
-    title: "Mock Trial Competition",
-    description: "Join our prestigious Mock Trial Competition next week. Register by Friday to secure your participation.",
-    icon: Calendar,
-    type: 'event',
-    image: "https://images.unsplash.com/photo-1453945619913-79ec89a82c51?q=80&w=1000",
-    buttonText: "Register Now",
-    buttonLink: "/events"
-  },
-  {
-    id: 2,
-    title: "Complete Your Profile",
-    description: "Add your certifications and specialized legal fields of interest to get personalized course recommendations.",
+    title: "Welcome to Your Dashboard!",
+    description: "Explore your personalized dashboard. Track your progress, manage your tasks, and stay updated with the latest features.",
     icon: User,
     type: 'profile',
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1000",
-    buttonText: "Update Profile",
+    image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1000&q=80",
+    buttonText: "View Profile",
     buttonLink: "/profile"
   },
   {
+    id: 2,
+    title: "New Feature: Your Calendar ",
+    description: "View your upcoming events and deadlines with the new integrated calendar. Stay organized and never miss an important date.",
+    icon: Calendar,
+    type: 'event',
+    image: "https://i.pinimg.com/1200x/0b/0a/da/0b0ada13a45165cec43bdc91d2fe9028.jpg",
+    buttonText: "Open Calendar",
+    buttonLink: "/calendar"
+  },
+  {
     id: 3,
-    title: "New Course: Corporate Law",
-    description: "Our new comprehensive course on Corporate Law taught by leading industry professionals is now available.",
+    title: "Explore the Course Catalog",
+    description: "Browse all available courses and find new learning opportunities tailored to your interests.",
     icon: BookOpen,
     type: 'course',
-    image: "https://images.unsplash.com/photo-1560264280-88b68371db39?q=80&w=1000",
-    buttonText: "View Course",
-    buttonLink: "/courses"
+    image: "https://i.pinimg.com/1200x/a0/15/f7/a015f7b1535d6bd8ce88d705cdcbd231.jpg",
+    buttonText: "Browse Catalog",
+    buttonLink: "/dashboard/catalog"
   },
   {
     id: 4,
-    title: "Bar Exam Preparation",
-    description: "The platform will be updating our Bar Exam preparation materials next week. Complete your current modules before the update.",
-    icon: AlertCircle,
-    type: 'alert',
-    image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=1000",
+    title: "Recent Improvements",
+    description: "We’ve improved performance and squashed bugs for a smoother experience. Thank you for your feedback!",
+    icon: BookOpen,
+    type: 'course',
+    image: "https://i.pinimg.com/736x/b5/3e/be/b53ebe5bb381adc4d177f2aa81b1a829.jpg",
     buttonText: "Learn More",
-    buttonLink: "/courses"
+    buttonLink: "/updates"
   }
 ];
 
@@ -109,7 +109,7 @@ export function DashboardCarousel() {
                       alt={item.title}
                       className="h-full w-full object-cover object-center"
                     />
-                    <div className={`absolute inset-0 bg-gradient-to-r ${gradientClass} mix-blend-multiply opacity-80`} />
+                    <div className={`absolute inset-0 bg-gradient-to-r ${gradientClass} mix-blend-multiply opacity-50`} />
                   </div>
 
                   <div className="absolute inset-0 p-8 flex flex-col justify-between text-white">
@@ -123,7 +123,7 @@ export function DashboardCarousel() {
                       <p className="text-lg opacity-90 max-w-[80%] line-clamp-3">{item.description}</p>
                     </div>
 
-                    {item.buttonText && (
+                    {/* {item.buttonText && (
                       <Button
                         variant="outline"
                         className="self-start bg-white/10 border-white/30 hover:bg-white/20 backdrop-blur text-white"
@@ -137,7 +137,7 @@ export function DashboardCarousel() {
                       >
                         {item.buttonText}
                       </Button>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </CarouselItem>
@@ -152,7 +152,7 @@ export function DashboardCarousel() {
       </Carousel>
 
       {/* Register Modal */}
-      <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
+      {/* <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Register for Mock Trial</DialogTitle>
@@ -166,7 +166,7 @@ export function DashboardCarousel() {
             <Button onClick={() => setShowRegisterModal(false)}>Submit</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </>
   );
 }

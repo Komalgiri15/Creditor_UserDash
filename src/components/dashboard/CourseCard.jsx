@@ -1,65 +1,65 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, Clock } from "lucide-react";
+
+function formatDuration(secs) {
+  if (!secs) return "Duration not specified";
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m} min`;
+}
 
 export function CourseCard({
   id,
   title,
   description,
   image,
-  progress,
-  lessonsCount,
-  category,
-  duration
+  modulesCount,
+  totalDurationSecs,
+  category
 }) {
+  const navigate = useNavigate();
   return (
     <div>
-      <Link 
-        to={`/courses/${id}`}
-        className="flex flex-col overflow-hidden rounded-lg border bg-card"
-      >
-        <div className="aspect-video w-full relative overflow-hidden bg-muted">
+      <div className="flex flex-col overflow-hidden rounded-lg border bg-card min-h-[220px]">
+        <div className="w-full relative overflow-hidden bg-muted" style={{height: '110px'}}>
           <img
-            src={image}
+            src={image || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"}
             alt={title}
             className="object-cover w-full h-full"
+            style={{height: '110px'}}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0"></div>
           <Badge 
             variant="secondary" 
-            className="absolute top-2 right-2"
+            className="absolute top-1 right-1 text-xs px-2 py-0.5"
           >
             {category}
           </Badge>
         </div>
-        
-        <div className="flex flex-col flex-1 p-4 relative">
-          <h3 className="font-semibold text-lg line-clamp-1">{title}</h3>
-          <p className="text-muted-foreground line-clamp-2 text-sm mt-1 mb-4">{description}</p>
-          <div className="flex items-center text-sm text-muted-foreground gap-4 mt-auto">
+        <div className="flex flex-col flex-1 p-3 relative">
+          <h3 className="font-semibold text-base line-clamp-1">{title}</h3>
+          <p className="text-muted-foreground line-clamp-2 text-xs mt-1 mb-2">{description}</p>
+          <div className="flex items-center text-xs text-muted-foreground gap-3 mt-auto">
             <div className="flex items-center gap-1">
-              <BookOpen size={14} />
-              <span>{lessonsCount} lessons</span>
+              <BookOpen size={12} />
+              <span>{modulesCount || 0} modules</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock size={14} />
-              <span>{duration}</span>
+              <Clock size={12} />
+              <span>{formatDuration(totalDurationSecs)}</span>
             </div>
           </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{progress}%</span>
-            </div>
-            <Progress 
-              value={progress} 
-              className="h-2"
-              indicatorClassName="bg-gradient-to-r from-primary to-purple-400"
-            />
-          </div>
+          <button
+            className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition-colors duration-200"
+            onClick={() => navigate(`/dashboard/courses/${id}`)}
+          >
+            View Course
+          </button>
         </div>
-      </Link>
+      </div>
     </div>
   );
 }

@@ -57,3 +57,19 @@ export function debounce(func, wait) {
     timeout = window.setTimeout(later, wait);
   };
 }
+
+// Returns the ISO UTC start and end of today
+export function getTodayBounds() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+// Returns the ISO UTC start of today and end of 7 days from now
+export function getUpcomingWeekBounds() {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7, 23, 59, 59, 999));
+  return { start: start.toISOString(), end: end.toISOString() };
+}

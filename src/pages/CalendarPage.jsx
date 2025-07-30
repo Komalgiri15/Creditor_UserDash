@@ -6,72 +6,109 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
+import { getAllEvents, getAllUpcomingEvents } from "@/services/calendarService";
 
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(tomorrow.getDate() + 1);
+// Utility functions for date handling
+const getUserTimezone = () => {
+  return localStorage.getItem('userTimezone') || 'America/New_York';
+};
 
-const nextWeek = new Date(today);
-nextWeek.setDate(nextWeek.getDate() + 7);
+const getTodayBounds = () => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
 
-const threedays = new Date(today);
-threedays.setDate(threedays.getDate() + 3);
+const getUpcomingWeekBounds = () => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setDate(end.getDate() + 7);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
 
-const calendarEvents = [
-  {
-    id: 1,
-    title: "Mock Trial Competition",
-    date: tomorrow,
-    time: "10:00 AM - 12:00 PM",
-    location: "Virtual Court Room",
-    status: 'upcoming',
-    description: "Practice trial simulation with real case scenarios",
-    meetingLink: "https://zoom.us/j/mocktrial123"
-  },
-  {
-    id: 2,
-    title: "Legal Research Workshop",
-    date: today,
-    time: "2:00 PM - 4:00 PM",
-    location: "Online",
-    status: 'ongoing',
-    description: "Learn advanced legal research techniques and databases",
-    meetingLink: "https://zoom.us/j/legalresearch456"
-  },
-  {
-    id: 3,
-    title: "Bar Exam Study Group",
-    date: nextWeek,
-    time: "7:00 PM - 9:00 PM",
-    location: "Study Hall",
-    status: 'upcoming',
-    description: "Collaborative study session for bar exam preparation",
-    meetingLink: "https://zoom.us/j/barexam789"
-  },
-  {
-    id: 4,
-    title: "Contract Law Webinar",
-    date: threedays,
-    time: "1:00 PM - 2:30 PM",
-    location: "Zoom Meeting",
-    status: 'upcoming',
-    description: "Advanced contract drafting and negotiation strategies",
-    meetingLink: "https://zoom.us/j/contractlaw012"
-  },
-  {
-    id: 5,
-    title: "Constitutional Law Lecture",
-    date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 5),
-    time: "11:00 AM - 12:30 PM",
-    location: "Lecture Hall A",
-    status: 'upcoming',
-    description: "Supreme Court case analysis and constitutional interpretation",
-    meetingLink: "https://zoom.us/j/constitutional345"
-  }
-];
+const formatDateForDisplay = (date) => {
+  return date?.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    timeZone: getUserTimezone()
+  });
+};
 
 export function CalendarPage() {
-  const [selectedDate, setSelectedDate] = React.useState(today);
+  const [selectedDate, setSelectedDate] = React.useState(new Date());
+  const [allEvents, setAllEvents] = React.useState([]); // unified event list (expanded)
+  const [loading, setLoading] = React.useState({
+    all: true
+  });
+  const [error, setError] = React.useState(null);
+
+  // Fetch all upcoming events (with occurrences) once
+  React.useEffect(() => {
+    async function fetchAllUpcomingEvents() {
+      setError(null);
+      setLoading({ all: true });
+      try {
+        const now = new Date();
+        const startDate = now.toISOString();
+        const end = new Date();
+        end.setDate(end.getDate() + 30); // next 30 days
+        end.setHours(23, 59, 59, 999);
+        const endDate = end.toISOString();
+        const events = await getAllUpcomingEvents({ startDate, endDate });
+        const expanded = [];
+        events.forEach(event => {
+          if (event.isRecurring && Array.isArray(event.occurrences)) {
+            event.occurrences.forEach(occ => {
+              const occDate = new Date(occ);
+              if (occDate >= now) {
+                expanded.push({
+                  ...event,
+                  date: occDate,
+                  time: occDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: getUserTimezone() }),
+                  isOccurrence: true
+                });
+              }
+            });
+          } else if (event.startTime) {
+            const eventDate = new Date(event.startTime);
+            if (eventDate >= now) {
+              expanded.push({
+                ...event,
+                date: eventDate,
+                time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: getUserTimezone() }),
+                isOccurrence: false
+              });
+            }
+          }
+        });
+        expanded.sort((a, b) => a.date - b.date);
+        setAllEvents(expanded);
+      } catch (err) {
+        setError('Failed to load events');
+        setAllEvents([]);
+      } finally {
+        setLoading({ all: false });
+      }
+    }
+    fetchAllUpcomingEvents();
+  }, []);
+
+  // Filter events for the selected date
+  const selectedDateEvents = React.useMemo(() => {
+    if (!selectedDate) return [];
+    return allEvents.filter(event =>
+      event.date &&
+      event.date.getDate() === selectedDate.getDate() &&
+      event.date.getMonth() === selectedDate.getMonth() &&
+      event.date.getFullYear() === selectedDate.getFullYear()
+    );
+  }, [selectedDate, allEvents]);
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -82,24 +119,14 @@ export function CalendarPage() {
     }
   };
 
-  const selectedDateEvents = React.useMemo(() => {
-    if (!selectedDate) return [];
-    
-    return calendarEvents.filter(event => 
-      event.date.getDate() === selectedDate.getDate() &&
-      event.date.getMonth() === selectedDate.getMonth() &&
-      event.date.getFullYear() === selectedDate.getFullYear()
-    );
-  }, [selectedDate]);
-
   const handleJoinMeeting = (link) => {
-    window.open(link, '_blank');
+    if (link) window.open(link, '_blank');
   };
 
   return (
     <div className="container max-w-6xl py-8 px-4 md:px-0">
       <div className="flex items-center justify-between mb-6">
-        <Link to="/">
+        <Link to="/dashboard">
           <Button variant="ghost" size="sm" className="gap-1">
             <ChevronLeft size={16} />
             <span>Back to Dashboard</span>
@@ -124,7 +151,9 @@ export function CalendarPage() {
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={setSelectedDate}
+              onSelect={date => {
+                if (date) setSelectedDate(date); // Only update if date is not undefined
+              }}
               className="w-full border rounded-md"
               showOutsideDays={true}
             />
@@ -133,22 +162,33 @@ export function CalendarPage() {
         
         {/* Events List */}
         <div className="lg:col-span-2">
+          <p className="text-xs text-muted-foreground mb-2">
+            All times shown in your timezone: <b>{getUserTimezone()}</b>
+          </p>
           <div className="space-y-6">
             <h3 className="text-xl font-semibold">
-              {selectedDateEvents.length > 0 
-                ? `Events for ${selectedDate?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}` 
-                : `No events for ${selectedDate?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+              {loading.all ? (
+                'Loading events...'
+              ) : selectedDateEvents.length > 0 ? (
+                `Events for ${formatDateForDisplay(selectedDate)}`
+              ) : (
+                `No events for ${formatDateForDisplay(selectedDate)}`
+              )}
             </h3>
             
-            {selectedDateEvents.length > 0 ? (
+            {error ? (
+              <div className="text-red-500">{error}</div>
+            ) : loading.all ? (
+              <div>Loading events...</div>
+            ) : selectedDateEvents.length > 0 ? (
               <div className="space-y-4">
                 {selectedDateEvents.map((event) => (
-                  <Card key={event.id} className="p-4 hover:shadow-md transition-shadow">
+                  <Card key={event.id + (event.isOccurrence ? event.date.toISOString() : '')} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-3">
                       <h4 className="font-semibold text-lg">{event.title}</h4>
                       <div className="flex items-center gap-2">
                         <Badge className={getStatusColor(event.status)}>
-                          {event.status}
+                          {event.status || 'upcoming'}
                         </Badge>
                         {event.meetingLink && (
                           <Button
@@ -199,36 +239,19 @@ export function CalendarPage() {
       {/* All Upcoming Events */}
       <div className="mt-12">
         <h3 className="text-xl font-semibold mb-6">All Upcoming Events</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {calendarEvents
-            .filter(event => event.status === 'upcoming')
-            .sort((a, b) => a.date.getTime() - b.date.getTime())
-            .map((event) => (
-              <Card key={event.id} className="p-4 hover:shadow-md transition-shadow">
+        {loading.all ? (
+          <div>Loading upcoming events...</div>
+        ) : allEvents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {allEvents.map((event) => (
+              <Card key={event.id + (event.isOccurrence ? event.date.toISOString() : '')} className="p-4 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-medium">{event.title}</h4>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getStatusColor(event.status)}>
-                      {event.status}
-                    </Badge>
-                    {event.meetingLink && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleJoinMeeting(event.meetingLink)}
-                        className="flex items-center gap-1 h-6 px-2 text-xs"
-                      >
-                        Join
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
                 </div>
-                
                 <div className="space-y-1 text-sm text-muted-foreground mb-2">
                   <div className="flex items-center gap-2">
                     <CalendarIcon size={12} />
-                    <span>{event.date.toLocaleDateString()}</span>
+                    <span>{event.date ? formatDateForDisplay(event.date) : ''}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock size={12} />
@@ -241,13 +264,17 @@ export function CalendarPage() {
                     </div>
                   )}
                 </div>
-                
                 {event.description && (
                   <p className="text-xs text-muted-foreground">{event.description}</p>
                 )}
               </Card>
             ))}
-        </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-card text-card-foreground rounded-lg">
+            <p className="text-muted-foreground">No upcoming events found</p>
+          </div>
+        )}
       </div>
     </div>
   );

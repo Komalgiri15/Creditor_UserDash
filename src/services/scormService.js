@@ -1,24 +1,20 @@
 // SCORM Service for handling backend API calls
 // Replace the base URL with your actual backend API endpoint
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:9000/api';
-
 class ScormService {
   // Fetch course data from backend
-  static async fetchCourseData(courseId) {
+  static async fetchCourseData(moduleId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/scorm`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${moduleId}/scorm`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}` // Add your auth token
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -27,26 +23,23 @@ class ScormService {
     }
   }
 
-  // Update course progress
   static async updateCourseProgress(courseId, moduleId, progress) {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/progress`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/progress`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           moduleId,
           progress,
           timestamp: new Date().toISOString()
         })
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -55,21 +48,18 @@ class ScormService {
     }
   }
 
-  // Mark module as completed
   static async markModuleCompleted(courseId, moduleId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/modules/${moduleId}/complete`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/modules/${moduleId}/complete`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -78,21 +68,18 @@ class ScormService {
     }
   }
 
-  // Get user's progress for a course
   static async getUserProgress(courseId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/user-progress`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/user-progress`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -101,15 +88,14 @@ class ScormService {
     }
   }
 
-  // Save SCORM session data
   static async saveScormSession(courseId, moduleId, sessionData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/scorm/session`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/session`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           courseId,
           moduleId,
@@ -117,11 +103,9 @@ class ScormService {
           timestamp: new Date().toISOString()
         })
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -130,21 +114,18 @@ class ScormService {
     }
   }
 
-  // Get SCORM session data
   static async getScormSession(courseId, moduleId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/scorm/session/${courseId}/${moduleId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/session/${courseId}/${moduleId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
@@ -153,27 +134,46 @@ class ScormService {
     }
   }
 
-  // Get course analytics
   static async getCourseAnalytics(courseId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/analytics`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/analytics`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
       const data = await response.json();
       return data;
     } catch (error) {
       console.error('Error fetching course analytics:', error);
       throw error;
     }
+  }
+
+  static async uploadScorm({ moduleId, file, uploadedBy, description }) {
+    const formData = new FormData();
+    formData.append('scorm_package', file);
+    formData.append('module_id', moduleId);
+    formData.append('uploaded_by', uploadedBy);
+    formData.append('description', description);
+
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/upload_scorm`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      throw new Error(errorData.message || `Failed to upload SCORM (${response.status})`);
+    }
+    const data = await response.json();
+    console.log('SCORM upload response:', data);
+    return data;
   }
 }
 

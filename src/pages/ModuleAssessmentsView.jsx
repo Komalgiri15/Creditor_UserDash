@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -189,7 +189,7 @@ const assessmentSections = [
 ];
 
 function ModuleAssessmentsView() {
-  const { moduleId } = useParams();
+  const { moduleId, courseId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("");
   const [selectedQuizType, setSelectedQuizType] = useState("general");
@@ -222,358 +222,363 @@ function ModuleAssessmentsView() {
   }
 
   return (
-    <div className="container py-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to={`/courses/react-2023`}>
-            <ChevronLeft size={16} />
-            Back to module
-          </Link>
-        </Button>
-        <Badge>Assessments</Badge>
-      </div>
-
-      {/* Lesson Info */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-        <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-          {currentLesson.title}
-        </h1>
-        <p className="text-muted-foreground mb-4 text-lg">
-          {currentLesson.description}
-        </p>
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Clock size={16} />
-          <span>Estimated time: {currentLesson.estimatedTime}</span>
-        </div>
-      </div>
-
-      {/* Assessment Sections */}
-      <div className="space-y-4">
-        {assessmentSections.map((section) => (
-          <div key={section.id} className="assessment-section">
-            <Collapsible 
-              open={openSections[section.id]} 
-              onOpenChange={() => toggleSection(section.id)}
-            >
-              <CollapsibleTrigger asChild>
-                <Card className={`cursor-pointer hover:shadow-md transition-all ${section.color}`}>
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {section.icon}
-                        <div>
-                          <CardTitle className="text-lg">{section.title}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{section.description}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {section.id === 'quiz' && openSections[section.id] && (
-                          <Select value={selectedQuizType} onValueChange={setSelectedQuizType}>
-                            <SelectTrigger className="w-32" onClick={(e) => e.stopPropagation()}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="general">General Quiz</SelectItem>
-                              <SelectItem value="final">Final Quiz</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                        <ChevronDown 
-                          size={20} 
-                          className={`transition-transform duration-200 ${
-                            openSections[section.id] ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <Card className="mt-2 border-t-0 rounded-t-none">
-                  <CardContent className="p-6">
-                    {section.id === 'quiz' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm text-blue-700 font-medium">
-                            {selectedQuizType === 'general' 
-                              ? "📋 General Quizzes: Practice questions that won't affect your performance score." 
-                              : "🎯 Final Quizzes: Performance impact quizzes that will affect your progress and grades."
-                            }
-                          </p>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-6 text-xl">Available Quizzes:</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {[1, 2, 3, 4, 5, 6].map((quizNumber) => (
-                            <Link 
-                              key={quizNumber}
-                              to={`/quiz-instruction/${quizNumber}?module=${moduleId}&category=${selectedQuizType}`}
-                              className="block"
-                            >
-                              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                                <CardContent className="p-6">
-                                  <div className={`w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl mb-4`}>
-                                    <BookOpen size={24} />
-                                  </div>
-                                  <h4 className="font-bold text-lg mb-2">Quiz {quizNumber}</h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed">
-                                    {selectedQuizType === 'general' ? 'Practice Quiz' : 'Assessment Quiz'} - 10 questions covering various topics
-                                  </p>
-                                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                    Start Quiz <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {section.id === 'assignment' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                          <p className="text-sm text-green-700 font-medium">
-                            📝 Assignments: Complete practical projects to demonstrate your skills and understanding.
-                          </p>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-6 text-xl">Available Assignments:</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {assignmentData.map((assignment) => (
-                            <Link 
-                              key={assignment.id}
-                              to={`/assignment-instruction/${assignment.id}?module=${moduleId}`}
-                              className="block"
-                            >
-                              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                                <CardContent className="p-6">
-                                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center text-white mb-4">
-                                    <FileCheck size={24} />
-                                  </div>
-                                  <h4 className="font-bold text-lg mb-2">{assignment.title}</h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                                    {assignment.description}
-                                  </p>
-                                  <div className="space-y-2 text-xs text-muted-foreground">
-                                    <div className="flex justify-between">
-                                      <span>Max Score:</span>
-                                      <span className="font-medium">{assignment.maxScore} points</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Time Limit:</span>
-                                      <span className="font-medium">{assignment.timeLimit}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Attempts:</span>
-                                      <span className="font-medium">{assignment.attempts}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Difficulty:</span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {assignment.difficulty}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                    Start Assignment <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {section.id === 'essay' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <p className="text-sm text-purple-700 font-medium">
-                            ✍️ Essays: Write detailed essays and analytical pieces to demonstrate your understanding and critical thinking skills.
-                          </p>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-6 text-xl">Available Essays:</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {essayData.map((essay) => (
-                            <Link 
-                              key={essay.id}
-                              to={`/essay-instruction/${essay.id}?module=${moduleId}`}
-                              className="block"
-                            >
-                              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                                <CardContent className="p-6">
-                                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center text-white mb-4">
-                                    <PenTool size={24} />
-                                  </div>
-                                  <h4 className="font-bold text-lg mb-2">{essay.title}</h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                                    {essay.description}
-                                  </p>
-                                  <div className="space-y-2 text-xs text-muted-foreground">
-                                    <div className="flex justify-between">
-                                      <span>Max Score:</span>
-                                      <span className="font-medium">{essay.maxScore} points</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Time Limit:</span>
-                                      <span className="font-medium">{essay.timeLimit}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Word Limit:</span>
-                                      <span className="font-medium">{essay.wordLimit}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Attempts:</span>
-                                      <span className="font-medium">{essay.attempts}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Difficulty:</span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {essay.difficulty}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                    Start Essay <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {section.id === 'survey' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                          <p className="text-sm text-orange-700 font-medium">
-                            📋 Surveys: Share your feedback and help us improve the learning experience by participating in module surveys.
-                          </p>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-6 text-xl">Available Surveys:</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {[1, 2].map((surveyNumber) => (
-                            <Link 
-                              key={surveyNumber}
-                              to={`/survey-instruction/${surveyNumber}?module=${moduleId}`}
-                              className="block"
-                            >
-                              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                                <CardContent className="p-6">
-                                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white mb-4">
-                                    <FileText size={24} />
-                                  </div>
-                                  <h4 className="font-bold text-lg mb-2">Survey {surveyNumber}</h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                                    {surveyNumber === 1 
-                                      ? "Module Learning Experience - Share your feedback about this module's content and structure"
-                                      : "Course Content Evaluation - Help us evaluate the overall course materials and learning outcomes"
-                                    }
-                                  </p>
-                                  <div className="space-y-2 text-xs text-muted-foreground">
-                                    <div className="flex justify-between">
-                                      <span>Duration:</span>
-                                      <span className="font-medium">
-                                        {surveyNumber === 1 ? "5-10 minutes" : "8-12 minutes"}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Questions:</span>
-                                      <span className="font-medium">
-                                        {surveyNumber === 1 ? "5 questions" : "6 questions"}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Type:</span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {surveyNumber === 1 ? "Module Feedback" : "Content Evaluation"}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                    Start Survey <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {section.id === 'debate' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
-                          <p className="text-sm text-red-700 font-medium">
-                            🗣️ Debates: Engage in structured debates and discussions to develop critical thinking and argumentation skills.
-                          </p>
-                        </div>
-                        
-                        <h3 className="font-semibold mb-6 text-xl">Available Debates:</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {debateData.map((debate) => (
-                            <Link 
-                              key={debate.id}
-                              to={`/debate-instruction/${debate.id}?module=${moduleId}`}
-                              className="block"
-                            >
-                              <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
-                                <CardContent className="p-6">
-                                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white mb-4">
-                                    <MessageSquare size={24} />
-                                  </div>
-                                  <h4 className="font-bold text-lg mb-2">{debate.title}</h4>
-                                  <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                                    {debate.description}
-                                  </p>
-                                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                                    <p className="text-xs font-medium text-gray-600 mb-1">Topic:</p>
-                                    <p className="text-sm italic text-gray-800">"{debate.topic}"</p>
-                                  </div>
-                                  <div className="space-y-2 text-xs text-muted-foreground">
-                                    <div className="flex justify-between">
-                                      <span>Max Score:</span>
-                                      <span className="font-medium">{debate.maxScore} points</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Time Limit:</span>
-                                      <span className="font-medium">{debate.timeLimit}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Format:</span>
-                                      <span className="font-medium">{debate.participants}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Difficulty:</span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {debate.difficulty}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                    Start Debate <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </CollapsibleContent>
-            </Collapsible>
+    <div className="flex flex-col min-h-screen transition-colors duration-300">
+      <main className="flex-1">
+        <div className="container py-6 max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-2 mb-6">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/dashboard/courses/${courseId}`}>
+                <ChevronLeft size={16} />
+                Back to Course
+              </Link>
+            </Button>
+            <Badge>Module Assessments</Badge>
           </div>
-        ))}
-      </div>
+
+          {/* Lesson Info */}
+          <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
+            <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+              {currentLesson.title}
+            </h1>
+            <p className="text-muted-foreground mb-4 text-lg">
+              {currentLesson.description}
+            </p>
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Clock size={16} />
+              <span>Estimated time: {currentLesson.estimatedTime}</span>
+            </div>
+          </div>
+
+          {/* Assessment Sections */}
+          <div className="space-y-4">
+            {assessmentSections.map((section) => (
+              <div key={section.id} className="assessment-section">
+                <Collapsible 
+                  open={openSections[section.id]} 
+                  onOpenChange={() => toggleSection(section.id)}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Card className={`cursor-pointer hover:shadow-md transition-all ${section.color}`}>
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {section.icon}
+                            <div>
+                              <CardTitle className="text-lg">{section.title}</CardTitle>
+                              <p className="text-sm text-muted-foreground">{section.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {section.id === 'quiz' && openSections[section.id] && (
+                              <Select value={selectedQuizType} onValueChange={setSelectedQuizType}>
+                                <SelectTrigger className="w-32" onClick={(e) => e.stopPropagation()}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="general">General Quiz</SelectItem>
+                                  <SelectItem value="final">Final Quiz</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <ChevronDown 
+                              size={20} 
+                              className={`transition-transform duration-200 ${
+                                openSections[section.id] ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <Card className="mt-2 border-t-0 rounded-t-none">
+                      <CardContent className="p-6">
+                        {section.id === 'quiz' && (
+                          <div>
+                            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-sm text-blue-700 font-medium">
+                                {selectedQuizType === 'general' 
+                                  ? "📋 General Quizzes: Practice questions that won't affect your performance score." 
+                                  : "🎯 Final Quizzes: Performance impact quizzes that will affect your progress and grades."
+                                }
+                              </p>
+                            </div>
+                            
+                            <h3 className="font-semibold mb-6 text-xl">Available Quizzes:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {[1, 2, 3, 4, 5, 6].map((quizNumber) => (
+                                <Link 
+                                  key={quizNumber}
+                                  to={`/quiz-instruction/${quizNumber}?module=${moduleId}&category=${selectedQuizType}`}
+                                  className="block"
+                                >
+                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                    <CardContent className="p-6">
+                                      <div className={`w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl mb-4`}>
+                                        <BookOpen size={24} />
+                                      </div>
+                                      <h4 className="font-bold text-lg mb-2">Quiz {quizNumber}</h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {selectedQuizType === 'general' ? 'Practice Quiz' : 'Assessment Quiz'} - 10 questions covering various topics
+                                      </p>
+                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        Start Quiz <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {section.id === 'assignment' && (
+                          <div>
+                            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                              <p className="text-sm text-green-700 font-medium">
+                                📝 Assignments: Complete practical projects to demonstrate your skills and understanding.
+                              </p>
+                            </div>
+                            
+                            <h3 className="font-semibold mb-6 text-xl">Available Assignments:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {assignmentData.map((assignment) => (
+                                <Link 
+                                  key={assignment.id}
+                                  to={`/assignment-instruction/${assignment.id}?module=${moduleId}`}
+                                  className="block"
+                                >
+                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                    <CardContent className="p-6">
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center text-white mb-4">
+                                        <FileCheck size={24} />
+                                      </div>
+                                      <h4 className="font-bold text-lg mb-2">{assignment.title}</h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                                        {assignment.description}
+                                      </p>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div className="flex justify-between">
+                                          <span>Max Score:</span>
+                                          <span className="font-medium">{assignment.maxScore} points</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Time Limit:</span>
+                                          <span className="font-medium">{assignment.timeLimit}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Attempts:</span>
+                                          <span className="font-medium">{assignment.attempts}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Difficulty:</span>
+                                          <Badge variant="outline" className="text-xs">
+                                            {assignment.difficulty}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        Start Assignment <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {section.id === 'essay' && (
+                          <div>
+                            <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <p className="text-sm text-purple-700 font-medium">
+                                ✍️ Essays: Write detailed essays and analytical pieces to demonstrate your understanding and critical thinking skills.
+                              </p>
+                            </div>
+                            
+                            <h3 className="font-semibold mb-6 text-xl">Available Essays:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {essayData.map((essay) => (
+                                <Link 
+                                  key={essay.id}
+                                  to={`/essay-instruction/${essay.id}?module=${moduleId}`}
+                                  className="block"
+                                >
+                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                    <CardContent className="p-6">
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center text-white mb-4">
+                                        <PenTool size={24} />
+                                      </div>
+                                      <h4 className="font-bold text-lg mb-2">{essay.title}</h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                                        {essay.description}
+                                      </p>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div className="flex justify-between">
+                                          <span>Max Score:</span>
+                                          <span className="font-medium">{essay.maxScore} points</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Time Limit:</span>
+                                          <span className="font-medium">{essay.timeLimit}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Word Limit:</span>
+                                          <span className="font-medium">{essay.wordLimit}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Attempts:</span>
+                                          <span className="font-medium">{essay.attempts}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Difficulty:</span>
+                                          <Badge variant="outline" className="text-xs">
+                                            {essay.difficulty}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        Start Essay <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {section.id === 'survey' && (
+                          <div>
+                            <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <p className="text-sm text-orange-700 font-medium">
+                                📋 Surveys: Share your feedback and help us improve the learning experience by participating in module surveys.
+                              </p>
+                            </div>
+                            
+                            <h3 className="font-semibold mb-6 text-xl">Available Surveys:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {[1, 2].map((surveyNumber) => (
+                                <Link 
+                                  key={surveyNumber}
+                                  to={`/survey-instruction/${surveyNumber}?module=${moduleId}`}
+                                  className="block"
+                                >
+                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                    <CardContent className="p-6">
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center text-white mb-4">
+                                        <FileText size={24} />
+                                      </div>
+                                      <h4 className="font-bold text-lg mb-2">Survey {surveyNumber}</h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                                        {surveyNumber === 1 
+                                          ? "Module Learning Experience - Share your feedback about this module's content and structure"
+                                          : "Course Content Evaluation - Help us evaluate the overall course materials and learning outcomes"
+                                        }
+                                      </p>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div className="flex justify-between">
+                                          <span>Duration:</span>
+                                          <span className="font-medium">
+                                            {surveyNumber === 1 ? "5-10 minutes" : "8-12 minutes"}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Questions:</span>
+                                          <span className="font-medium">
+                                            {surveyNumber === 1 ? "5 questions" : "6 questions"}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Type:</span>
+                                          <Badge variant="outline" className="text-xs">
+                                            {surveyNumber === 1 ? "Module Feedback" : "Content Evaluation"}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        Start Survey <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {section.id === 'debate' && (
+                          <div>
+                            <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                              <p className="text-sm text-red-700 font-medium">
+                                🗣️ Debates: Engage in structured debates and discussions to develop critical thinking and argumentation skills.
+                              </p>
+                            </div>
+                            
+                            <h3 className="font-semibold mb-6 text-xl">Available Debates:</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {debateData.map((debate) => (
+                                <Link 
+                                  key={debate.id}
+                                  to={`/debate-instruction/${debate.id}?module=${moduleId}`}
+                                  className="block"
+                                >
+                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                    <CardContent className="p-6">
+                                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white mb-4">
+                                        <MessageSquare size={24} />
+                                      </div>
+                                      <h4 className="font-bold text-lg mb-2">{debate.title}</h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+                                        {debate.description}
+                                      </p>
+                                      <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                                        <p className="text-xs font-medium text-gray-600 mb-1">Topic:</p>
+                                        <p className="text-sm italic text-gray-800">"{debate.topic}"</p>
+                                      </div>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <div className="flex justify-between">
+                                          <span>Max Score:</span>
+                                          <span className="font-medium">{debate.maxScore} points</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Time Limit:</span>
+                                          <span className="font-medium">{debate.timeLimit}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Format:</span>
+                                          <span className="font-medium">{debate.participants}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Difficulty:</span>
+                                          <Badge variant="outline" className="text-xs">
+                                            {debate.difficulty}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
+                                        Start Debate <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import  ImmersiveReader  from "@/components/courses/ImmersiveReader";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
+import { useCourseTimer } from "@/components/courses/CourseTimerProvider";
 
 // Sample lesson data by module and lesson ID
 const lessonsDatabase = {
@@ -174,6 +175,7 @@ function LessonView() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState([100]);
   const navigate = useNavigate();
+  const { timeSpent, formatTime } = useCourseTimer();
   
   const lessonData = lessonsDatabase[moduleId]?.[lessonId] || lessonsDatabase["2"]["2"];
   
@@ -202,14 +204,14 @@ function LessonView() {
     setIsMuted(!isMuted);
   };
 
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="container py-6 max-w-5xl">
+      {/* Timer display */}
+      <div className="mb-4 flex items-center gap-2">
+        <Clock className="text-muted-foreground" size={20} />
+        <span className="font-medium">Time spent in this course:</span>
+        <span className="font-mono text-lg">{formatTime(timeSpent)}</span>
+      </div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>

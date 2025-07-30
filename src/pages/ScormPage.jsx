@@ -1,265 +1,419 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { allowedScormUserIds } from "@/data/allowedScormUsers";
 import { currentUserId } from "@/data/currentUser";
+import { fetchAllCourses, fetchCourseModules } from "@/services/courseService";
+import { CreateModuleDialog } from "@/components/courses/CreateModuleDialog";
+import ScormService from '@/services/scormService';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Search, Clock, ChevronLeft, Play, Eye, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
-// Dummy data for courses and modules
-const dummyCourses = [
-  {
-    id: 'course-1',
-    name: 'Complete React Developer in 2023',
-    description: 'Learn React from scratch with hooks, Redux, and more',
-    modules: [
-      { id: 'mod1', name: 'Introduction to React' },
-      { id: 'mod2', name: 'React Hooks Fundamentals' },
-      { id: 'mod3', name: 'State Management with Redux' },
-    ],
-  },
-  {
-    id: 'course-2',
-    name: 'Node.js Backend Development',
-    description: 'Build scalable backend applications with Node.js and Express',
-    modules: [
-      { id: 'mod1', name: 'Node.js Basics' },
-      { id: 'mod2', name: 'Express Routing' },
-    ],
-  },
-];
+const COURSES_PER_PAGE = 5;
 
 const ScormPage = () => {
-  const fileInputRef = useRef(null);
+  const [courses, setCourses] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [expandedCourseId, setExpandedCourseId] = useState(null);
+  const [courseModules, setCourseModules] = useState({});
   const [scormUploadState, setScormUploadState] = useState({});
-  const [activeModule, setActiveModule] = useState(null);
+  const [showCreateModuleDialog, setShowCreateModuleDialog] = useState(false);
+  const [selectedCourseForModule, setSelectedCourseForModule] = useState(null);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [previewModule, setPreviewModule] = useState(null);
+  const fileInputRef = useRef();
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
 
+  useEffect(() => {
+    if (!isAllowed) {
+      return;
+    }
+    const fetchCoursesData = async () => {
+      try {
+        const coursesData = await fetchAllCourses();
+        const coursesWithModules = await Promise.all(
+          coursesData.map(async (course) => {
+            try {
+              const modules = await fetchCourseModules(course.id);
+              return { ...course, modules };
+            } catch (err) {
+              console.error(`Error fetching modules for course ${course.id}:`, err);
+              return { ...course, modules: [] };
+            }
+          })
+        );
+        setCourses(coursesWithModules);
+      } catch (err) {
+        console.error('Error fetching courses:', err);
+      }
+    };
+    fetchCoursesData();
+  }, [isAllowed]);
+
+  // Filtered and paginated courses
+  const filteredCourses = useMemo(() => {
+    if (!searchTerm.trim()) return courses;
+    const lower = searchTerm.toLowerCase();
+    return courses.filter(course =>
+      course.title.toLowerCase().includes(lower) ||
+      course.modules.some(mod => mod.title.toLowerCase().includes(lower))
+    );
+  }, [courses, searchTerm]);
+
+  const totalPages = Math.ceil(filteredCourses.length / COURSES_PER_PAGE) || 1;
+  const paginatedCourses = filteredCourses.slice(
+    (currentPage - 1) * COURSES_PER_PAGE,
+    currentPage * COURSES_PER_PAGE
+  );
+
+  // Reset to page 1 if search changes
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+
   const handleExpandCourse = (courseId) => {
     setExpandedCourseId(expandedCourseId === courseId ? null : courseId);
-    setActiveModule(null);
+  };
+
+  const handleCreateModule = (courseId) => {
+    setSelectedCourseForModule(courseId);
+    setShowCreateModuleDialog(true);
+  };
+
+  const handleModuleCreated = async (newModule) => {
+    // Refresh modules for the specific course
+    if (selectedCourseForModule) {
+      try {
+        const updatedModules = await fetchCourseModules(selectedCourseForModule);
+        setCourses(prev => prev.map(course => 
+          course.id === selectedCourseForModule 
+            ? { ...course, modules: updatedModules }
+            : course
+        ));
+      } catch (err) {
+        console.error('Error refreshing modules:', err);
+      }
+    }
   };
 
   const handleAddScormClick = (courseId, moduleId) => {
-    setActiveModule({ courseId, moduleId });
-    setScormUploadState((prev) => ({ ...prev, [moduleId]: { file: null, uploading: false, uploaded: false, error: '' } }));
+    setScormUploadState(prev => ({
+      ...prev,
+      [moduleId]: { ...prev[moduleId], active: true }
+    }));
   };
 
   const handleFileChange = (moduleId, event) => {
     const file = event.target.files[0];
-    setScormUploadState((prev) => ({
-      ...prev,
-      [moduleId]: { ...prev[moduleId], file, previewUrl: null, error: '' }
-    }));
-  };
-
-  const handleDescriptionChange = (moduleId, event) => {
-    const description = event.target.value;
-    setScormUploadState((prev) => ({
-      ...prev,
-      [moduleId]: { ...prev[moduleId], description }
-    }));
-  };
-
-  const handlePublish = async (moduleId) => {
-    console.log("handle publish working");
-    
-    const { file, description } = scormUploadState[moduleId] || {};
-    if (!file || !description) {
+    if (file) {
       setScormUploadState(prev => ({
-        ...prev,
-        [moduleId]: { ...prev[moduleId], error: "File and description required" }
+      ...prev,
+        [moduleId]: { ...prev[moduleId], file, uploading: false, uploaded: false, error: '' }
       }));
-      return;
     }
-    const { courseId } = activeModule;
-    const formData = new FormData();
-    formData.append("course_id", courseId);
-    formData.append("module_id", moduleId);
-    formData.append("description", description);
-    formData.append("scorm_package", file);
-    formData.append("uploaded_by", "03d5a951-6de5-4753-bcd4-bab106b0f806");
+  };
+
+  const handleUpload = async (moduleId) => {
+    const uploadState = scormUploadState[moduleId];
+    if (!uploadState?.file) return;
+
+    setScormUploadState((prev) => ({
+      ...prev,
+      [moduleId]: { ...prev[moduleId], uploading: true, error: '' }
+    }));
 
     try {
-      console.log(formData);
-      const API_BASE_URL = "http://localhost:9000/api";
-      const res = await fetch(`${API_BASE_URL}/scorm/upload_scorm`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ2Yjc2OWMxLTNjMTEtNDBkZC05ODM4LTVhMGUzZTU4ODEwZSIsImVtYWlsIjoiZGVlcHJhakBjcmVkaXRvcmFjYWRlbXkuY29tIiwiaWF0IjoxNzUyODAwMTI1LCJleHAiOjE3NTUzOTIxMjV9.S-R9DqNw9loIB_tsLuQwbXpIq9f2NnFKLBd2SDXJAJk`,
-        },
-        body: formData,
+      const description = 'Dummy SCORM test file';
+      const result = await ScormService.uploadScorm({
+        moduleId,
+        file: uploadState.file,
+        uploadedBy: currentUserId,
+        description,
       });
       
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Upload failed: ${res.status} - ${errorText}`);
-      }
+      const fullUrl = `${import.meta.env.VITE_API_BASE_URL}${result.data.url}`;
       
-      const response = await res.json();
-      console.log("Success response:", response);
-      
-      const previewUrl = response.data.url || data.previewUrl || data.scormUrl;
-      
-      setScormUploadState(prev => ({
+      setScormUploadState((prev) => ({
         ...prev,
         [moduleId]: { 
           ...prev[moduleId], 
-          previewUrl: previewUrl, 
-          error: "",
-          published: true 
+          uploading: false,
+          uploaded: true,
+          previewUrl: fullUrl,
+          scormUrl: result.data.url,
+          error: ''
         }
       }));
-    } catch (err) {
-      setScormUploadState(prev => ({
+    } catch (error) {
+      setScormUploadState((prev) => ({
         ...prev,
-        [moduleId]: { ...prev[moduleId], error: err.message }
+        [moduleId]: {
+          ...prev[moduleId],
+          uploading: false,
+          error: 'Upload failed. Please try again.'
+        }
       }));
     }
   };
 
+  const handlePreviewModule = (module) => {
+    setPreviewModule(module);
+    setShowPreviewDialog(true);
+  };
+
+  if (!isAllowed) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You do not have permission to access SCORM Content Management.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">SCORM Content Management</h1>
-        <p className="text-gray-600">Manage and upload SCORM packages for your course modules</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">SCORM Content Management</h1>
+        <p className="text-gray-600">Upload and manage SCORM packages for your course modules</p>
       </div>
 
-      {!isAllowed ? (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+      {/* Search input */}
+      <div className="mb-6 flex items-center gap-2">
+        <Input
+          type="text"
+          placeholder="Search by course or module title..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full max-w-md"
+        />
+      </div>
+
+      {paginatedCourses.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                This page is only accessible to authorized users.
-              </p>
-            </div>
           </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No courses found</h3>
+          <p className="text-gray-500">Try a different search term.</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {dummyCourses.map((course) => (
+          {paginatedCourses.map((course) => (
             <div key={course.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div
-                className="px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{course.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{course.description}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
                 onClick={() => handleExpandCourse(course.id)}
-              >
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800">{course.name}</h2>
-                  <p className="text-sm text-gray-600 mt-1">{course.description}</p>
-                  <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-                    ID: {course.id}
-                  </span>
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      {expandedCourseId === course.id ? 'Hide Modules' : 'View Modules'}
+                    </button>
+                  </div>
                 </div>
-                <svg
-                  className={`h-5 w-5 text-gray-500 transform transition-transform ${expandedCourseId === course.id ? 'rotate-180' : ''}`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
               </div>
 
               {expandedCourseId === course.id && (
                 <div className="border-t border-gray-200 px-6 py-4">
                   <div className="space-y-4">
-                    {course.modules.map((mod) => {
+                    {course.modules.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No modules found for this course</p>
+                      </div>
+                    ) : (
+                      course.modules.map((mod) => {
                       const uploadState = scormUploadState[mod.id] || {};
-                      const isActive = activeModule && activeModule.courseId === course.id && activeModule.moduleId === mod.id;
+                        const isActive = uploadState.active;
+                        const hasExistingContent = mod.resource_url;
+                        
                       return (
                         <div key={mod.id} className="bg-gray-50 rounded-md p-4 border border-gray-200">
                           <div className="flex justify-between items-center">
                             <div>
-                              <h3 className="font-medium text-gray-800">{mod.name}</h3>
-                              <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded">
+                                <h3 className="font-medium text-gray-800">{mod.title}</h3>
+                                <p className="text-sm text-gray-600 mt-1">{mod.description}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded">
                                 Module ID: {mod.id}
                               </span>
-                            </div>
-                            <button
-                              onClick={() => handleAddScormClick(course.id, mod.id)}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                              Add SCORM
-                            </button>
-                          </div>
-
-                          {isActive && (
-                            <div className="mt-4 space-y-4">
-                              <div className="flex flex-col space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">SCORM Package (.zip)</label>
-                                <div className="flex items-center">
-                                  <input
-                                    type="file"
-                                    accept=".zip"
-                                    onChange={e => handleFileChange(mod.id, e)}
-                                    className="hidden"
-                                    id={`file-upload-${mod.id}`}
-                                    ref={fileInputRef}
-                                  />
-                                  <label
-                                    htmlFor={`file-upload-${mod.id}`}
-                                    className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
-                                  >
-                                    Choose File
-                                  </label>
-                                  <span className="ml-2 text-sm text-gray-500">
-                                    {uploadState.file ? uploadState.file.name : 'No file chosen'}
+                                  <span className="text-xs text-gray-500">Order: {mod.order || 'N/A'}</span>
+                                  <span className="text-xs text-gray-500">Duration: {mod.estimated_duration || 0} min</span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    mod.module_status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                                    mod.module_status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {mod.module_status}
                                   </span>
+                                  {hasExistingContent && (
+                                    <Badge variant="default" className="bg-green-100 text-green-800">
+                                      SCORM Uploaded
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
-
-                              <div className="flex flex-col space-y-2">
-                                <label className="block text-sm font-medium text-gray-700">Description</label>
-                                <input
-                                  type="text"
-                                  placeholder="Enter a description for this SCORM package"
-                                  value={uploadState.description || ""}
-                                  onChange={e => handleDescriptionChange(mod.id, e)}
-                                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
+                              <div className="flex gap-2">
+                                {hasExistingContent ? (
+                                  <Button
+                                    onClick={() => handlePreviewModule(mod)}
+                                    className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md"
+                                  >
+                                    <Eye size={14} className="mr-1" />
+                                    Preview
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => handleAddScormClick(course.id, mod.id)}
+                                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                                  >
+                                    <Upload size={14} className="mr-1" />
+                                    Add SCORM
+                                  </Button>
+                                )}
+                              </div>
                               </div>
 
-                              <div className="flex justify-end">
-                                <button
-                                  onClick={() => handlePublish(mod.id)}
-                                  disabled={!uploadState.file || !uploadState.description}
-                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  Publish SCORM Package
-                                </button>
+                            {isActive && !hasExistingContent && (
+                              <div className="mt-4 p-4 bg-white rounded-md border border-gray-200">
+                                <div className="space-y-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Upload SCORM Package
+                                    </label>
+                                    <input
+                                      ref={fileInputRef}
+                                      type="file"
+                                      accept=".zip"
+                                      onChange={(e) => handleFileChange(mod.id, e)}
+                                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    />
                               </div>
 
-                              {uploadState.error && (
-                                <div className="text-sm text-red-600 p-2 bg-red-50 rounded-md">
-                                  {uploadState.error}
+                                  {uploadState.file && (
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        onClick={() => handleUpload(mod.id)}
+                                        disabled={uploadState.uploading}
+                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                      >
+                                        {uploadState.uploading ? 'Uploading...' : 'Upload'}
+                                      </Button>
+                                      <span className="text-sm text-gray-600">
+                                        {uploadState.file.name}
+                                      </span>
                                 </div>
                               )}
 
-                              {uploadState.previewUrl && (
+                                  {uploadState.error && (
+                                    <div className="text-red-600 text-sm">{uploadState.error}</div>
+                                  )}
+
+                                  {uploadState.uploaded && uploadState.previewUrl && (
                                 <div className="mt-4">
-                                  <h4 className="text-sm font-medium text-gray-700 mb-2">SCORM Preview:</h4>
+                                      <h4 className="text-sm font-medium text-gray-700 mb-2">Preview:</h4>
                                   <iframe
-                                    src={`http://localhost:9000${uploadState.previewUrl}`}
-                                    className="w-full h-96 border rounded-md"
+                                        src={uploadState.previewUrl}
+                                        className="w-full h-64 border border-gray-300 rounded-md"
                                     title="SCORM Preview"
-                                    sandbox="allow-scripts allow-same-origin"
-                                  />
+                                      />
+                                      <div className="mt-2">
+                                        <h5 className="text-sm font-medium text-gray-700 mb-1">SCORM URL:</h5>
+                                        <div className="flex items-center gap-2">
+                                          <input
+                                            type="text"
+                                            value={uploadState.scormUrl || ''}
+                                            readOnly
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                          />
+                                          <Button
+                                            onClick={() => navigator.clipboard.writeText(uploadState.scormUrl)}
+                                            className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                                          >
+                                            Copy
+                                          </Button>
+                                        </div>
+                                      </div>
                                 </div>
                               )}
+                                </div>
                             </div>
                           )}
                         </div>
                       );
-                    })}
+                      })
+                    )}
                   </div>
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-8">
+          <Button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            variant="outline"
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
+          <Button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
+      )}
+
+      {/* Create Module Dialog */}
+      <CreateModuleDialog
+        isOpen={showCreateModuleDialog}
+        onClose={() => setShowCreateModuleDialog(false)}
+        courseId={selectedCourseForModule}
+        onModuleCreated={handleModuleCreated}
+        existingModules={courses.find(c => c.id === selectedCourseForModule)?.modules || []}
+      />
+
+      {/* Preview Dialog */}
+      {showPreviewDialog && previewModule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-xl font-semibold">{previewModule.title}</h2>
+                <p className="text-sm text-gray-600">{previewModule.description}</p>
+              </div>
+              <Button
+                onClick={() => setShowPreviewDialog(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+            </div>
+            <div className="flex-1 p-6">
+              <iframe
+                src={`${import.meta.env.VITE_API_BASE_URL}${previewModule.resource_url}`}
+                className="w-full h-full border border-gray-300 rounded-md"
+                title={previewModule.title}
+                allowFullScreen
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>

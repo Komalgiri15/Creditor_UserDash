@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Bookmark, Share2, Award, BookOpen } from "lucide-react";
+import { Bookmark, Share2, Award, BookOpen, Clock } from "lucide-react";
 import  ImmersiveReader  from "@/components/courses/ImmersiveReader";
+import { useCourseTimer } from "@/components/courses/CourseTimerProvider";
 
 // Sample lesson content for immersive reader
 const lessonContentForReader = `
@@ -42,6 +43,8 @@ function LessonDetail() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isImmersiveReaderOpen, setIsImmersiveReaderOpen] = useState(false);
   
+  const { timeSpent, formatTime } = useCourseTimer();
+
   // Animation effect when component mounts
   useEffect(() => {
     // Header animation
@@ -101,6 +104,12 @@ function LessonDetail() {
 
   return (
     <div className="container py-6 max-w-7xl">
+      {/* Timer display */}
+      <div className="mb-4 flex items-center gap-2">
+        <Clock className="text-muted-foreground" size={20} />
+        <span className="font-medium">Time spent in this course:</span>
+        <span className="font-mono text-lg">{formatTime(timeSpent)}</span>
+      </div>
       <LessonHeader
         moduleId={moduleId || ""}
         title="Context API & useContext"

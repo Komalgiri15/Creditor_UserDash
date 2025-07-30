@@ -1,297 +1,307 @@
-import React, { useState, useEffect } from "react";
-
-const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000";
-
-const PAGE_SIZE = 3;
+import React, { useState } from "react";
+import { Plus } from "lucide-react";
+import { useCourseManagement } from "../hooks/useCourseManagement";
+import CourseCard from "../components/courses/CourseCard";
+import CreateCourseModal from "../components/courses/CreateCourseModal";
+import EditCourseModal from "../components/courses/EditCourseModal";
+import CourseUsersModal from "../components/courses/CourseUsersModal";
+import CourseModulesSection from "../components/courses/CourseModulesSection";
+import ConfirmationDialog from "../components/ui/ConfirmationDialog";
+import { CreateModuleDialog } from "@/components/courses/CreateModuleDialog";
 
 const CreateCourse = ({ onCourseCreated }) => {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "",
-    estimated_duration: "",
-    price: "",
-    thumbnail: ""
-  });
-  const [formError, setFormError] = useState("");
-  const [success, setSuccess] = useState(false);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
+  const {
+    courses,
+    loading,
+    error,
+    expandedCourseId,
+    courseModules,
+    search,
+    page,
+    hasPrev,
+    hasNext,
+    totalPages,
+    setSearch,
+    setPage,
+    handleViewModules,
+    handleCreateModule,
+    handleUpdateModule,
+    handleDeleteModule,
+    handleDeleteCourse,
+    handleCourseUpdated,
+    handleCourseCreated,
+  } = useCourseManagement();
 
-  useEffect(() => {
-    const fetchCourses = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("http://localhost:9000/api/getAllCourses");
-        const response = await res.json();
-        if (response.success) {
-          setCourses(response.data);
-        } else {
-          setError("Failed to fetch courses");
-        }
-      } catch (err) {
-        setError("Failed to fetch courses");
-      } finally {
-        setLoading(false);
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteCourseConfirm, setShowDeleteCourseConfirm] = useState(false);
+  const [showCreateModuleDialog, setShowCreateModuleDialog] = useState(false);
+  
+  // Selected items
+  const [selectedCourseForEdit, setSelectedCourseForEdit] = useState(null);
+  const [selectedCourseForUsers, setSelectedCourseForUsers] = useState(null);
+  const [selectedCourseForModule, setSelectedCourseForModule] = useState(null);
+  const [moduleToDelete, setModuleToDelete] = useState(null);
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [editModuleData, setEditModuleData] = useState(null);
+  const [moduleDialogMode, setModuleDialogMode] = useState("create");
+
+  // API response state
+  const [apiResponse, setApiResponse] = useState(null);
+
+  // Handle course edit
+  const handleEditClick = (course) => {
+    setSelectedCourseForEdit(course);
+    setShowEditModal(true);
+  };
+
+  // Handle course delete
+  const handleDeleteClick = (course) => {
+    setCourseToDelete(course);
+    setShowDeleteCourseConfirm(true);
+  };
+
+  // Handle course delete confirmation
+  const confirmDeleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      await handleDeleteCourse(courseToDelete.id);
+      setShowDeleteCourseConfirm(false);
+      setCourseToDelete(null);
+      setApiResponse({ type: "success", message: "Course deleted successfully" });
+      setTimeout(() => setApiResponse(null), 3000);
+    } catch (err) {
+      console.error('Error deleting course:', err);
+      setApiResponse({ type: "error", message: err.message || "Failed to delete course" });
+    }
+  };
+
+  // Handle view users
+  const handleViewUsers = (courseId) => {
+    setSelectedCourseForUsers(courseId);
+    setShowUsersModal(true);
+  };
+
+  // Handle module creation
+  const handleCreateModuleClick = (courseId) => {
+    setSelectedCourseForModule(courseId);
+    setEditModuleData(null);
+    setModuleDialogMode("create");
+    setShowCreateModuleDialog(true);
+  };
+
+  // Handle module edit
+  const handleEditModuleClick = (courseId, module) => {
+    setSelectedCourseForModule(courseId);
+    setEditModuleData(module);
+    setModuleDialogMode("edit");
+    setShowCreateModuleDialog(true);
+  };
+
+  // Handle module delete
+  const handleDeleteModuleClick = (courseId, module) => {
+    setModuleToDelete({ courseId, module });
+    setShowDeleteConfirm(true);
+  };
+
+  // Handle module delete confirmation
+  const confirmDeleteModule = async () => {
+    if (!moduleToDelete) return;
+    
+    try {
+      const { courseId, module } = moduleToDelete;
+      await handleDeleteModule(courseId, module);
+      setShowDeleteConfirm(false);
+      setModuleToDelete(null);
+    } catch (err) {
+      console.error('Error deleting module:', err);
+      alert('Failed to delete module: ' + err.message);
+    }
+  };
+
+  // Handle module saved
+  const handleModuleSaved = async (moduleData) => {
+    try {
+      if (moduleDialogMode === "edit" && editModuleData) {
+        await handleUpdateModule(selectedCourseForModule, editModuleData.id, moduleData);
+      } else {
+        await handleCreateModule(selectedCourseForModule, moduleData);
       }
-    };
-    fetchCourses();
-  }, []);
-
-  const handleInputChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "thumbnail" && files && files[0]) {
-      setForm((prev) => ({ ...prev, thumbnail: files[0] }));
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }));
+    } catch (err) {
+      console.error('Error saving module:', err);
+      alert('Failed to save module: ' + err.message);
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.title || !form.description || !form.category || !form.estimated_duration || !form.price) {
-      setFormError("All fields except thumbnail are required.");
-      setSuccess(false);
-      return;
-    }
-    setFormError("");
-    setSuccess(true);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading courses...</p>
+        </div>
+      </div>
+    );
+  }
 
-    const newCourse = {
-      id: `course-${courses.length + 1}`,
-      title: form.title,
-      description: form.description,
-      category: form.category,
-      estimated_duration: form.estimated_duration,
-      price: form.price,
-      thumbnail: form.thumbnail ? URL.createObjectURL(form.thumbnail) : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      isHidden: false,
-      course_status: "DRAFT",
-      instructor_id: "userId-1",
-      courseType: "SEQUENTIAL",
-      deleted_at: null,
-      lockModules: "LOCKED",
-      requireFinalQuiz: false,
-      createdBy: null,
-      updatedBy: null
-    };
-
-    setCourses([newCourse, ...courses]);
-    if (onCourseCreated) {
-      onCourseCreated(form);
-    }
-    setForm({
-      title: "",
-      description: "",
-      category: "",
-      estimated_duration: "",
-      price: "",
-      thumbnail: ""
-    });
-    setShowModal(false);
-    setTimeout(() => setSuccess(false), 2000);
-    setPage(0);
-  };
-
-  const filteredCourses = courses.filter(course =>
-    course.title.toLowerCase().includes(search.toLowerCase()) ||
-    course.description.toLowerCase().includes(search.toLowerCase())
-  );
-  const paginatedCourses = filteredCourses.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const hasPrev = page > 0;
-  const hasNext = (page + 1) * PAGE_SIZE < filteredCourses.length;
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading courses</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <h2 className="text-xl font-semibold">Courses</h2>
-        <div className="flex-1 max-w-md">
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Search courses..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Course Management</h2>
+          <p className="text-gray-600 mt-1">Create and manage your courses</p>
         </div>
         <button
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
-          onClick={() => setShowModal(true)}
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
         >
+          <Plus className="w-4 h-4" />
           Create Course
         </button>
       </div>
 
-      {loading ? (
-        <div className="text-center text-gray-500 py-8">Loading courses...</div>
-      ) : error ? (
-        <div className="text-center text-red-600 py-8">{error}</div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {paginatedCourses.map((course) => (
-              <div key={course.id} className="flex flex-col border rounded-lg overflow-hidden bg-gray-50 hover:shadow-md transition-shadow">
-                <img
-                  src={course.thumbnail ? course.thumbnail : PLACEHOLDER_IMAGE}
-                  alt={course.title}
-                  className="h-40 w-full object-cover"
-                />
-                <div className="p-4 flex-1 flex flex-col">
-                  <h3 className="font-semibold text-lg mb-2 text-gray-800">{course.title}</h3>
-                  <p className="text-gray-600 text-sm line-clamp-3 mb-3">{course.description}</p>
-                  <div className="mt-auto space-y-1">
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Category: {course.category}</span>
-                      <span>${course.price}</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Duration: {course.estimated_duration} min
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {filteredCourses.length > PAGE_SIZE && (
-            <div className="flex justify-center gap-4">
+      {/* Search */}
+      <div className="flex gap-4">
+        <input
+          type="text"
+          placeholder="Search courses..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        />
+      </div>
+
+      {/* Success/Error Messages */}
+      {apiResponse && (
+        <div className={`border rounded-lg p-4 ${apiResponse.type === "success" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+          <p className={`text-sm ${apiResponse.type === "success" ? "text-green-800" : "text-red-800"}`}>
+          {apiResponse.message}
+          </p>
+        </div>
+      )}
+
+      {/* Courses Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {courses.map((course) => (
+          <CourseCard
+            key={course.id}
+            course={course}
+            onViewModules={handleViewModules}
+            onViewUsers={handleViewUsers}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+            isExpanded={expandedCourseId === course.id}
+          >
+            {expandedCourseId === course.id && (
+              <CourseModulesSection
+                courseId={course.id}
+                modules={courseModules[course.id]}
+                isLoading={!courseModules[course.id]}
+                onCreateModule={handleCreateModuleClick}
+                onEditModule={handleEditModuleClick}
+                onDeleteModule={handleDeleteModuleClick}
+              />
+            )}
+          </CourseCard>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center gap-2">
               <button
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 onClick={() => setPage(page - 1)}
                 disabled={!hasPrev}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
+          <span className="px-3 py-2 text-sm text-gray-700">
+            Page {page + 1} of {totalPages}
+          </span>
               <button
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 onClick={() => setPage(page + 1)}
                 disabled={!hasNext}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
             </div>
-          )}
-        </>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md relative">
-            <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl"
-              onClick={() => setShowModal(false)}
-              aria-label="Close"
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Create New Course</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Course Title*</label>
-                <input
-                  type="text"
-                  name="title"
-                  value={form.title}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter course title"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description*</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter course description"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category*</label>
-                  <input
-                    type="text"
-                    name="category"
-                    value={form.category}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g. Web Development"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)*</label>
-                  <input
-                    type="number"
-                    name="estimated_duration"
-                    value={form.estimated_duration}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g. 120"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price*</label>
-                <input
-                  type="number"
-                  name="price"
-                  value={form.price}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g. 0 or 199.99"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail Image</label>
-                <input
-                  type="file"
-                  name="thumbnail"
-                  accept="image/*"
-                  onChange={handleInputChange}
-                  className="w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                />
-              </div>
-              {formError && <div className="text-sm text-red-600 py-2">{formError}</div>}
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Create Course
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modals */}
+      <CreateCourseModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCourseCreated={handleCourseCreated}
+      />
+
+      <EditCourseModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        courseData={selectedCourseForEdit}
+        onCourseUpdated={handleCourseUpdated}
+      />
+
+      <CourseUsersModal
+        isOpen={showUsersModal}
+        onClose={() => setShowUsersModal(false)}
+        courseId={selectedCourseForUsers}
+      />
+
+      <CreateModuleDialog
+        isOpen={showCreateModuleDialog}
+        onClose={() => setShowCreateModuleDialog(false)}
+        courseId={selectedCourseForModule}
+        onModuleCreated={() => {}}
+        existingModules={courseModules[selectedCourseForModule] || []}
+        initialData={editModuleData}
+        mode={moduleDialogMode}
+        onSave={handleModuleSaved}
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDeleteModule}
+        title="Delete Module"
+        message={`Are you sure you want to delete the module "${moduleToDelete?.module?.title}"? This action cannot be undone.`}
+        confirmText="Delete Module"
+        type="danger"
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteCourseConfirm}
+        onClose={() => setShowDeleteCourseConfirm(false)}
+        onConfirm={confirmDeleteCourse}
+        title="Delete Course"
+        message={`Are you sure you want to delete the course "${courseToDelete?.title}"? This action cannot be undone.`}
+        confirmText="Delete Course"
+        type="danger"
+      />
     </div>
   );
 };

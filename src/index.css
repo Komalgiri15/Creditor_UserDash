@@ -3,7 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -44,6 +43,28 @@
 }
 
 @layer utilities {
+  /* Line clamp utilities for text truncation */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+  
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+  
   /* Enhanced scrollbar styles */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -99,52 +120,46 @@
   }
   
   /* Professional card styles */
-  .glass-card {
-    backdrop-filter: blur(16px);
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
   .card-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease-in-out;
   }
   
   .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
   
-  /* Enhanced toast animations */
+  /* Toast animations */
   .toast-enter {
-    animation: toast-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: toast-enter 0.3s ease-out;
   }
   
   @keyframes toast-enter {
     from {
       opacity: 0;
-      transform: translateY(-20px) scale(0.95);
+      transform: translateY(-10px);
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateY(0);
     }
   }
   
-  /* Gradient text effect */
+  /* Text shimmer effect */
   .text-shimmer {
-    background: linear-gradient(120deg, #1e40af, #7c3aed, #059669);
-    background-size: 200% 200%;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: shimmer 3s ease-in-out infinite;
   }
   
   @keyframes shimmer {
-    0%, 100% {
-      background-position: 0% 50%;
+    0% {
+      background-position: -200% 0;
     }
-    50% {
-      background-position: 100% 50%;
+    100% {
+      background-position: 200% 0;
     }
   }
 }

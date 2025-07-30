@@ -1,17 +1,19 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Maximize, Minimize } from "lucide-react";
 
-const MOCK_MODULE = {
-  id: "mod1",
-  title: "Introduction to React",
-  scormUrl: "/ModulePackages/react-2023/module1/index.html" // Replace with actual uploaded SCORM path
-};
-
 const Scrompack = () => {
   const navigate = useNavigate();
+  const { courseId, moduleId } = useParams();
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Mock module data - in production, you would fetch this based on courseId and moduleId
+  const moduleData = {
+    id: moduleId,
+    title: "Introduction to React",
+    scormUrl: `/ModulePackages/${courseId}/module${moduleId}/index.html`
+  };
 
   const handleFullscreen = () => {
     const iframe = document.getElementById("scorm-iframe");
@@ -26,7 +28,7 @@ const Scrompack = () => {
   };
 
   const handleBack = () => {
-    navigate(-1); // Go back to CourseView
+    navigate(`/dashboard/courses/${courseId}`);
   };
 
   return (
@@ -36,7 +38,7 @@ const Scrompack = () => {
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">{MOCK_MODULE.title}</h1>
+          <h1 className="text-lg font-semibold">{moduleData.title}</h1>
         </div>
         <Button variant="ghost" size="icon" onClick={handleFullscreen}>
           {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
@@ -45,8 +47,8 @@ const Scrompack = () => {
       <div className="flex-1">
         <iframe
           id="scorm-iframe"
-          title={MOCK_MODULE.title}
-          src={MOCK_MODULE.scormUrl}
+          title={moduleData.title}
+          src={moduleData.scormUrl}
           className="w-full h-full border-0"
           allowFullScreen
         />
