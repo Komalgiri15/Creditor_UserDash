@@ -418,8 +418,8 @@ const AddEvent = () => {
       });
       const data = await res.json();
       console.log('API /recurrence-exception GET response:', data);
-      // Expecting data.data to be an array of ISO strings (deleted occurrence startTimes)
-      return data.data || [];
+      // Return array of deleted occurrence objects
+      return (data.data || []);
     } catch (err) {
       console.error('Failed to fetch deleted occurrences', err);
       return [];
@@ -566,31 +566,37 @@ const AddEvent = () => {
     }
   };
 
-  // Restore a deleted occurrence in a recurring event (GET)
+  // Restore a deleted occurrence in a recurring event (DELETE)
   const handleRestoreOccurrence = async (eventId, occurrenceDate) => {
     setDeletingOccurrenceKey(occurrenceDate);
     try {
       const token = getAuthToken();
       console.log('Restoring occurrence:', { eventId, occurrenceDate });
-      // RESTORE a single occurrence in a recurring event (GET)
+      // RESTORE a single occurrence in a recurring event (DELETE)
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception/restore?occurrenceDate=${encodeURIComponent(occurrenceDate)}`,
+        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`,
         {
-          method: "GET",
+          method: "DELETE",
           headers: {
+            "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
             "X-User-Role": getUserRole(),
           },
           credentials: "include",
+          body: JSON.stringify({ occurrenceDate }),
         }
       );
+      if (!res.ok) {
+        throw new Error("Failed to restore occurrence");
+      }
       // Refetch events after restore
       const data = await getAllEvents();
       setEvents(data);
       setShowRecurringDeleteModal(false);
-      setModalMessage("Event restored");
+      setModalMessage("Event restored successfully");
     } catch (err) {
       console.error("Failed to restore occurrence", err);
+      setModalMessage("Failed to restore event occurrence");
     } finally {
       setDeletingOccurrenceKey(null);
     }
@@ -656,16 +662,7 @@ const AddEvent = () => {
       recurrenceRule = {
         frequency: recurrenceMap[form.recurrence] || 'DAILY',
         interval: 1,
-        endDate: endDate.toISOString(),
-        // Add additional properties that might be expected by backend
-        count: null, // Let endDate control the end
-        byDay: [], // For weekly recurrence
-        byMonthDay: [], // For monthly recurrence
-        byYearDay: [], // For yearly recurrence
-        byWeekNo: [], // For yearly recurrence
-        byMonth: [], // For yearly recurrence
-        bySetPos: [], // For recurrence exceptions
-        weekStart: 'MO' // Monday as week start
+        endDate: endDate.toISOString()
       };
     }
 
@@ -679,13 +676,17 @@ const AddEvent = () => {
       calendarType: "GROUP",
       visibility: "PRIVATE",
       courseName: selectedCourse ? selectedCourse.title : "",
-      userRole: currentRole, // Include user role in payload
-      timeZone: "America/Los_Angeles" // Set timezone to PST for backend compatibility
+      timeZone: "America/Los_Angeles"
     };
     
     // Add recurrence rule if it's a recurring event
     if (isRecurring && recurrenceRule) {
       payload.recurrenceRule = recurrenceRule;
+      // Remove userRole if present (for recurring events)
+      // (userRole is not added above, so nothing to remove)
+    } else {
+      // For normal events, add userRole as before if needed
+      payload.userRole = currentRole;
     }
 
     console.log("=== EVENT CREATION DEBUG INFO ===");
@@ -746,6 +747,7 @@ const AddEvent = () => {
       try {
         const token = getAuthToken();
         console.log('Creating new event with payload:', payload);
+        console.log('Payload JSON:', JSON.stringify(payload, null, 2));
         
         const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
           method: "POST",
@@ -758,13 +760,15 @@ const AddEvent = () => {
           credentials: "include"
         });
         
+        // Log the response status and body for debugging
+        console.log('POST /calendar/events status:', postRes.status);
+        const responseText = await postRes.text();
+        console.log('POST /calendar/events response:', responseText);
         if (!postRes.ok) {
-          const errorText = await postRes.text();
           let errorMessage = 'Failed to create event';
           try {
-            const errorData = JSON.parse(errorText);
+            const errorData = JSON.parse(responseText);
             errorMessage = errorData.message || errorMessage;
-            
             // Check if it's a role-related error
             if (postRes.status === 403 && errorData.message?.includes('Access restricted to admin, instructor roles')) {
               console.error("Role verification failed. Backend expects role in JWT token but token doesn't contain role information.");
@@ -772,13 +776,13 @@ const AddEvent = () => {
               return;
             }
           } catch (e) {
-            errorMessage = errorText || errorMessage;
+            errorMessage = responseText || errorMessage;
           }
           throw new Error(errorMessage);
         }
         
-        const postData = await postRes.json();
-        console.log("POST response:", postData);
+        const postData = JSON.parse(responseText);
+        console.log("POST response (parsed):", postData);
         
         // Refetch events after adding
         const data = await getAllEvents();
@@ -1404,26 +1408,28 @@ const AddEvent = () => {
             </div>
             <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
               {recurringDeleteEvent.deletedOccurrences && recurringDeleteEvent.deletedOccurrences.length > 0 ? (
-                recurringDeleteEvent.deletedOccurrences.map((deletedDate) => {
+                recurringDeleteEvent.deletedOccurrences.map((deletedObj) => {
+                  // Support both string and object for backward compatibility
+                  const occurrenceDate = typeof deletedObj === 'string' ? deletedObj : deletedObj.occurrence_date;
                   let dateLabel = "-";
                   let timeLabel = "-";
-                  const dateObj = new Date(deletedDate);
+                  const dateObj = new Date(occurrenceDate);
                   if (!isNaN(dateObj.getTime())) {
                     dateLabel = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: userTimezone });
                     timeLabel = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', timeZone: userTimezone });
                   }
                   return (
-                    <li key={deletedDate} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <li key={occurrenceDate} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
                       <div>
                         <p className="text-sm font-medium text-gray-900">{dateLabel}</p>
                         <p className="text-xs text-gray-500">{timeLabel}</p>
                       </div>
                       <button
-                        className={`ml-4 px-3 py-1 text-sm rounded-md transition-colors ${deletingOccurrenceKey === deletedDate ? 'bg-gray-100 text-gray-400' : 'text-green-600 hover:bg-green-50 border border-green-100'}`}
-                        disabled={deletingOccurrenceKey === deletedDate}
-                        onClick={() => handleRestoreOccurrence(recurringDeleteEvent.id, deletedDate)}
+                        className={`ml-4 px-3 py-1 text-sm rounded-md transition-colors ${deletingOccurrenceKey === occurrenceDate ? 'bg-gray-100 text-gray-400' : 'text-green-600 hover:bg-green-50 border border-green-100'}`}
+                        disabled={deletingOccurrenceKey === occurrenceDate}
+                        onClick={() => handleRestoreOccurrence(recurringDeleteEvent.id, occurrenceDate)}
                       >
-                        {deletingOccurrenceKey === deletedDate ? (
+                        {deletingOccurrenceKey === occurrenceDate ? (
                           <span className="flex items-center">
                             <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -127,8 +127,7 @@ export async function createCatalog(catalogData) {
     const sanitizedData = {
       name: catalogData.name.trim(),
       description: catalogData.description.trim(),
-      ...(catalogData.thumbnail && { thumbnail: catalogData.thumbnail.trim() }),
-      ...(catalogData.courses && Array.isArray(catalogData.courses) && catalogData.courses.length > 0 && { courses: catalogData.courses })
+      ...(catalogData.thumbnail && { thumbnail: catalogData.thumbnail.trim() })
     };
     
     // Additional validation for data length and content
@@ -141,9 +140,7 @@ export async function createCatalog(catalogData) {
     if (sanitizedData.thumbnail && sanitizedData.thumbnail.length > 500) {
       throw new Error('Thumbnail URL is too long');
     }
-    if (sanitizedData.courses && (!Array.isArray(sanitizedData.courses) || sanitizedData.courses.some(courseId => typeof courseId !== 'string'))) {
-      throw new Error('Courses must be an array of valid course IDs');
-    }
+
     
     const headers = getAuthHeaders();
     
@@ -194,7 +191,16 @@ export async function createCatalog(catalogData) {
 
     if (response.ok) {
       const data = await response.json();
-      return data;
+      console.log('Backend catalog creation response:', data);
+      console.log('Backend response type:', typeof data);
+      console.log('Backend response keys:', Object.keys(data || {}));
+      
+      // Ensure consistent response structure
+      return {
+        success: true,
+        message: 'Catalog created successfully',
+        data: data
+      };
     }
 
     // Enhanced error handling with detailed logging
@@ -220,7 +226,7 @@ export async function createCatalog(catalogData) {
         name: sanitizedData.name,
         description: sanitizedData.description,
         thumbnail: sanitizedData.thumbnail,
-        courses: sanitizedData.courses || [],
+        courses: [], // Initialize with empty courses array
         createdAt: new Date().toISOString(),
         isLocal: true // Flag to indicate this is a local catalog
       };
@@ -487,8 +493,22 @@ export async function deleteCatalog(catalogId) {
 // Add courses to a catalog
 export async function addCoursesToCatalog(catalogId, courseIds) {
   try {
+    console.log('addCoursesToCatalog called with:', { catalogId, courseIds });
+    
+    // Validate inputs
+    if (!catalogId) {
+      console.error('addCoursesToCatalog: catalogId is required');
+      return { success: false, message: 'Catalog ID is required' };
+    }
+    
+    if (!courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
+      console.error('addCoursesToCatalog: courseIds must be a non-empty array');
+      return { success: false, message: 'Course IDs must be a non-empty array' };
+    }
+    
     // Check if it's a local catalog
     if (catalogId.startsWith('local-')) {
+      console.log('Adding courses to local catalog:', catalogId);
       const localCatalogs = JSON.parse(localStorage.getItem('localCatalogs') || '[]');
       const catalogIndex = localCatalogs.findIndex(cat => cat.id === catalogId);
       
@@ -500,14 +520,22 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
         ];
         localStorage.setItem('localCatalogs', JSON.stringify(localCatalogs));
         
+        console.log('Courses added to local catalog successfully');
         return {
           success: true,
           message: 'Courses added to local catalog successfully'
         };
+      } else {
+        console.error('Local catalog not found:', catalogId);
+        return { success: false, message: 'Local catalog not found' };
       }
     }
 
     // Try backend addition
+    console.log('Adding courses to backend catalog:', catalogId);
+    console.log('Request payload:', { courseIds });
+    console.log('Request URL:', `${import.meta.env.VITE_API_BASE_URL}/api/catalog/${catalogId}/addcourses`);
+    
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/catalog/${catalogId}/addcourses`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -515,13 +543,21 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
       body: JSON.stringify({ courseIds }),
     });
 
+    console.log('Backend response status:', response.status);
+
     if (response.ok) {
       const data = await response.json();
+      console.log('Backend course addition successful:', data);
       return data;
+    } else {
+      console.log('Backend course addition failed with status:', response.status);
+      const responseText = await response.text();
+      console.log('Backend response body:', responseText);
     }
 
     // If backend fails, handle locally
     if (response.status === 403 || response.status === 404 || response.status === 500) {
+      console.warn(`Backend returned ${response.status} error, handling locally`);
       // For local catalogs, we already handled above
       // For backend catalogs, we'll just return success to avoid breaking the flow
       return {
@@ -531,8 +567,10 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
     }
 
     const errorData = await response.json().catch(() => ({}));
+    console.error('Backend course addition failed:', errorData);
     throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
   } catch (error) {
+    console.error('addCoursesToCatalog error:', error);
     // Don't throw error, just return a success message to avoid breaking the flow
     return {
       success: true,

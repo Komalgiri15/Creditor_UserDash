@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-bh52.onrender.com";
 
 const ManageUsers = () => {
+  const { userRole, hasRole } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,11 +24,17 @@ const ManageUsers = () => {
   const [error, setError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState({ courseTitle: "", addedUsers: [] });
-  const [makingInstructor, setMakingInstructor] = useState(false);
+
+  const [updatingRole, setUpdatingRole] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deletingUser, setDeletingUser] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [enrollmentProgress, setEnrollmentProgress] = useState({ current: 0, total: 0 });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(5);
 
   useEffect(() => {
     fetchUsers();
@@ -192,7 +200,7 @@ const ManageUsers = () => {
     });
     
     if (user.user_roles && user.user_roles.length > 0) {
-      // Priority order: admin > instructor > user
+      // Priority order: admin > instructor > user (single role system)
       const roles = user.user_roles.map(r => r.role);
       
       if (roles.includes('admin')) {
@@ -284,6 +292,17 @@ const ManageUsers = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Pagination logic
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterRole]);
+
   const handleSelectUser = (userId) => {
     setSelectedUsers(prev => 
       prev.includes(userId) 
@@ -293,10 +312,10 @@ const ManageUsers = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedUsers.length === filteredUsers.length) {
+    if (selectedUsers.length === currentUsers.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(filteredUsers.map(user => user.id));
+      setSelectedUsers(currentUsers.map(user => user.id));
     }
   };
 
@@ -340,19 +359,9 @@ const ManageUsers = () => {
         });
       } else if (filterRole === "instructor") {
         // Add instructors to course
-        console.log('🔄 Adding instructors to course:', { courseId: selectedCourse, instructorIds: selectedUsers });
+        console.log('🔄 Adding instructors to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
         console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
         console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
-        
-        // Check if selectedUsers is an array and not empty
-        if (!Array.isArray(selectedUsers) || selectedUsers.length === 0) {
-          throw new Error('No instructors selected or invalid selection format');
-        }
-        
-        // Check if courseId is valid
-        if (!selectedCourse || typeof selectedCourse !== 'string') {
-          throw new Error('Invalid course ID');
-        }
         
         // Check if the selected course actually exists
         const selectedCourseData = courses.find(c => c.id === selectedCourse);
@@ -360,8 +369,9 @@ const ManageUsers = () => {
           throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
         }
         
-        response = await axios.post(`${API_BASE}/api/course/addInstructor/${selectedCourse}`, {
-          instructorIds: selectedUsers
+        response = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
+          course_id: selectedCourse,
+          learnerIds: selectedUsers
         }, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -369,12 +379,11 @@ const ManageUsers = () => {
           },
           withCredentials: true,
         });
-        console.log('🔄 Response:', response);
       }
     
        else if (filterRole === "admin") {
         // Add admins to course
-        console.log('🔄 Adding admins to course:', { courseId: selectedCourse, adminIds: selectedUsers });
+        console.log('🔄 Adding admins to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
         console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
         console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
         
@@ -384,8 +393,9 @@ const ManageUsers = () => {
           throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
         }
         
-        response = await axios.post(`${API_BASE}/api/course/addAdmin/${selectedCourse}`, {
-          adminIds: selectedUsers
+        response = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
+          course_id: selectedCourse,
+          learnerIds: selectedUsers
         }, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -603,7 +613,7 @@ const ManageUsers = () => {
     if (selectedUsers.length === 0) return;
     
     try {
-      setMakingInstructor(true);
+      setUpdatingRole(true);
       setError("");
       
       const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
@@ -664,20 +674,20 @@ const ManageUsers = () => {
               const hasInstructorRole = user.user_roles?.some(role => role.role === 'instructor');
               
               if (!hasInstructorRole) {
-                // Add instructor role to existing roles
+                // Replace all roles with instructor role (single role system)
                 const updatedUser = {
                   ...user,
                   user_roles: [
-                    ...(user.user_roles || []),
                     { role: 'instructor' }
                   ]
                 };
                 
-                console.log('🔄 Manually updating user role to instructor:', {
+                console.log('🔄 Manually updating user role to instructor (single role system):', {
                   id: user.id,
                   name: `${user.first_name} ${user.last_name}`,
                   oldRoles: user.user_roles,
-                  newRoles: updatedUser.user_roles
+                  newRoles: updatedUser.user_roles,
+                  message: 'All previous roles replaced with instructor role'
                 });
                 
                 return updatedUser;
@@ -706,12 +716,83 @@ const ManageUsers = () => {
         // Reset selection first
         setSelectedUsers([]);
         
-        // Show success message immediately
+        // Automatically enroll new instructors in all courses
+        console.log('🎓 Automatically enrolling new instructors in all courses...');
+        console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
+        console.log('👥 New instructors to enroll:', selectedUsers);
+        
+        try {
+          // Set initial enrollment progress
+          setEnrollmentProgress({ current: 0, total: courses.length });
+          
+          // Enroll each new instructor in all courses
+          const enrollmentPromises = courses.map(async (course, index) => {
+            try {
+              console.log(`🔄 Enrolling instructors in course: ${course.title} (${course.id})`);
+              
+              const enrollmentResponse = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
+                course_id: course.id,
+                learnerIds: selectedUsers
+              }, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                withCredentials: true,
+              });
+              
+              console.log(`✅ Successfully enrolled instructors in course: ${course.title}`, enrollmentResponse.data);
+              setEnrollmentProgress(prev => ({ ...prev, current: prev.current + 1 }));
+              return { course, success: true, response: enrollmentResponse.data };
+            } catch (enrollmentError) {
+              console.log(`⚠️ Failed to enroll instructors in course: ${course.title}`, enrollmentError.response?.data);
+              setEnrollmentProgress(prev => ({ ...prev, current: prev.current + 1 }));
+              return { course, success: false, error: enrollmentError.response?.data };
+            }
+          });
+          
+          const enrollmentResults = await Promise.all(enrollmentPromises);
+          const successfulEnrollments = enrollmentResults.filter(result => result.success);
+          const failedEnrollments = enrollmentResults.filter(result => !result.success);
+          
+          console.log('📊 Enrollment results:', {
+            totalCourses: courses.length,
+            successfulEnrollments: successfulEnrollments.length,
+            failedEnrollments: failedEnrollments.length,
+            successfulCourses: successfulEnrollments.map(r => r.course.title),
+            failedCourses: failedEnrollments.map(r => r.course.title)
+          });
+          
+          // Show success message with enrollment information
+          const enrollmentMessage = successfulEnrollments.length > 0 
+            ? ` and enrolled them in ${successfulEnrollments.length} course(s)`
+            : '';
+          
         setSuccessData({
           courseTitle: "Role Update",
-          addedUsers: updatedUsers
+            addedUsers: updatedUsers,
+            enrollmentInfo: {
+              successful: successfulEnrollments.length,
+              total: courses.length,
+              message: enrollmentMessage
+            }
         });
         setShowSuccessModal(true);
+          
+        } catch (enrollmentError) {
+          console.error('❌ Error during automatic course enrollment:', enrollmentError);
+          // Still show success for role update, but log enrollment error
+          setSuccessData({
+            courseTitle: "Role Update",
+            addedUsers: updatedUsers,
+            enrollmentInfo: {
+              successful: 0,
+              total: courses.length,
+              message: ' (course enrollment failed)'
+            }
+          });
+          setShowSuccessModal(true);
+        }
         
         // Wait a moment for backend to process, then refresh
         console.log('🔄 Waiting for backend to process role update...');
@@ -729,7 +810,7 @@ const ManageUsers = () => {
             id: user.id,
             name: `${user.first_name} ${user.last_name}`,
             role: getUserRole(user),
-            user_roles: user.user_roles
+            user_roles: u.user_roles
           })));
         }, 2000);
       } else {
@@ -761,7 +842,243 @@ const ManageUsers = () => {
         setError('Failed to update user roles. Please try again.');
       }
     } finally {
-      setMakingInstructor(false);
+      setUpdatingRole(false);
+    }
+  };
+
+  const handleMakeAdmin = async () => {
+    if (selectedUsers.length === 0) return;
+    
+    try {
+      setUpdatingRole(true);
+      setError("");
+      
+      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      console.log('🔄 Making admin API call:', {
+        url: `${API_BASE}/api/user/make-admins`,
+        payload: { user_ids: selectedUsers },
+        selectedUsers
+      });
+      
+      // Make API call to make users admins
+      const response = await axios.post(`${API_BASE}/api/user/make-admins`, {
+        user_ids: selectedUsers
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+
+      console.log('✅ Make admin API response:', response.data);
+
+      // Check if the request was successful (HTTP 200-299)
+      if (response.status >= 200 && response.status < 300) {
+        // Get the selected users data
+        const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+        
+        console.log('✅ Success! Users to be updated to admin:', updatedUsers.map(u => ({ id: u.id, name: `${u.first_name} ${u.last_name}`, currentRole: getUserRole(u) })));
+        
+        // Manually update the local state to reflect the role change
+        setUsers(prevUsers => {
+          const newUsers = prevUsers.map(user => {
+            if (selectedUsers.includes(user.id)) {
+              // Check if user already has admin role
+              const hasAdminRole = user.user_roles?.some(role => role.role === 'admin');
+              
+              if (!hasAdminRole) {
+                // Replace all roles with admin role (single role system)
+                const updatedUser = {
+                  ...user,
+                  user_roles: [
+                    { role: 'admin' }
+                  ]
+                };
+                
+                console.log('🔄 Manually updating user role to admin (single role system):', {
+                  id: user.id,
+                  name: `${user.first_name} ${user.last_name}`,
+                  oldRoles: user.user_roles,
+                  newRoles: updatedUser.user_roles,
+                  message: 'All previous roles replaced with admin role'
+                });
+                
+                return updatedUser;
+              } else {
+                console.log('ℹ️ User already has admin role:', {
+                  id: user.id,
+                  name: `${user.first_name} ${user.last_name}`,
+                  roles: user.user_roles
+                });
+                return user;
+              }
+            }
+            return user;
+          });
+          
+          return newUsers;
+        });
+        
+        // Reset selection first
+        setSelectedUsers([]);
+        
+        // Show success message immediately
+        setSuccessData({
+          courseTitle: "Admin Role Update",
+          addedUsers: updatedUsers
+        });
+        setShowSuccessModal(true);
+        
+        // Wait a moment for backend to process, then refresh
+        setTimeout(async () => {
+          console.log('🔄 Refreshing users list to get updated admin roles...');
+          await fetchUsers();
+        }, 2000);
+      } else {
+        console.error('❌ API returned non-success status:', response.status);
+        throw new Error(response.data?.message || `API returned status ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error making users admins:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        setError('Invalid request. Please check your selection and try again.');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setError('You do not have permission to perform this action.');
+      } else if (error.response?.status === 500) {
+        setError(`Server error: ${error.response?.data?.message || 'Internal server error occurred. Please try again.'}`);
+      } else {
+        setError('Failed to update user roles. Please try again.');
+      }
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  const handleMakeUser = async () => {
+    if (selectedUsers.length === 0) return;
+    
+    try {
+      setUpdatingRole(true); // Reuse the same loading state
+      setError("");
+      
+      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
+      console.log('🔄 Making user API call:', {
+        url: `${API_BASE}/api/user/make-users`,
+        payload: { user_ids: selectedUsers },
+        selectedUsers
+      });
+      
+      // Make API call to make users regular users
+      const response = await axios.post(`${API_BASE}/api/user/make-users`, {
+        user_ids: selectedUsers
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      });
+
+      console.log('✅ Make user API response:', response.data);
+
+      // Check if the request was successful (HTTP 200-299)
+      if (response.status >= 200 && response.status < 300) {
+        // Get the selected users data
+        const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+        
+        console.log('✅ Success! Users to be updated to regular user:', updatedUsers.map(u => ({ id: u.id, name: `${u.first_name} ${u.last_name}`, currentRole: getUserRole(u) })));
+        
+        // Manually update the local state to reflect the role change
+        setUsers(prevUsers => {
+          const newUsers = prevUsers.map(user => {
+            if (selectedUsers.includes(user.id)) {
+              // Check if user already has user role
+              const hasUserRole = user.user_roles?.some(role => role.role === 'user');
+              
+              if (!hasUserRole) {
+                // Replace all roles with user role (single role system)
+                const updatedUser = {
+                  ...user,
+                  user_roles: [
+                    { role: 'user' }
+                  ]
+                };
+                
+                console.log('🔄 Manually updating user role to regular user (single role system):', {
+                  id: user.id,
+                  name: `${user.first_name} ${user.last_name}`,
+                  oldRoles: user.user_roles,
+                  newRoles: updatedUser.user_roles,
+                  message: 'All previous roles replaced with user role'
+                });
+                
+                return updatedUser;
+              } else {
+                console.log('ℹ️ User already has user role:', {
+                  id: user.id,
+                  name: `${user.first_name} ${user.last_name}`,
+                  roles: user.user_roles
+                });
+                return user;
+              }
+            }
+            return user;
+          });
+          
+          return newUsers;
+        });
+        
+        // Reset selection first
+        setSelectedUsers([]);
+        
+        // Show success message immediately
+        setSuccessData({
+          courseTitle: "User Role Update",
+          addedUsers: updatedUsers
+        });
+        setShowSuccessModal(true);
+        
+        // Wait a moment for backend to process, then refresh
+        setTimeout(async () => {
+          console.log('🔄 Refreshing users list to get updated user roles...');
+          await fetchUsers();
+        }, 2000);
+      } else {
+        console.error('❌ API returned non-success status:', response.status);
+        throw new Error(response.data?.message || `API returned status ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error making users regular users:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        setError('Invalid request. Please check your selection and try again.');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setError('You do not have permission to perform this action.');
+      } else if (error.response?.status === 500) {
+        setError(`Server error: ${error.response?.data?.message || 'Internal server error occurred. Please try again.'}`);
+      } else {
+        setError('Failed to update user roles. Please try again.');
+      }
+    } finally {
+      setUpdatingRole(false);
     }
   };
 
@@ -778,6 +1095,13 @@ const ManageUsers = () => {
         throw new Error('No authentication token found. Please log in again.');
       }
       
+      console.log('🗑️ Deleting user:', {
+        userId: userToDelete.id,
+        userName: `${userToDelete.first_name} ${userToDelete.last_name}`,
+        userRole: getUserRole(userToDelete),
+        apiUrl: `${API_BASE}/api/user/${userToDelete.id}`
+      });
+      
       // Make API call to delete user using the correct endpoint format
       const response = await axios.delete(`${API_BASE}/api/user/${userToDelete.id}`, {
         headers: {
@@ -787,7 +1111,12 @@ const ManageUsers = () => {
         withCredentials: true,
       });
 
+      console.log('✅ Delete API response:', response.data);
+      console.log('✅ Response status:', response.status);
+
       if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
+        console.log('✅ User deleted successfully');
+        
         // Close delete modal
         setShowDeleteModal(false);
         setUserToDelete(null);
@@ -835,6 +1164,12 @@ const ManageUsers = () => {
   };
 
   const handleDeleteClick = (user) => {
+    // Check if current user is admin
+    if (!hasRole('admin')) {
+      setError('Only administrators can delete users, instructors, and admins.');
+      return;
+    }
+    
     setUserToDelete(user);
     setShowDeleteModal(true);
   };
@@ -863,9 +1198,16 @@ const ManageUsers = () => {
       
       // Show the results in an alert for easy viewing
       const courseUsers = response.data?.data || [];
-      const userList = courseUsers.map(cu => 
-        `${cu.user?.first_name} ${cu.user?.last_name} (${cu.user?.email}) - Roles: ${cu.user?.user_roles?.map(r => r.role).join(', ')}`
-      ).join('\n');
+      const userList = courseUsers.map(cu => {
+        let roleDisplay = 'No role';
+        if (cu.user?.user_roles && cu.user.user_roles.length > 0) {
+          const roles = cu.user.user_roles.map(r => r.role);
+          const priorityRoles = ['admin', 'instructor', 'user'];
+          const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+          roleDisplay = highestRole;
+        }
+        return `${cu.user?.first_name} ${cu.user?.last_name} (${cu.user?.email}) - Role: ${roleDisplay}`;
+      }).join('\n');
       
       alert(`Course Users for ${courseId}:\n\n${userList || 'No users found'}`);
       
@@ -897,6 +1239,20 @@ const ManageUsers = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm text-red-700">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Notice */}
+      {!hasRole('admin') && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span className="text-sm text-yellow-700">
+              Only administrators can delete users, instructors, and admins. You are currently logged in as a {userRole}.
+            </span>
           </div>
         </div>
       )}
@@ -977,18 +1333,43 @@ const ManageUsers = () => {
               {selectedUsers.length} {filterRole}(s) selected
             </span>
             <div className="flex gap-2">
+              {/* Role Management Buttons */}
               {filterRole === "user" && (
                 <button
                   onClick={handleMakeInstructor}
-                  disabled={makingInstructor}
+                  disabled={updatingRole}
                   className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Promote to Instructor (replaces all existing roles)"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  {makingInstructor ? 'Updating...' : 'Make Instructor'}
+                  {updatingRole 
+                    ? enrollmentProgress.total > 0 
+                      ? `Updating & Enrolling... (${enrollmentProgress.current}/${enrollmentProgress.total})`
+                      : 'Updating & Enrolling...'
+                    : 'Make Instructor'
+                  }
                 </button>
               )}
+              {filterRole === "instructor" && (
+                <div className="text-sm text-gray-500 italic">
+                  {/* No role changes available for instructors */}
+                </div>
+              )}
+              {/* {filterRole === "admin" && (
+                <button
+                  onClick={handleMakeInstructor}
+                  disabled={updatingRole}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Demote to Instructor (replaces all existing roles)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {updatingRole ? 'Updating...' : 'Make Instructor'}
+                </button>
+              )} */}
               <button
                 onClick={() => setShowCourseModal(true)}
                 className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -1082,9 +1463,9 @@ const ManageUsers = () => {
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-3">
                 {successData.courseTitle === "Role Update" 
-                  ? <>You have successfully updated <span className="font-semibold text-gray-800">{successData.addedUsers.length} user(s)</span> to instructor role. They will now appear in the Instructor section.</>
+                  ? <>You have successfully updated <span className="font-semibold text-gray-800">{successData.addedUsers.length} user(s)</span> to instructor role{successData.enrollmentInfo?.message || ''}. They will now appear in the Instructor section.</>
                   : successData.courseTitle === "User Deleted"
-                  ? <>You have successfully deleted user <span className="font-semibold text-gray-800">{successData.addedUsers[0]?.first_name} {successData.addedUsers[0]?.last_name}</span> from the system.</>
+                  ? <>You have successfully deleted {getUserRole(successData.addedUsers[0])} <span className="font-semibold text-gray-800">{successData.addedUsers[0]?.first_name} {successData.addedUsers[0]?.last_name}</span> from the system.</>
                   : <>You have successfully added <span className="font-semibold text-gray-800">{successData.addedUsers.length} {filterRole}(s)</span> to the course:</>
                 }
               </p>
@@ -1094,10 +1475,30 @@ const ManageUsers = () => {
                 </div>
               )}
               
+              {/* Course Enrollment Information */}
+              {successData.courseTitle === "Role Update" && successData.enrollmentInfo && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <p className="text-sm font-medium text-green-800">Course Enrollment Status</p>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    Successfully enrolled in <span className="font-semibold">{successData.enrollmentInfo.successful}</span> out of <span className="font-semibold">{successData.enrollmentInfo.total}</span> courses.
+                  </p>
+                  {successData.enrollmentInfo.successful < successData.enrollmentInfo.total && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Some courses may have failed due to existing enrollments or permissions.
+                    </p>
+                  )}
+                </div>
+              )}
+              
               <div className="max-h-48 overflow-y-auto">
                 <p className="text-sm font-medium text-gray-700 mb-2">
                   {successData.courseTitle === "Role Update" ? "Updated users:" : 
-                   successData.courseTitle === "User Deleted" ? "Deleted user:" : 
+                   successData.courseTitle === "User Deleted" ? "Deleted member:" : 
                    `Added ${filterRole}s:`}
                 </p>
                 <div className="space-y-2">
@@ -1155,7 +1556,7 @@ const ManageUsers = () => {
                 <th className="px-6 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                    checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
                     onChange={handleSelectAll}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -1170,12 +1571,12 @@ const ManageUsers = () => {
                   Last Visited
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {hasRole('admin') ? 'Actions' : 'Actions (Admin Only)'}
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {currentUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
@@ -1213,11 +1614,11 @@ const ManageUsers = () => {
                     {getLastVisited(user) || 'Never'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {getUserRole(user) === 'user' && (
+                    {hasRole('admin') && (
                       <button
                         onClick={() => handleDeleteClick(user)}
                         className="text-red-600 hover:text-red-900"
-                        title="Delete User"
+                        title={`Delete ${getUserRole(user)}`}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -1231,7 +1632,7 @@ const ManageUsers = () => {
           </table>
         </div>
         
-        {filteredUsers.length === 0 && (
+        {currentUsers.length === 0 && (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
@@ -1245,6 +1646,41 @@ const ManageUsers = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-center border-t border-gray-200">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === 1
+                  ? 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Previous
+            </button>
+            
+            <span className="text-sm text-gray-700 font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && userToDelete && (
@@ -1264,7 +1700,7 @@ const ManageUsers = () => {
             </div>
             
             <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to delete user <span className="font-semibold text-gray-800">{userToDelete.first_name} {userToDelete.last_name}</span>? This action cannot be undone.
+              Are you sure you want to delete {getUserRole(userToDelete)} <span className="font-semibold text-gray-800">{userToDelete.first_name} {userToDelete.last_name}</span>? This action cannot be undone.
             </p>
             
             <div className="flex justify-end gap-3">

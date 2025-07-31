@@ -175,6 +175,30 @@ class ScormService {
     console.log('SCORM upload response:', data);
     return data;
   }
+
+  static async deleteScorm(resourceId) {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/deleteScorm/${resourceId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `Failed to delete SCORM (${response.status})`);
+      }
+      
+      const data = await response.json();
+      console.log('SCORM delete response:', data);
+      return data;
+    } catch (error) {
+      console.error('Error deleting SCORM:', error);
+      throw error;
+    }
+  }
 }
 
 export default ScormService; 

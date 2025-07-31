@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserRole, getUserRoles, setUserRole as setUserRoleUtil, setUserRoles as setUserRolesUtil, clearUserData, isInstructorOrAdmin as checkInstructorOrAdmin } from '@/services/userService';
+import { getUserRole, getUserRoles, setUserRole as setUserRoleUtil, setUserRoles as setUserRolesUtil, setSingleRole, clearUserData, isInstructorOrAdmin as checkInstructorOrAdmin } from '@/services/userService';
 
 const AuthContext = createContext();
 
@@ -53,6 +53,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const setSingleRole = (role) => {
+    setSingleRole(role);
+    setUserRoleState(role);
+    setUserRolesState([role]);
+  };
+
   const logout = () => {
     clearUserData();
     setUserRoleState('user');
@@ -72,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     userRoles,
     setUserRole,
     setUserRoles,
+    setSingleRole,
     logout,
     isInstructorOrAdmin,
     hasRole,

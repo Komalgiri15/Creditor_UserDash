@@ -45,15 +45,19 @@ export function Login() {
         // Set default role first
         setUserRole('user');
         
-        // Fetch user profile and set all user roles in localStorage
+        // Fetch user profile and set single user role in localStorage
         try {
           const profile = await fetchUserProfile();
           console.log('Fetched user profile after login:', profile);
           if (profile && Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
-            // Extract all role names from the user_roles array
+            // Extract role names and use the highest priority role (admin > instructor > user)
             const roles = profile.user_roles.map(roleObj => roleObj.role);
-            setUserRoles(roles);
-            console.log('Set user roles to:', roles);
+            const priorityRoles = ['admin', 'instructor', 'user'];
+            const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+            
+            // Set single role (enforces single role system)
+            setUserRoles([highestRole]);
+            console.log('Set user single role to:', highestRole);
           } else {
             // If no roles found, set default user role
             setUserRoles(['user']);

@@ -101,10 +101,11 @@ const AddCatelog = () => {
     setFormSuccess("");
 
     try {
+      console.log('Form data before submission:', form);
+      
       const catalogData = {
         name: form.name,
-        description: form.description,
-        courses: form.courses
+        description: form.description
       };
       if (form.thumbnail && form.thumbnail.trim() !== '') {
         catalogData.thumbnail = form.thumbnail;
@@ -130,6 +131,7 @@ const AddCatelog = () => {
         // Create new catalog
         try {
           newCatalog = await createCatalog(catalogData);
+          console.log('Catalog creation response:', newCatalog);
           
           // Check if there's a warning about local storage
           if (newCatalog.warning) {
@@ -156,7 +158,25 @@ const AddCatelog = () => {
       setLastUpdateResponse(newCatalog);
 
       // Handle course associations for both create and update
-      if (newCatalog.data?.id) {
+      console.log('Checking catalog ID for course association:', newCatalog);
+      console.log('newCatalog type:', typeof newCatalog);
+      console.log('newCatalog keys:', Object.keys(newCatalog || {}));
+      console.log('newCatalog.data:', newCatalog.data);
+      console.log('newCatalog.data type:', typeof newCatalog.data);
+      console.log('newCatalog.data keys:', Object.keys(newCatalog.data || {}));
+      
+      // Try multiple possible locations for the catalog ID
+      const catalogId = newCatalog.data?.id || 
+                       newCatalog.data?._id || 
+                       newCatalog.id || 
+                       newCatalog._id ||
+                       newCatalog.catalogId ||
+                       newCatalog.catalog_id;
+      
+      console.log('Extracted catalog ID:', catalogId);
+      
+      if (catalogId) {
+        console.log('Using catalog ID for course association:', catalogId);
         try {
           if (editId) {
             // For updates, we need to get the current courses and sync them
@@ -178,39 +198,108 @@ const AddCatelog = () => {
             
             // Add new courses
             if (coursesToAdd.length > 0) {
-              await addCoursesToCatalog(newCatalog.data.id, coursesToAdd);
+              await addCoursesToCatalog(catalogId, coursesToAdd);
             }
             
             // Remove courses
             if (coursesToRemove.length > 0) {
-              await removeCoursesFromCatalog(newCatalog.data.id, coursesToRemove);
+              await removeCoursesFromCatalog(catalogId, coursesToRemove);
             }
           } else {
-            // For new catalogs, check if courses were included in the creation request
-            // If not, or if the backend doesn't support it, add them separately
+            // For new catalogs, add courses separately after creation
             if (form.courses.length > 0) {
-              // Check if courses were already included in the creation response
-              const createdCatalog = newCatalog.data;
-              const hasCourses = createdCatalog.courses && Array.isArray(createdCatalog.courses) && createdCatalog.courses.length > 0;
+              console.log('Adding courses to new catalog:', {
+                catalogId: catalogId,
+                courses: form.courses,
+                catalogData: newCatalog.data
+              });
               
-              if (!hasCourses) {
-                // Courses weren't included in creation, add them separately
-                try {
-                  await addCoursesToCatalog(newCatalog.data.id, form.courses);
-                } catch (courseAddError) {
-                  // Don't fail the entire operation, just log the warning
+              try {
+                const addResult = await addCoursesToCatalog(catalogId, form.courses);
+                console.log('Course addition result:', addResult);
+                
+                if (!addResult.success) {
+                  console.warn('Course addition may have failed:', addResult);
+                  // Show a warning to the user
+                  setFormSuccess(prev => prev + ' (Note: Course association may have failed)');
+                } else {
+                  console.log('Courses added successfully to catalog');
+                  
+                  // Verify the courses were actually added by fetching them
+                  try {
+                    const verifyCourses = await getCatalogCourses(catalogId);
+                    console.log('Verification - courses in catalog after addition:', verifyCourses);
+                    
+                    if (!verifyCourses || verifyCourses.length === 0) {
+                      console.warn('Courses not found in catalog after addition');
+                      setFormSuccess(prev => prev + ' (Warning: Courses may not have been added)');
+                    }
+                  } catch (verifyError) {
+                    console.warn('Could not verify course addition:', verifyError);
+                  }
                 }
+              } catch (courseAddError) {
+                console.error('Failed to add courses to catalog:', courseAddError);
+                // Show a warning to the user
+                setFormSuccess(prev => prev + ' (Note: Course association failed)');
               }
             }
           }
         } catch (courseError) {
+          console.error('Course association failed:', courseError);
           // Course association failed, but catalog was created/updated
+        }
+      } else {
+        console.warn('No catalog ID found for course association');
+        console.log('Full newCatalog object for debugging:', JSON.stringify(newCatalog, null, 2));
+        
+        // Try to extract catalog ID from the response in different ways
+        if (newCatalog && typeof newCatalog === 'object') {
+          // Try to find any ID-like field in the entire response
+          const allKeys = Object.keys(newCatalog);
+          console.log('All keys in newCatalog:', allKeys);
+          
+          for (const key of allKeys) {
+            const value = newCatalog[key];
+            if (value && typeof value === 'object' && (value.id || value._id)) {
+              console.log(`Found potential catalog ID in ${key}:`, value.id || value._id);
+            }
+          }
         }
       }
 
       // Refresh catalogs list
       const updatedCatalogs = await fetchAllCatalogs();
       setCatalogs(updatedCatalogs || []);
+      
+      // If we couldn't find the catalog ID earlier, try to find it in the updated list
+      if (!catalogId && updatedCatalogs && updatedCatalogs.length > 0) {
+        console.log('Trying to find catalog ID in updated catalog list');
+        const latestCatalog = updatedCatalogs[updatedCatalogs.length - 1];
+        console.log('Latest catalog from list:', latestCatalog);
+        
+        if (latestCatalog && (latestCatalog.name === form.name || latestCatalog.name === catalogData.name)) {
+          const fallbackCatalogId = latestCatalog.id || latestCatalog._id;
+          console.log('Found fallback catalog ID:', fallbackCatalogId);
+          
+          if (fallbackCatalogId && form.courses.length > 0) {
+            console.log('Attempting course addition with fallback catalog ID');
+            try {
+              const addResult = await addCoursesToCatalog(fallbackCatalogId, form.courses);
+              console.log('Fallback course addition result:', addResult);
+              
+              if (addResult.success) {
+                setFormSuccess(prev => prev + ' (Courses added via fallback)');
+              } else {
+                setFormSuccess(prev => prev + ' (Fallback course addition failed)');
+              }
+            } catch (fallbackError) {
+              console.error('Fallback course addition failed:', fallbackError);
+              setFormSuccess(prev => prev + ' (Fallback course addition failed)');
+            }
+          }
+        }
+      }
 
       // Reset form
       setForm({ name: "", description: "", thumbnail: "", courses: [] });
@@ -365,7 +454,7 @@ const AddCatelog = () => {
             <div>
               <h3 className="text-sm font-medium text-yellow-800">Limited Permissions</h3>
               <p className="text-sm text-yellow-700 mt-1">
-                You are logged in with roles: <strong>{userRoles.join(', ')}</strong>. Catalog changes will be saved locally only. 
+                You are logged in with role: <strong>{userRoles.length > 0 ? userRoles[0] : 'user'}</strong>. Catalog changes will be saved locally only. 
                 Contact an administrator to get instructor or admin permissions for full functionality.
               </p>
               <p className="text-sm text-yellow-600 mt-2">

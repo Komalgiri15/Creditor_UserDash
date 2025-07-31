@@ -1,11 +1,12 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     "./pages/**/*.{js,jsx}",
     "./components/**/*.{js,jsx}",
     "./app/**/*.{js,jsx}",
     "./src/**/*.{js,jsx}",
   ],
+  prefix: "",
   theme: {
     container: {
       center: true,
@@ -16,7 +17,7 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border) / <alpha-value>)",
+        border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
@@ -53,7 +54,7 @@ module.exports = {
         silver: "hsl(var(--silver))",
         bronze: "hsl(var(--bronze))",
         reader: {
-          background: "hsl(0, 0%, 99%)",
+          background: "hsl(0, 0%, 99%)", 
           text: "hsl(0, 0%, 10%)",
         },
       },
@@ -253,8 +254,6 @@ module.exports = {
         "shimmer-gradient": "linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%)",
         "rainbow-gradient": "linear-gradient(45deg, hsl(var(--primary)), hsl(var(--gold)), hsl(var(--secondary)), hsl(var(--primary)))"
       },
-    
-
     },
   },
   plugins: [import("tailwindcss-animate")],

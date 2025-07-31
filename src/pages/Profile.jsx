@@ -41,17 +41,23 @@ function Profile() {
         const data = await fetchUserProfile();
         console.log("✅ GET /api/user/getUserProfile - Response Data:", data);
         
-        setUserRole(
-          Array.isArray(data.user_roles) && data.user_roles.length > 0
-            ? data.user_roles.map(r => r.role).join(', ')
-            : 'User'
-        );
-        
-        // Store all roles in localStorage for proper access control
+        // Set single role (highest priority: admin > instructor > user)
         if (Array.isArray(data.user_roles) && data.user_roles.length > 0) {
           const roles = data.user_roles.map(roleObj => roleObj.role);
-          localStorage.setItem('userRoles', JSON.stringify(roles));
-          localStorage.setItem('userRole', roles[0]); // Keep first role for backward compatibility
+          const priorityRoles = ['admin', 'instructor', 'user'];
+          const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+          setUserRole(highestRole);
+        } else {
+          setUserRole('User');
+        }
+        
+        // Store single role in localStorage (enforce single-role system)
+        if (Array.isArray(data.user_roles) && data.user_roles.length > 0) {
+          const roles = data.user_roles.map(roleObj => roleObj.role);
+          const priorityRoles = ['admin', 'instructor', 'user'];
+          const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+          localStorage.setItem('userRoles', JSON.stringify([highestRole]));
+          localStorage.setItem('userRole', highestRole);
         } else {
           localStorage.setItem('userRoles', JSON.stringify(['user']));
           localStorage.setItem('userRole', 'user');

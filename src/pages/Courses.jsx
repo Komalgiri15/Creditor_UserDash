@@ -322,11 +322,6 @@ export function Courses() {
                         alt={course.title}
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute top-3 right-3">
-                        <Badge variant={course.progress === 100 ? "default" : "outline"}>
-                          {course.progress || 0}% Complete
-                        </Badge>
-                      </div>
                     </div>
                     
                     <CardHeader className="pb-3">

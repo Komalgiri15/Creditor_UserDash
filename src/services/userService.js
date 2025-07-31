@@ -13,17 +13,20 @@ export function getUserRoles() {
 
 // Utility function to set user role (for backward compatibility)
 export function setUserRole(role) {
+  // Enforce single role - replace all roles with this one
   localStorage.setItem('userRole', role);
+  localStorage.setItem('userRoles', JSON.stringify([role]));
   // Dispatch custom event to notify other components
   window.dispatchEvent(new Event('userRoleChanged'));
 }
 
-// Utility function to set all user roles
+// Utility function to set all user roles (enforces single role)
 export function setUserRoles(roles) {
   if (Array.isArray(roles) && roles.length > 0) {
-    localStorage.setItem('userRoles', JSON.stringify(roles));
-    // Set the first role as the primary role for backward compatibility
-    localStorage.setItem('userRole', roles[0]);
+    // Enforce single role - take only the first role
+    const singleRole = roles[0];
+    localStorage.setItem('userRoles', JSON.stringify([singleRole]));
+    localStorage.setItem('userRole', singleRole);
   } else {
     localStorage.setItem('userRoles', JSON.stringify(['user']));
     localStorage.setItem('userRole', 'user');
@@ -42,6 +45,30 @@ export function isInstructorOrAdmin() {
 export function hasRole(roleToCheck) {
   const roles = getUserRoles();
   return roles.includes(roleToCheck);
+}
+
+// Utility function to set a single role and replace all existing roles
+export function setSingleRole(role) {
+  if (!role) {
+    console.warn('setSingleRole: No role provided, defaulting to user');
+    role = 'user';
+  }
+  
+  // Validate role
+  const validRoles = ['user', 'instructor', 'admin'];
+  if (!validRoles.includes(role)) {
+    console.warn(`setSingleRole: Invalid role "${role}", defaulting to user`);
+    role = 'user';
+  }
+  
+  // Set single role - replace all existing roles
+  localStorage.setItem('userRole', role);
+  localStorage.setItem('userRoles', JSON.stringify([role]));
+  
+  console.log(`setSingleRole: User role set to "${role}" (replaced all existing roles)`);
+  
+  // Dispatch custom event to notify other components
+  window.dispatchEvent(new Event('userRoleChanged'));
 }
 
 // Utility function to clear user data on logout

@@ -17,8 +17,6 @@ export function AssignmentReportDialog({ open, onOpenChange, assignment }) {
     { question: "Difference between createContext and useContext", score: 18, maxScore: 20, correct: true }
   ];
 
-  
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

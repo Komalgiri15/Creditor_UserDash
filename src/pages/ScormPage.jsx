@@ -7,7 +7,7 @@ import ScormService from '@/services/scormService';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, ChevronLeft, Play, Eye, Upload } from "lucide-react";
+import { Search, Clock, ChevronLeft, Play, Eye, Upload, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const COURSES_PER_PAGE = 5;
@@ -162,6 +162,35 @@ const ScormPage = () => {
     setShowPreviewDialog(true);
   };
 
+  const handleDeleteScorm = async (module) => {
+    if (!module.resource_id) {
+      console.error('No resource ID found for module');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this SCORM content? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await ScormService.deleteScorm(module.resource_id);
+      
+      // Refresh the modules for this course
+      const updatedModules = await fetchCourseModules(module.course_id);
+      setCourses(prev => prev.map(course => 
+        course.id === module.course_id 
+          ? { ...course, modules: updatedModules }
+          : course
+      ));
+
+      // Show success message (you can add a toast notification here)
+      console.log('SCORM content deleted successfully');
+    } catch (error) {
+      console.error('Error deleting SCORM:', error);
+      alert('Failed to delete SCORM content. Please try again.');
+    }
+  };
+
   if (!isAllowed) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -236,18 +265,12 @@ const ScormPage = () => {
                         const hasExistingContent = mod.resource_url;
                         
                       return (
-                        <div key={mod.id} className="bg-gray-50 rounded-md p-4 border border-gray-200">
-                          <div className="flex justify-between items-center">
-                            <div>
-                                <h3 className="font-medium text-gray-800">{mod.title}</h3>
-                                <p className="text-sm text-gray-600 mt-1">{mod.description}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="inline-block px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded">
-                                Module ID: {mod.id}
-                              </span>
-                                  <span className="text-xs text-gray-500">Order: {mod.order || 'N/A'}</span>
-                                  <span className="text-xs text-gray-500">Duration: {mod.estimated_duration || 0} min</span>
-                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        <div key={mod.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 p-6">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <h3 className="text-lg font-semibold text-gray-900">{mod.title}</h3>
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                     mod.module_status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
                                     mod.module_status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-gray-100 text-gray-800'
@@ -255,27 +278,67 @@ const ScormPage = () => {
                                     {mod.module_status}
                                   </span>
                                   {hasExistingContent && (
-                                    <Badge variant="default" className="bg-green-100 text-green-800">
+                                    <Badge variant="default" className="bg-emerald-100 text-emerald-800 border-emerald-200">
                                       SCORM Uploaded
                                     </Badge>
                                   )}
                                 </div>
+                                
+                                <p className="text-sm text-gray-600 mb-4 leading-relaxed">{mod.description}</p>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Module ID</span>
+                                    <span className="text-sm font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded border truncate">
+                                      {mod.id}
+                                    </span>
+                                  </div>
+                                  
+                                  {mod.resource_id && (
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Resource ID</span>
+                                      <span className="text-sm font-mono text-blue-700 bg-blue-50 px-2 py-1 rounded border truncate">
+                                        {mod.resource_id}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Order</span>
+                                    <span className="text-sm text-gray-700">{mod.order || 'N/A'}</span>
+                                  </div>
+                                  
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duration</span>
+                                    <span className="text-sm text-gray-700">{mod.estimated_duration || 0} min</span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex gap-2">
+                              
+                              <div className="flex flex-col gap-2 ml-4">
                                 {hasExistingContent ? (
-                                  <Button
-                                    onClick={() => handlePreviewModule(mod)}
-                                    className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-md"
-                                  >
-                                    <Eye size={14} className="mr-1" />
-                                    Preview
-                                  </Button>
+                                  <div className="flex flex-col gap-2">
+                                    <Button
+                                      onClick={() => handlePreviewModule(mod)}
+                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+                                    >
+                                      <Eye size={16} className="mr-2" />
+                                      Preview
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleDeleteScorm(mod)}
+                                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+                                    >
+                                      <Trash2 size={16} className="mr-2" />
+                                      Delete SCORM
+                                    </Button>
+                                  </div>
                                 ) : (
                                   <Button
                                     onClick={() => handleAddScormClick(course.id, mod.id)}
-                                    className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
                                   >
-                                    <Upload size={14} className="mr-1" />
+                                    <Upload size={16} className="mr-2" />
                                     Add SCORM
                                   </Button>
                                 )}
@@ -283,62 +346,85 @@ const ScormPage = () => {
                               </div>
 
                             {isActive && !hasExistingContent && (
-                              <div className="mt-4 p-4 bg-white rounded-md border border-gray-200">
-                                <div className="space-y-4">
+                              <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                                <div className="space-y-6">
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-semibold text-gray-800 mb-3">
                                       Upload SCORM Package
                                     </label>
-                                    <input
-                                      ref={fileInputRef}
-                                      type="file"
-                                      accept=".zip"
-                                      onChange={(e) => handleFileChange(mod.id, e)}
-                                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                    />
+                                    <div className="relative">
+                                      <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".zip"
+                                        onChange={(e) => handleFileChange(mod.id, e)}
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-colors duration-200"
+                                      />
+                                    </div>
                               </div>
 
                                   {uploadState.file && (
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
                                       <Button
                                         onClick={() => handleUpload(mod.id)}
                                         disabled={uploadState.uploading}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
                                       >
-                                        {uploadState.uploading ? 'Uploading...' : 'Upload'}
+                                        {uploadState.uploading ? (
+                                          <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Uploading...
+                                          </>
+                                        ) : (
+                                          'Upload'
+                                        )}
                                       </Button>
-                                      <span className="text-sm text-gray-600">
-                                        {uploadState.file.name}
-                                      </span>
+                                      <div className="flex-1">
+                                        <span className="text-sm font-medium text-gray-700">{uploadState.file.name}</span>
+                                        <span className="text-xs text-gray-500 ml-2">({(uploadState.file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                      </div>
                                 </div>
                               )}
 
                                   {uploadState.error && (
-                                    <div className="text-red-600 text-sm">{uploadState.error}</div>
+                                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                      <div className="flex items-center">
+                                        <div className="flex-shrink-0">
+                                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                          </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                          <p className="text-sm text-red-800">{uploadState.error}</p>
+                                        </div>
+                                      </div>
+                                    </div>
                                   )}
 
                                   {uploadState.uploaded && uploadState.previewUrl && (
-                                <div className="mt-4">
-                                      <h4 className="text-sm font-medium text-gray-700 mb-2">Preview:</h4>
+                                <div className="space-y-4">
+                                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                                        <h4 className="text-sm font-semibold text-gray-800 mb-3">Preview:</h4>
                                   <iframe
                                         src={uploadState.previewUrl}
-                                        className="w-full h-64 border border-gray-300 rounded-md"
+                                        className="w-full h-80 border border-gray-300 rounded-lg shadow-sm"
                                     title="SCORM Preview"
                                       />
-                                      <div className="mt-2">
-                                        <h5 className="text-sm font-medium text-gray-700 mb-1">SCORM URL:</h5>
-                                        <div className="flex items-center gap-2">
+                                    </div>
+                                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                                        <h5 className="text-sm font-semibold text-gray-800 mb-3">SCORM URL:</h5>
+                                        <div className="flex items-center gap-3">
                                           <input
                                             type="text"
                                             value={uploadState.scormUrl || ''}
                                             readOnly
-                                            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50"
+                                            className="flex-1 px-4 py-3 text-sm border border-gray-300 rounded-lg bg-gray-50 font-mono"
                                           />
                                           <Button
                                             onClick={() => navigator.clipboard.writeText(uploadState.scormUrl)}
-                                            className="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                                            className="px-4 py-3 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
                                           >
-                                            Copy
+                                            Copy URL
                                           </Button>
                                         </div>
                                       </div>

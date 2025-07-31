@@ -25,8 +25,8 @@ const InstructorPage = () => {
   const navigate = useNavigate();
   
   // Sidebar dimensions
-  const collapsedWidth = "4rem";
-  const expandedWidth = "16rem";
+  const collapsedWidth = "4.5rem";
+  const expandedWidth = "17rem";
 
   // Save userManagementView to localStorage when it changes
   useEffect(() => {

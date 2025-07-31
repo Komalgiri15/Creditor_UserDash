@@ -65,8 +65,6 @@ const formatTimeInUserTimezone = (utcTime, userTimezone) => {
   });
 };
 
-
-
 export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -193,7 +191,7 @@ export function LiveClasses() {
     const end = new Date(event.endTime);
     
     if (now >= start && now <= end) {
-      return { status: 'live', text: 'LIVE NOW', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+      return { status: 'live', text: 'LIVE NOW', color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' };
     } else if (now < start) {
       return { status: 'upcoming', text: 'UPCOMING', color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
     } else {
@@ -231,10 +229,10 @@ export function LiveClasses() {
       <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Video className={`h-6 w-6 ${liveEventsCount > 0 ? 'text-red-500 animate-pulse' : 'text-primary'}`} />
+            <Video className={`h-6 w-6 ${liveEventsCount > 0 ? 'text-purple-500 animate-pulse' : 'text-primary'}`} />
             Today's Live Classes
             {liveEventsCount > 0 && (
-              <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
+              <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full">
                 {liveEventsCount} Live
               </span>
             )}
@@ -283,7 +281,7 @@ export function LiveClasses() {
                       key={event.id || index}
                       className={`p-4 rounded-lg border transition-all duration-300 ${
                         isLive 
-                          ? 'border-red-200 bg-red-50 shadow-sm' 
+                          ? 'border-purple-200 bg-gradient-to-r from-purple-50 to-purple-100 shadow-sm' 
                           : 'border-blue-200 bg-blue-50 shadow-sm'
                       }`}
                     >
@@ -291,11 +289,11 @@ export function LiveClasses() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <div className={`w-3 h-3 rounded-full ${
-                              isLive ? 'bg-red-500 animate-pulse' : 'bg-blue-500'
+                              isLive ? 'bg-purple-500 animate-pulse' : 'bg-blue-500'
                             }`}></div>
                             <h4 className="font-semibold text-gray-800">{event.title}</h4>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              isLive ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                              isLive ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
                             }`}>
                               {eventStatus.text}
                             </span>
@@ -332,7 +330,7 @@ export function LiveClasses() {
                             disabled={!isLive}
                             className={`${
                               isLive 
-                                ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
+                                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 animate-pulse' 
                                 : 'bg-blue-600 hover:bg-blue-700'
                             } text-white transition-all duration-300`}
                             size="sm"
