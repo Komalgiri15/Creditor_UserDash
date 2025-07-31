@@ -19,4 +19,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-bh52.onrender.com'),
+  },
 }));
