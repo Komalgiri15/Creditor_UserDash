@@ -315,7 +315,7 @@ export function Courses() {
             {filteredCourses.length > 0 ? (
               filteredCourses.map((course) => (
                 <div key={course.id} className="course-card opacity-0">
-                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300">
+                  <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full flex flex-col">
                     <div className="aspect-video relative overflow-hidden">
                       <img 
                         src={course.image || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"} 
@@ -324,12 +324,12 @@ export function Courses() {
                       />
                     </div>
                     
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-3 flex-shrink-0">
                       <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
                       <CardDescription className="line-clamp-2">{course.description}</CardDescription>
                     </CardHeader>
                     
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-3 flex-1">
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock size={14} />
@@ -350,7 +350,7 @@ export function Courses() {
                       */}
                     </CardContent>
                     
-                    <CardFooter className="pt-2 flex flex-col gap-2">
+                    <CardFooter className="pt-2 flex flex-col gap-2 flex-shrink-0">
                       <div className="flex gap-2 w-full">
                         <Link to={`/dashboard/courses/${course.id}/modules`} className="flex-1">
                           <Button variant="default" className="w-full">

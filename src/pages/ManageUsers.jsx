@@ -22,6 +22,7 @@ const ManageUsers = () => {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [addingToCourse, setAddingToCourse] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState({ courseTitle: "", addedUsers: [] });
 
@@ -166,10 +167,20 @@ const ManageUsers = () => {
       console.log('✅ Courses API Response:', response.data);
 
       if (response.data && response.data.data) {
-        setCourses(response.data.data);
+        // Filter to only show published courses
+        const publishedCourses = response.data.data.filter(course => 
+          course.course_status === 'PUBLISHED'
+        );
+        console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
+        setCourses(publishedCourses);
       } else if (response.data && Array.isArray(response.data)) {
         // Handle case where response.data is directly an array
-        setCourses(response.data);
+        // Filter to only show published courses
+        const publishedCourses = response.data.filter(course => 
+          course.course_status === 'PUBLISHED'
+        );
+        console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
+        setCourses(publishedCourses);
       }
     } catch (error) {
       console.error('❌ Error fetching courses:', error);
@@ -180,11 +191,11 @@ const ManageUsers = () => {
         message: error.message
       });
       
-      // Fallback to dummy courses if API fails
+      // Fallback to dummy courses if API fails (only published courses)
       setCourses([
-        { id: "1", title: "Introduction to React" },
-        { id: "2", title: "Advanced JavaScript" },
-        { id: "3", title: "Web Development Fundamentals" }
+        { id: "1", title: "Introduction to React", course_status: "PUBLISHED" },
+        { id: "2", title: "Advanced JavaScript", course_status: "PUBLISHED" },
+        { id: "3", title: "Web Development Fundamentals", course_status: "PUBLISHED" }
       ]);
     }
   };
@@ -424,10 +435,10 @@ const ManageUsers = () => {
         });
         setShowSuccessModal(true);
         
-        // Close course selection modal and reset
+        // Close course selection modal and reset course selection
         setShowCourseModal(false);
         setSelectedCourse("");
-        setSelectedUsers([]);
+        // Don't clear selectedUsers here - keep them selected for potential "Add to More Courses"
         
         // After successful addition, verify the users are actually in the course
         console.log('🔄 Verifying course users after addition...');
@@ -1121,12 +1132,14 @@ const ManageUsers = () => {
         setShowDeleteModal(false);
         setUserToDelete(null);
         
-        // Show success message
-        setSuccessData({
-          courseTitle: "User Deleted",
-          addedUsers: [userToDelete]
-        });
-        setShowSuccessModal(true);
+        // Show temporary success message
+        setError(""); // Clear any existing errors
+        setSuccessMessage(`User ${userToDelete.first_name} ${userToDelete.last_name} has been successfully deleted.`);
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
         
         // Refresh users list to get updated data
         await fetchUsers();
@@ -1172,6 +1185,21 @@ const ManageUsers = () => {
     
     setUserToDelete(user);
     setShowDeleteModal(true);
+  };
+
+  const handleAddToMoreCourses = () => {
+    // Close the success modal
+    setShowSuccessModal(false);
+    
+    // Show the course selection modal again
+    setShowCourseModal(true);
+    
+    // Keep the selected users (they're already selected)
+    // Reset the course selection
+    setSelectedCourse("");
+    
+    console.log('🔄 Opening course selection modal for additional enrollments');
+    console.log('📋 Selected users for additional courses:', selectedUsers);
   };
 
   // Function to manually check course users
@@ -1239,6 +1267,18 @@ const ManageUsers = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm text-red-700">{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-sm text-green-700">{successMessage}</span>
           </div>
         </div>
       )}
@@ -1394,6 +1434,8 @@ const ManageUsers = () => {
                 onClick={() => {
                   setShowCourseModal(false);
                   setError("");
+                  // Clear selected users when manually closing
+                  setSelectedUsers([]);
                 }}
                 className="text-gray-500 hover:text-gray-700 text-xl font-bold"
               >
@@ -1424,6 +1466,8 @@ const ManageUsers = () => {
                 onClick={() => {
                   setShowCourseModal(false);
                   setError("");
+                  // Clear selected users when manually canceling
+                  setSelectedUsers([]);
                 }}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
@@ -1453,7 +1497,11 @@ const ManageUsers = () => {
                 Successfully Added!
               </h3>
               <button
-                onClick={() => setShowSuccessModal(false)}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Clear selected users when closing the modal
+                  setSelectedUsers([]);
+                }}
                 className="text-gray-500 hover:text-gray-700 text-xl font-bold"
               >
                 &times;
@@ -1522,22 +1570,25 @@ const ManageUsers = () => {
             </div>
             
             <div className="flex justify-end gap-3">
-              {successData.courseTitle === "Role Update" && (
+              {/* Show "Add to More Courses" button only for course addition operations */}
+              {successData.courseTitle !== "Role Update" && successData.courseTitle !== "User Deleted" && (
                 <button
-                  onClick={async () => {
-                    console.log('🔄 Manual refresh triggered from success modal');
-                    await fetchUsers();
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  onClick={handleAddToMoreCourses}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Refresh Data
+                  <span className="font-medium">Add to More Courses</span>
                 </button>
               )}
+              
               <button
-                onClick={() => setShowSuccessModal(false)}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  // Clear selected users when closing the modal
+                  setSelectedUsers([]);
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Close
