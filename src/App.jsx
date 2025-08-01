@@ -90,6 +90,7 @@ import MembershipTnC from "@/pages/MembershipTnC";
 import ContactSection from "@/components/ContactSection"; 
 import AddUsersPage from "@/pages/AddUsersPage";
 import { AuthProvider } from "./contexts/AuthContext";
+import { UserProvider } from "./contexts/UserContext";
 import ModuleView from "@/pages/ModuleView";
 
 function ProtectedScormRoute() {
@@ -103,7 +104,8 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
+        <UserProvider>
+          <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<LandingPage />} />
@@ -289,8 +291,9 @@ function App() {
           <Route path="/scorm/:courseId" element={<Scrompack />} />
           <Route path="/speechify-reader" element={<SpeechifyReaderView />} />
           <Route path="/games" element={<Games />} />
-        </Routes>
-        <Toaster />
+          </Routes>
+          <Toaster />
+        </UserProvider>
       </AuthProvider>
     </ThemeProvider>
   );

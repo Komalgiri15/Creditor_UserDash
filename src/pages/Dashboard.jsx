@@ -13,9 +13,11 @@ import LiveClasses from "@/components/dashboard/LiveClasses";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { fetchUserCourses, fetchCourseModules } from '../services/courseService';
+import { useUser } from '@/contexts/UserContext';
 
 
 export function Dashboard() {
+  const { userProfile } = useUser();
   // Dashboard data structure based on backend getUserOverview endpoint
   // Expected response structure:
   // {
@@ -67,9 +69,13 @@ export function Dashboard() {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      // Get userId - fetch from profile if not available
+      // Get userId - use from context if available, otherwise fetch from profile
       let currentUserId = userId;
-      if (!currentUserId) {
+      if (!currentUserId && userProfile) {
+        currentUserId = userProfile.id;
+        setUserId(currentUserId);
+        localStorage.setItem('userId', currentUserId);
+      } else if (!currentUserId) {
         currentUserId = await fetchUserProfile();
       }
       
@@ -292,11 +298,15 @@ export function Dashboard() {
     }
   };
 
-  // Fetch user name on mount
+  // Use userProfile from context to set user name
   useEffect(() => {
-    fetchUserProfile();
-    // eslint-disable-next-line
-  }, []);
+    if (userProfile) {
+      const name = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim();
+      setUserName(name || userProfile.email || "User");
+      setUserId(userProfile.id);
+      localStorage.setItem('userId', userProfile.id);
+    }
+  }, [userProfile]);
 
   // Add retry functionality
   const handleRetry = () => {

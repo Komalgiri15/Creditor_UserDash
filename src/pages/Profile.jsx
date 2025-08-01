@@ -15,9 +15,11 @@ import { User, Bell, Shield, Camera } from "lucide-react";
 import { getUserAvatarUrl } from "@/lib/avatar-utils";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { fetchUserProfile, updateUserProfile } from "@/services/userService";
+import { useUser } from "@/contexts/UserContext";
 
 function Profile() {
   const navigate = useNavigate();
+  const { userProfile, updateUserProfile: updateGlobalProfile } = useUser();
   const [userRole, setUserRole] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -33,67 +35,58 @@ function Profile() {
     }
   });
 
-  // Fetch user profile on mount
+  // Use global user profile data and update form when it changes
   useEffect(() => {
-    async function loadProfile() {
-      try {
-        console.log("🔍 Fetching user profile from /api/user/getUserProfile...");
-        const data = await fetchUserProfile();
-        console.log("✅ GET /api/user/getUserProfile - Response Data:", data);
-        
-        // Set single role (highest priority: admin > instructor > user)
-        if (Array.isArray(data.user_roles) && data.user_roles.length > 0) {
-          const roles = data.user_roles.map(roleObj => roleObj.role);
-          const priorityRoles = ['admin', 'instructor', 'user'];
-          const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
-          setUserRole(highestRole);
-        } else {
-          setUserRole('User');
-        }
-        
-        // Store single role in localStorage (enforce single-role system)
-        if (Array.isArray(data.user_roles) && data.user_roles.length > 0) {
-          const roles = data.user_roles.map(roleObj => roleObj.role);
-          const priorityRoles = ['admin', 'instructor', 'user'];
-          const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
-          localStorage.setItem('userRoles', JSON.stringify([highestRole]));
-          localStorage.setItem('userRole', highestRole);
-        } else {
-          localStorage.setItem('userRoles', JSON.stringify(['user']));
-          localStorage.setItem('userRole', 'user');
-        }
-        
-        // Store timezone in localStorage for use in other components
-        const userTimezone = data.timezone || 'America/New_York';
-        localStorage.setItem('userTimezone', userTimezone);
-        
-        const formData = {
-          fullName: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-          email: data.email || 'Not Provided',
-          bio: data.bio || '',
-          title: data.title || '',
-          phone: data.phone || '',
-          location: data.location || '',
-          timezone: userTimezone,
-        };
-        
-        console.log("📝 Setting form data with timezone:", formData);
-        form.reset(formData);
-        
-        console.log("📝 Form populated with user data:", {
-          fullName: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-          email: data.email,
-          timezone: userTimezone,
-          user_roles: data.user_roles
-        });
-        
-      } catch (err) {
-        console.error("❌ Failed to load profile:", err);
-        toast.error("Failed to load profile data");
+    if (userProfile) {
+      console.log("✅ Using global user profile data:", userProfile);
+      
+      // Set single role (highest priority: admin > instructor > user)
+      if (Array.isArray(userProfile.user_roles) && userProfile.user_roles.length > 0) {
+        const roles = userProfile.user_roles.map(roleObj => roleObj.role);
+        const priorityRoles = ['admin', 'instructor', 'user'];
+        const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+        setUserRole(highestRole);
+      } else {
+        setUserRole('User');
       }
+      
+      // Store single role in localStorage (enforce single-role system)
+      if (Array.isArray(userProfile.user_roles) && userProfile.user_roles.length > 0) {
+        const roles = userProfile.user_roles.map(roleObj => roleObj.role);
+        const priorityRoles = ['admin', 'instructor', 'user'];
+        const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+        localStorage.setItem('userRoles', JSON.stringify([highestRole]));
+        localStorage.setItem('userRole', highestRole);
+      } else {
+        localStorage.setItem('userRoles', JSON.stringify(['user']));
+        localStorage.setItem('userRole', 'user');
+      }
+      
+      // Store timezone in localStorage for use in other components
+      const userTimezone = userProfile.timezone || 'America/New_York';
+      localStorage.setItem('userTimezone', userTimezone);
+      
+      const formData = {
+        fullName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
+        email: userProfile.email || 'Not Provided',
+        bio: userProfile.bio || '',
+        title: userProfile.title || '',
+        phone: userProfile.phone || '',
+        location: userProfile.location || '',
+        timezone: userTimezone,
+      };
+      
+      console.log("📝 Setting form data with timezone:", formData);
+      form.reset(formData);
+      
+      console.log("📝 Form populated with user data:", {
+        fullName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
+        email: userProfile.email,
+        timezone: userTimezone,
+        user_roles: userProfile.user_roles
+      });
     }
-    loadProfile();
-  }, [form]);
+  }, [userProfile, form]);
 
   // Update user profile on submit
   const onSubmit = async (values) => {
@@ -132,34 +125,27 @@ function Profile() {
       
       toast.success("Profile updated successfully");
       
-      // Instead of reloading, let's refetch the profile to confirm the update
-      console.log("🔄 Refetching profile to confirm timezone update...");
-      const updatedProfile = await fetchUserProfile();
-      console.log("✅ Refetched profile data:", updatedProfile);
-      console.log("🕐 Current timezone in profile:", updatedProfile.timezone);
-      
-      // Update the form with the latest data
-      const updatedFormData = {
-        fullName: `${updatedProfile.first_name || ''} ${updatedProfile.last_name || ''}`.trim(),
-        email: updatedProfile.email || 'Not Provided',
-        bio: updatedProfile.bio || '',
-        title: updatedProfile.title || '',
-        phone: updatedProfile.phone || '',
-        location: updatedProfile.location || '',
-        timezone: updatedProfile.timezone || 'America/New_York',
+      // Update the global user profile context with the updated data
+      console.log("🔄 Updating global user profile context...");
+      const updatedProfile = {
+        ...userProfile,
+        first_name,
+        last_name,
+        bio: values.bio,
+        title: values.title,
+        phone: values.phone,
+        location: values.location,
+        timezone: values.timezone,
       };
       
-      console.log("📝 Resetting form with updated data:", updatedFormData);
-      form.reset(updatedFormData);
+      // Update the global user profile context
+      updateGlobalProfile(updatedProfile);
+      console.log("✅ Global user profile updated:", updatedProfile);
       
       // Update localStorage with the confirmed timezone
-      localStorage.setItem('userTimezone', updatedProfile.timezone || 'America/New_York');
+      localStorage.setItem('userTimezone', values.timezone);
       
-      // Force a re-render by updating the form state
-      setTimeout(() => {
-        console.log("🔄 Form state after reset:", form.getValues());
-        console.log("🕐 Current timezone in form:", form.getValues('timezone'));
-      }, 100);
+      toast.success("Profile updated successfully");
       
     } catch (err) {
       console.error("❌ Failed to update profile:", err);
