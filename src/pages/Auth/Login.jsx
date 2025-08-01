@@ -15,6 +15,7 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ email: false, password: false });
   const [animateCard, setAnimateCard] = useState(false);
@@ -22,9 +23,30 @@ export function Login() {
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    // Trigger card animation on mount
+    // Check if user is already logged in
+    const token = Cookies.get("token") || localStorage.getItem("token");
+    if (token) {
+      // User is already logged in, redirect to dashboard
+      navigate("/dashboard");
+      return;
+    }
+    
+    // User is not logged in, show login form
+    setIsCheckingAuth(false);
     setAnimateCard(true);
-  }, []);
+  }, [navigate]);
+
+  // Show loading spinner while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

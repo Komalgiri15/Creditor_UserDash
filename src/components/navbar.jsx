@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/creditorlogo.png';
 import AdminModal from './AdminModal';
+import Cookies from 'js-cookie';
 import './navbar.css';
 
 const Navbar = () => {
@@ -60,13 +61,23 @@ const Navbar = () => {
     return () => { document.body.style.overflow = ""; };
   }, [isMenuOpen, isMobile]);
 
+  const handleLoginClick = (e) => {
+    e.preventDefault();
+    // Check if user is already logged in
+    const token = Cookies.get("token") || localStorage.getItem("token");
+    if (token) {
+      // User is logged in, redirect to dashboard
+      navigate("/dashboard");
+    } else {
+      // User is not logged in, redirect to login page
+      navigate("/login");
+    }
+  };
+
   const loginButton = (isMobileView = false) => (
     <a
       href="#"
-      onClick={e => {
-        e.preventDefault();
-        navigate("/login");
-      }}
+      onClick={handleLoginClick}
       className={`nav-login-btn${isMobileView ? ' mobile' : ''}`}
     >Login</a>
   );
