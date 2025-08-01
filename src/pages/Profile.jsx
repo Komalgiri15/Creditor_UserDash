@@ -123,8 +123,6 @@ function Profile() {
       localStorage.setItem('userTimezone', values.timezone);
       console.log("💾 Timezone saved to localStorage:", values.timezone);
       
-      toast.success("Profile updated successfully");
-      
       // Update the global user profile context with the updated data
       console.log("🔄 Updating global user profile context...");
       const updatedProfile = {
