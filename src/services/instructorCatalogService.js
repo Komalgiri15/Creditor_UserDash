@@ -57,11 +57,20 @@ export async function fetchAllCatalogs() {
 
       if (courseResponse.ok) {
         const courseData = await courseResponse.json();
-        const courses = courseData.data || [];
+        const allCourses = courseData.data || [];
         
-        // Group courses by category to create catalog-like structure
+        // Filter only published courses
+        const publishedCourses = allCourses.filter(course => 
+          course.course_status === 'PUBLISHED' || 
+          course.status === 'PUBLISHED' ||
+          course.published === true
+        );
+        
+        console.log(`Catalog fallback: Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
+        
+        // Group published courses by category to create catalog-like structure
         const catalogGroups = {};
-        courses.forEach(course => {
+        publishedCourses.forEach(course => {
           const category = course.category || course.courseType || 'General';
           if (!catalogGroups[category]) {
             catalogGroups[category] = {
@@ -704,9 +713,18 @@ export async function getCatalogCourses(catalogId) {
             const allCoursesData = await allCoursesResponse.json();
             const allCourses = allCoursesData.data || [];
             
-            // Find matching courses
+            // Filter only published courses
+            const publishedCourses = allCourses.filter(course => 
+              course.course_status === 'PUBLISHED' || 
+              course.status === 'PUBLISHED' ||
+              course.published === true
+            );
+            
+            console.log(`getCatalogCourses: Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
+            
+            // Find matching courses from published courses only
             const fullCourses = courseIds.map(courseId => {
-              const foundCourse = allCourses.find(c => c.id === courseId);
+              const foundCourse = publishedCourses.find(c => c.id === courseId);
               if (foundCourse) {
                 return foundCourse;
               } else {
@@ -715,16 +733,26 @@ export async function getCatalogCourses(catalogId) {
             }).filter(course => course !== null);
             
             if (fullCourses.length === 0) {
-              return courses;
+              return [];
             }
             
             return fullCourses;
           } else {
-            return courses; // Return original data if fallback fails
+            return []; // Return empty array if fallback fails
           }
         } catch (fallbackError) {
-          return courses; // Return original data if fallback fails
+          return []; // Return empty array if fallback fails
         }
+      } else {
+        // If courses already have full details, filter them directly for published status
+        const publishedCourses = courses.filter(course => 
+          course.course_status === 'PUBLISHED' || 
+          course.status === 'PUBLISHED' ||
+          course.published === true
+        );
+        
+        console.log(`getCatalogCourses: Direct filtering - ${publishedCourses.length} published courses out of ${courses.length} total courses`);
+        return publishedCourses;
       }
     }
     
@@ -736,7 +764,7 @@ export async function getCatalogCourses(catalogId) {
   }
 }
 
-// Get all available courses for selection
+// Get all available courses for selection (only published courses)
 export async function fetchAvailableCourses() {
   try {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/getAllCourses`, {
@@ -751,9 +779,19 @@ export async function fetchAvailableCourses() {
     }
 
     const data = await response.json();
-    const courses = data.data || [];
+    const allCourses = data.data || [];
     
-    return courses;
+    // Filter only published courses
+    const publishedCourses = allCourses.filter(course => 
+      course.course_status === 'PUBLISHED' || 
+      course.status === 'PUBLISHED' ||
+      course.published === true
+    );
+    
+    console.log(`Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
+    console.log('Published courses:', publishedCourses.map(c => ({ id: c.id, title: c.title || c.name, status: c.course_status || c.status })));
+    
+    return publishedCourses;
   } catch (error) {
     throw error;
   }

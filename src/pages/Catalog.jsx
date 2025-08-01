@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { BookOpen, Clock, Search, Loader2, FolderOpen } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchAllCatalogs, searchCatalogs, fetchCatalogCourses } from "@/services/catalogService";
+import { fetchAllCatalogs, searchCatalogs, fetchCatalogCourses, testCatalogAPI } from "@/services/catalogService";
 
 export function CatalogPage() {
   const [catalogs, setCatalogs] = useState([]);
@@ -50,6 +50,11 @@ export function CatalogPage() {
     };
 
     fetchCatalogsAndCounts();
+    
+    // Test API endpoints for debugging
+    testCatalogAPI().then(result => {
+      console.log('Catalog API test result:', result);
+    });
   }, []);
 
   // Extract categories from fetched catalogs
