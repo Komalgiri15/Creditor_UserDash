@@ -712,16 +712,16 @@ export function Dashboard() {
             </div>
           </div>
           
-          {/* Recommended Courses */}
+          {/* Upcoming Courses */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Recommended for You</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Upcoming Courses</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recommendedCourses.map((course) => (
                 <div key={course.id} className="transform transition-all duration-300 hover:scale-105">
-                  <CourseCard {...course} />
+                  <CourseCard {...course} isUpcoming={true} />
                 </div>
               ))}
               
