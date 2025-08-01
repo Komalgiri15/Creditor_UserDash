@@ -144,7 +144,6 @@ const AddUsersForm = () => {
       
       const parsedUsers = rows
         .filter(row => row[emailIdx] && row[passwordIdx] && row[firstNameIdx] && row[lastNameIdx])
-        .slice(0, numUsers) // Only take the number of users selected
         .map(row => ({
           email: String(row[emailIdx]).trim(),
           password: String(row[passwordIdx]).trim(),
@@ -438,49 +437,48 @@ const AddUsersForm = () => {
       )}
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="bg-blue-50 p-4 rounded-lg">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Users to Add</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Number of Users to Add (Manual Entry)</label>
           <select
             className="block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-white"
             value={numUsers}
             onChange={handleNumUsersChange}
           >
-            {[...Array(20)].map((_, i) => (
+            {[...Array(10)].map((_, i) => (
               <option key={i + 1} value={i + 1}>{i + 1}</option>
             ))}
           </select>
+          <p className="text-sm text-gray-600 mt-2">For bulk uploads, use the Excel upload option below</p>
         </div>
         
-        {/* Show Excel upload when more than 1 user */}
-        {numUsers > 1 && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-yellow-800 mb-1">Bulk Upload Option</h3>
-                <p className="text-xs text-yellow-700">
-                  Upload an Excel file with columns: 
-                  <span className="font-mono bg-yellow-100 px-1 mx-1 rounded">email</span>, 
-                  <span className="font-mono bg-yellow-100 px-1 mx-1 rounded">password</span>, 
-                  <span className="font-mono bg-yellow-100 px-1 mx-1 rounded">first_name</span> (or firstName), 
-                  <span className="font-mono bg-yellow-100 px-1 mx-1 rounded">last_name</span> (or lastName)
-                </p>
-              </div>
-              <label className="cursor-pointer">
-                <div className="px-4 py-2 bg-white border border-yellow-400 text-yellow-700 rounded-md text-sm font-medium hover:bg-yellow-50 transition-colors flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Upload Excel File
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    onChange={handleExcelUpload}
-                    className="hidden"
-                  />
-                </div>
-              </label>
+        {/* Excel upload section - always visible */}
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-green-800 mb-1">📊 Bulk Upload with Excel</h3>
+              <p className="text-xs text-green-700">
+                Upload an Excel file with columns: 
+                <span className="font-mono bg-green-100 px-1 mx-1 rounded">email</span>, 
+                <span className="font-mono bg-green-100 px-1 mx-1 rounded">password</span>, 
+                <span className="font-mono bg-green-100 px-1 mx-1 rounded">first_name</span> (or firstName), 
+                <span className="font-mono bg-green-100 px-1 mx-1 rounded">last_name</span> (or lastName)
+              </p>
             </div>
+            <label className="cursor-pointer">
+              <div className="px-4 py-2 bg-white border border-green-400 text-green-700 rounded-md text-sm font-medium hover:bg-green-50 transition-colors flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Upload Excel File
+                <input
+                  type="file"
+                  accept=".xlsx, .xls"
+                  onChange={handleExcelUpload}
+                  className="hidden"
+                />
+              </div>
+            </label>
           </div>
-        )}
+        </div>
 
         {/* Show Excel data preview if uploaded */}
         {showExcelPreview && excelData.length > 0 && (
@@ -511,8 +509,8 @@ const AddUsersForm = () => {
           </div>
         )}
 
-        {/* Manual input fields - only show if not using Excel or for 1-2 users */}
-        {(!showExcelPreview && numUsers <= 2) && (
+        {/* Manual input fields - only show if not using Excel or for 1-10 users */}
+        {(!showExcelPreview && numUsers <= 10) && (
           <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
             {users.map((user, idx) => (
               <div key={idx} className="border border-gray-200 p-6 rounded-lg bg-white shadow-sm">
@@ -583,13 +581,13 @@ const AddUsersForm = () => {
           </div>
         )}
 
-        {/* Show summary for manual input when more than 2 users */}
-        {(!showExcelPreview && numUsers > 2) && (
+        {/* Show summary for manual input when more than 10 users */}
+        {(!showExcelPreview && numUsers > 10) && (
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-3">You've selected to add {numUsers} users</h3>
             <p className="text-gray-600 mb-4">
               Please use the Excel upload option above for adding multiple users, 
-              or reduce the number of users to 2 or fewer to enter details manually.
+              or reduce the number of users to 10 or fewer to enter details manually.
             </p>
           </div>
         )}
@@ -603,7 +601,7 @@ const AddUsersForm = () => {
           <button
             type="submit"
             className={`w-full md:w-auto px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-            disabled={loading || (!showExcelPreview && numUsers > 2)}
+            disabled={loading || (!showExcelPreview && numUsers > 10)}
           >
             {loading ? (
               <span className="flex items-center justify-center">

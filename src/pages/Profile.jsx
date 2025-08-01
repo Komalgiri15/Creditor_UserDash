@@ -236,19 +236,19 @@ function Profile() {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                    <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                         <FormField
+                       control={form.control}
+                       name="fullName"
+                       render={({ field }) => (
+                         <FormItem>
+                           <FormLabel>Full Name</FormLabel>
+                           <FormControl>
+                             <Input {...field} readOnly disabled className="bg-gray-100 cursor-not-allowed" />
+                           </FormControl>
+                           <FormMessage />
+                         </FormItem>
+                       )}
+                     />
                     <FormField
                       control={form.control}
                       name="email"
