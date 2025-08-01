@@ -10,6 +10,7 @@ import {
   fetchAvailableCourses,
   getCatalogCourses
 } from "@/services/instructorCatalogService";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 
 
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000";
@@ -37,6 +38,10 @@ const AddCatelog = () => {
   const catalogsPerPage = 4;
   const [courseCounts, setCourseCounts] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [catalogToDelete, setCatalogToDelete] = useState(null);
 
   // Test function to debug course association
   const testCourseAssociation = async (catalogId, courseIds) => {
@@ -539,26 +544,40 @@ const AddCatelog = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this catalog?")) {
-      try {
-        const result = await deleteCatalog(id);
-        
-        // Show appropriate message
-        if (result.warning) {
-          setFormSuccess(`${result.message} (${result.warning})`);
-        } else {
-          setFormSuccess(result.message || "Catalog deleted successfully!");
-        }
-        
-        // Refresh catalogs and course counts after successful deletion
-        console.log('🔄 Refreshing data after catalog deletion...');
-        await refreshCatalogsAndCounts();
-      } catch (err) {
-        setFormError(err.message || "Failed to delete catalog. Please try again.");
+    // Find the catalog object to get its name
+    const catalog = catalogs.find(cat => cat.id === id);
+    setCatalogToDelete(catalog);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!catalogToDelete) return;
+    try {
+      const result = await deleteCatalog(catalogToDelete.id);
+      
+      // Show appropriate message
+      if (result.warning) {
+        setFormSuccess(`${result.message} (${result.warning})`);
+      } else {
+        setFormSuccess(result.message || "Catalog deleted successfully!");
       }
+      
+      // Refresh catalogs and course counts after successful deletion
+      console.log('🔄 Refreshing data after catalog deletion...');
+      await refreshCatalogsAndCounts();
+      setShowDeleteConfirm(false);
+      setCatalogToDelete(null);
+    } catch (err) {
+      setFormError(err.message || "Failed to delete catalog. Please try again.");
+      setShowDeleteConfirm(false);
+      setCatalogToDelete(null);
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setCatalogToDelete(null);
+  };
 
 
   // Fallback to ensure catalogs is always an array
@@ -790,7 +809,7 @@ const AddCatelog = () => {
             <div>
               <h3 className="text-sm font-medium text-yellow-800">Limited Permissions</h3>
               <p className="text-sm text-yellow-700 mt-1">
-                You are logged in with role: <strong>{userRoles.length > 0 ? userRoles[0] : 'user'}</strong>. Catalog changes will be saved locally only. 
+                You are logged in with role: <strong>{userRole || 'user'}</strong>. Catalog changes will be saved locally only. 
                 Contact an administrator to get instructor or admin permissions for full functionality.
               </p>
               <p className="text-sm text-yellow-600 mt-2">
@@ -1150,6 +1169,19 @@ const AddCatelog = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmationDialog
+          isOpen={showDeleteConfirm}
+          onClose={cancelDelete}
+          onConfirm={confirmDelete}
+          title="Delete Catalog"
+          message={`Are you sure you want to delete the catalog "${catalogToDelete?.name || 'Unknown Catalog'}"? This action cannot be undone and will remove all associated course relationships.`}
+          confirmText="Delete Catalog"
+          cancelText="Cancel"
+          type="danger"
+        />
       )}
     </div>
   );
