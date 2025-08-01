@@ -36,32 +36,104 @@ const AddCatelog = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const catalogsPerPage = 4;
   const [courseCounts, setCourseCounts] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Test function to debug course association
+  const testCourseAssociation = async (catalogId, courseIds) => {
+    console.log('🧪 Testing course association...');
+    console.log('Catalog ID:', catalogId);
+    console.log('Course IDs:', courseIds);
+    
+    try {
+      const result = await addCoursesToCatalog(catalogId, courseIds);
+      console.log('Test result:', result);
+      
+      // Verify the courses were added
+      const courses = await getCatalogCourses(catalogId);
+      console.log('Courses in catalog after test:', courses);
+      
+      return { success: true, courses };
+    } catch (error) {
+      console.error('Test failed:', error);
+      return { success: false, error };
+    }
+  };
+
+  // Test function to debug catalog ID extraction
+  const testCatalogIdExtraction = (response) => {
+    console.log('🔍 Testing catalog ID extraction...');
+    console.log('Response:', response);
+    
+    let catalogId = response.data?.data?.id || 
+                   response.data?.data?._id ||
+                   response.data?.id || 
+                   response.data?._id || 
+                   response.id || 
+                   response._id ||
+                   response.catalogId ||
+                   response.catalog_id;
+    
+    console.log('Extracted catalog ID:', catalogId);
+    return catalogId;
+  };
+
+  // Comprehensive refresh function that updates both catalogs and course counts
+  const refreshCatalogsAndCounts = async () => {
+    try {
+      setRefreshing(true);
+      console.log('🔄 Refreshing catalogs and course counts...');
+      
+      // Fetch catalogs and available courses
+      const [catalogsData, coursesData] = await Promise.all([
+        fetchAllCatalogs(),
+        fetchAvailableCourses()
+      ]);
+      
+      // Ensure catalogs is always an array
+      const catalogsArray = Array.isArray(catalogsData) ? catalogsData : [];
+      
+      setCatalogs(catalogsArray);
+      setAvailableCourses(Array.isArray(coursesData) ? coursesData : []);
+      
+      // Fetch course counts for each catalog (only published courses)
+      const counts = {};
+      await Promise.all(
+        (catalogsArray || []).map(async (catalog) => {
+          try {
+            const courses = await getCatalogCourses(catalog.id);
+            counts[catalog.id] = courses.length;
+            console.log(`Catalog "${catalog.name}" has ${courses.length} published courses`);
+          } catch (error) {
+            console.error(`Failed to fetch courses for catalog ${catalog.id}:`, error);
+            counts[catalog.id] = 0;
+          }
+        })
+      );
+      setCourseCounts(counts);
+      
+      console.log('✅ Catalogs and course counts refreshed successfully');
+      // Show a brief success message for manual refresh
+      if (!loading) {
+        setFormSuccess("Data refreshed successfully!");
+        // Clear the success message after 3 seconds
+        setTimeout(() => {
+          setFormSuccess("");
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('❌ Failed to refresh catalogs and counts:', err);
+      setError("Failed to refresh data. Please try again later.\n" + (err.message || ''));
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Fetch catalogs and course counts on component mount
   useEffect(() => {
     const fetchDataAndCounts = async () => {
       try {
         setLoading(true);
-        const [catalogsData, coursesData] = await Promise.all([
-          fetchAllCatalogs(),
-          fetchAvailableCourses()
-        ]);
-        
-        // Ensure catalogs is always an array
-        const catalogsArray = Array.isArray(catalogsData) ? catalogsData : [];
-        
-        setCatalogs(catalogsArray);
-        setAvailableCourses(Array.isArray(coursesData) ? coursesData : []);
-        // Fetch course counts for each catalog (only published courses)
-        const counts = {};
-        await Promise.all(
-          (catalogsArray || []).map(async (catalog) => {
-            const courses = await getCatalogCourses(catalog.id);
-            counts[catalog.id] = courses.length;
-            console.log(`Catalog "${catalog.name}" has ${courses.length} published courses`);
-          })
-        );
-        setCourseCounts(counts);
+        await refreshCatalogsAndCounts();
       } catch (err) {
         setError("Failed to load catalogs and courses. Please try again later.\n" + (err.message || ''));
       } finally {
@@ -76,12 +148,17 @@ const AddCatelog = () => {
     
     if (name === "courses") {
       const courseId = value;
-      setForm(prev => ({
-        ...prev,
-        courses: checked
+      console.log(`Course selection change: ${courseId} - ${checked ? 'checked' : 'unchecked'}`);
+      setForm(prev => {
+        const newCourses = checked
           ? [...prev.courses, courseId]
-          : prev.courses.filter(id => id !== courseId)
-      }));
+          : prev.courses.filter(id => id !== courseId);
+        console.log('Updated courses array:', newCourses);
+        return {
+          ...prev,
+          courses: newCourses
+        };
+      });
     } else {
       setForm(prev => {
         const newForm = { ...prev, [name]: value };
@@ -92,6 +169,7 @@ const AddCatelog = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Submit button clicked - current form state:', form);
     if (!form.name || !form.description) {
       setFormError("Name and description are required.");
       return;
@@ -103,6 +181,8 @@ const AddCatelog = () => {
 
     try {
       console.log('Form data before submission:', form);
+      console.log('Selected courses count:', form.courses.length);
+      console.log('Selected course IDs:', form.courses);
       
       const catalogData = {
         name: form.name,
@@ -140,6 +220,7 @@ const AddCatelog = () => {
           } else {
             const courseMessage = form.courses.length > 0 ? ` with ${form.courses.length} course(s)` : '';
             setFormSuccess(`Catalog created successfully${courseMessage}!`);
+            console.log(`Catalog created with ${form.courses.length} courses selected`);
           }
         } catch (createError) {
           
@@ -158,6 +239,9 @@ const AddCatelog = () => {
       }
       setLastUpdateResponse(newCatalog);
 
+      // Test catalog ID extraction
+      const extractedCatalogId = testCatalogIdExtraction(newCatalog);
+
       // Handle course associations for both create and update
       console.log('Checking catalog ID for course association:', newCatalog);
       console.log('newCatalog type:', typeof newCatalog);
@@ -165,147 +249,214 @@ const AddCatelog = () => {
       console.log('newCatalog.data:', newCatalog.data);
       console.log('newCatalog.data type:', typeof newCatalog.data);
       console.log('newCatalog.data keys:', Object.keys(newCatalog.data || {}));
+      console.log('newCatalog.data.data:', newCatalog.data?.data);
+      console.log('newCatalog.data.data type:', typeof newCatalog.data?.data);
+      console.log('newCatalog.data.data keys:', Object.keys(newCatalog.data?.data || {}));
+      console.log('Full response structure:', JSON.stringify(newCatalog, null, 2));
       
       // Try multiple possible locations for the catalog ID
-      const catalogId = newCatalog.data?.id || 
-                       newCatalog.data?._id || 
-                       newCatalog.id || 
-                       newCatalog._id ||
-                       newCatalog.catalogId ||
-                       newCatalog.catalog_id;
+      let catalogId = newCatalog.data?.data?.id || 
+                     newCatalog.data?.data?._id ||
+                     newCatalog.data?.id || 
+                     newCatalog.data?._id || 
+                     newCatalog.id || 
+                     newCatalog._id ||
+                     newCatalog.catalogId ||
+                     newCatalog.catalog_id;
       
-      console.log('Extracted catalog ID:', catalogId);
+      console.log('Initial extracted catalog ID:', catalogId);
       
-      if (catalogId) {
-        console.log('Using catalog ID for course association:', catalogId);
-        try {
-          if (editId) {
-            // For updates, we need to get the current courses and sync them
-            let currentCourses = [];
-            try {
-              const currentCoursesData = await getCatalogCourses(editId);
-              currentCourses = Array.isArray(currentCoursesData) ? currentCoursesData : [];
-            } catch (error) {
-              console.log('Could not fetch current courses, proceeding with form data');
-            }
+      // If we don't have a catalog ID, try to find it in the response
+      if (!catalogId && newCatalog && typeof newCatalog === 'object') {
+        console.log('Searching for catalog ID in response object...');
+        const allKeys = Object.keys(newCatalog);
+        console.log('All keys in newCatalog:', allKeys);
+        
+        // Deep search through nested objects
+        const searchForId = (obj, path = '') => {
+          if (!obj || typeof obj !== 'object') return;
+          
+          for (const key of Object.keys(obj)) {
+            const value = obj[key];
+            const currentPath = path ? `${path}.${key}` : key;
             
-            const currentCourseIds = currentCourses.map(course => course.id || course._id || course);
-            const newCourseIds = form.courses;
-            
-            // Find courses to add (in new but not in current)
-            const coursesToAdd = newCourseIds.filter(id => !currentCourseIds.includes(id));
-            // Find courses to remove (in current but not in new)
-            const coursesToRemove = currentCourseIds.filter(id => !newCourseIds.includes(id));
-            
-            // Add new courses
-            if (coursesToAdd.length > 0) {
-              await addCoursesToCatalog(catalogId, coursesToAdd);
-            }
-            
-            // Remove courses
-            if (coursesToRemove.length > 0) {
-              await removeCoursesFromCatalog(catalogId, coursesToRemove);
-            }
-          } else {
-            // For new catalogs, add courses separately after creation
-            if (form.courses.length > 0) {
-              console.log('Adding courses to new catalog:', {
-                catalogId: catalogId,
-                courses: form.courses,
-                catalogData: newCatalog.data
-              });
-              
-              try {
-                const addResult = await addCoursesToCatalog(catalogId, form.courses);
-                console.log('Course addition result:', addResult);
-                
-                if (!addResult.success) {
-                  console.warn('Course addition may have failed:', addResult);
-                  // Show a warning to the user
-                  setFormSuccess(prev => prev + ' (Note: Course association may have failed)');
-                } else {
-                  console.log('Courses added successfully to catalog');
-                  
-                  // Verify the courses were actually added by fetching them
-                  try {
-                    const verifyCourses = await getCatalogCourses(catalogId);
-                    console.log('Verification - courses in catalog after addition:', verifyCourses);
-                    
-                    if (!verifyCourses || verifyCourses.length === 0) {
-                      console.warn('Courses not found in catalog after addition');
-                      setFormSuccess(prev => prev + ' (Warning: Courses may not have been added)');
-                    }
-                  } catch (verifyError) {
-                    console.warn('Could not verify course addition:', verifyError);
-                  }
+            if (value && typeof value === 'object') {
+              if (value.id || value._id) {
+                const foundId = value.id || value._id;
+                console.log(`Found potential catalog ID in ${currentPath}:`, foundId);
+                if (!catalogId) {
+                  catalogId = foundId;
                 }
-              } catch (courseAddError) {
-                console.error('Failed to add courses to catalog:', courseAddError);
-                // Show a warning to the user
-                setFormSuccess(prev => prev + ' (Note: Course association failed)');
+              } else {
+                // Recursively search nested objects
+                searchForId(value, currentPath);
               }
             }
+          }
+        };
+        
+        searchForId(newCatalog);
+      }
+      
+      console.log('Final extracted catalog ID:', catalogId);
+      
+      // Store the selected courses for later use if we need fallback
+      const selectedCourses = [...form.courses];
+      console.log('Stored selected courses for fallback:', selectedCourses);
+      
+      // Handle course associations for updates (existing catalogs)
+      if (catalogId && editId) {
+        console.log('Handling course association for catalog update:', catalogId);
+        try {
+          // For updates, we need to get the current courses and sync them
+          let currentCourses = [];
+          try {
+            const currentCoursesData = await getCatalogCourses(editId);
+            currentCourses = Array.isArray(currentCoursesData) ? currentCoursesData : [];
+          } catch (error) {
+            console.log('Could not fetch current courses, proceeding with form data');
+          }
+          
+          const currentCourseIds = currentCourses.map(course => course.id || course._id || course);
+          const newCourseIds = form.courses;
+          
+          // Find courses to add (in new but not in current)
+          const coursesToAdd = newCourseIds.filter(id => !currentCourseIds.includes(id));
+          // Find courses to remove (in current but not in new)
+          const coursesToRemove = currentCourseIds.filter(id => !newCourseIds.includes(id));
+          
+          // Add new courses
+          if (coursesToAdd.length > 0) {
+            await addCoursesToCatalog(catalogId, coursesToAdd);
+          }
+          
+          // Remove courses
+          if (coursesToRemove.length > 0) {
+            await removeCoursesFromCatalog(catalogId, coursesToRemove);
           }
         } catch (courseError) {
-          console.error('Course association failed:', courseError);
-          // Course association failed, but catalog was created/updated
-        }
-      } else {
-        console.warn('No catalog ID found for course association');
-        console.log('Full newCatalog object for debugging:', JSON.stringify(newCatalog, null, 2));
-        
-        // Try to extract catalog ID from the response in different ways
-        if (newCatalog && typeof newCatalog === 'object') {
-          // Try to find any ID-like field in the entire response
-          const allKeys = Object.keys(newCatalog);
-          console.log('All keys in newCatalog:', allKeys);
-          
-          for (const key of allKeys) {
-            const value = newCatalog[key];
-            if (value && typeof value === 'object' && (value.id || value._id)) {
-              console.log(`Found potential catalog ID in ${key}:`, value.id || value._id);
-            }
-          }
+          console.error('Course association failed for update:', courseError);
         }
       }
 
-      // Refresh catalogs list
-      const updatedCatalogs = await fetchAllCatalogs();
-      setCatalogs(updatedCatalogs || []);
-      
-      // If we couldn't find the catalog ID earlier, try to find it in the updated list
-      if (!catalogId && updatedCatalogs && updatedCatalogs.length > 0) {
-        console.log('Trying to find catalog ID in updated catalog list');
-        const latestCatalog = updatedCatalogs[updatedCatalogs.length - 1];
-        console.log('Latest catalog from list:', latestCatalog);
-        
-        if (latestCatalog && (latestCatalog.name === form.name || latestCatalog.name === catalogData.name)) {
-          const fallbackCatalogId = latestCatalog.id || latestCatalog._id;
-          console.log('Found fallback catalog ID:', fallbackCatalogId);
-          
-          if (fallbackCatalogId && form.courses.length > 0) {
-            console.log('Attempting course addition with fallback catalog ID');
-            try {
-              const addResult = await addCoursesToCatalog(fallbackCatalogId, form.courses);
-              console.log('Fallback course addition result:', addResult);
-              
-              if (addResult.success) {
-                setFormSuccess(prev => prev + ' (Courses added via fallback)');
-              } else {
-                setFormSuccess(prev => prev + ' (Fallback course addition failed)');
-              }
-            } catch (fallbackError) {
-              console.error('Fallback course addition failed:', fallbackError);
-              setFormSuccess(prev => prev + ' (Fallback course addition failed)');
-            }
-          }
-        }
-      }
-
-      // Reset form
+      // Reset form and close modal
       setForm({ name: "", description: "", thumbnail: "", courses: [] });
       setShowModal(false);
       setEditId(null);
+      
+      // Always try to add courses, even if we don't have a catalog ID initially
+      if (selectedCourses.length > 0) {
+        console.log('🎯 COURSE ASSOCIATION PROCESS STARTED');
+        console.log('Selected courses:', selectedCourses);
+        console.log('Catalog ID available:', !!catalogId);
+        console.log('Catalog ID value:', catalogId);
+        console.log('Is edit mode:', !!editId);
+        console.log('Attempting to add courses to catalog...');
+        
+                 if (catalogId) {
+           // We have a catalog ID, add courses directly
+           console.log('Adding courses with known catalog ID:', catalogId);
+           try {
+             // Add a small delay to ensure the catalog is fully created
+             await new Promise(resolve => setTimeout(resolve, 500));
+             
+             const addResult = await addCoursesToCatalog(catalogId, selectedCourses);
+             console.log('Course addition result:', addResult);
+             
+             if (addResult.success) {
+               console.log('Courses added successfully');
+               
+               // Verify the courses were actually added
+               try {
+                 await new Promise(resolve => setTimeout(resolve, 300));
+                 const verifyCourses = await getCatalogCourses(catalogId);
+                 console.log('Verification - courses in catalog after addition:', verifyCourses);
+                 
+                 if (verifyCourses && verifyCourses.length > 0) {
+                   console.log(`✅ Successfully verified ${verifyCourses.length} courses in catalog`);
+                   setFormSuccess(prev => prev + ` (${verifyCourses.length} courses added successfully)`);
+                 } else {
+                   console.warn('Courses not found in catalog after addition');
+                   setFormSuccess(prev => prev + ' (Warning: Courses may not have been added)');
+                 }
+               } catch (verifyError) {
+                 console.warn('Could not verify course addition:', verifyError);
+                 setFormSuccess(prev => prev + ' (Courses added, but verification failed)');
+               }
+             } else {
+               console.warn('Course addition may have failed:', addResult);
+               setFormSuccess(prev => prev + ' (Note: Course association may have failed)');
+             }
+           } catch (error) {
+             console.error('Course addition failed:', error);
+             setFormSuccess(prev => prev + ' (Note: Course association failed)');
+           }
+                  } else {
+           // No catalog ID, try to find it in the updated list
+           console.log('No catalog ID found, trying fallback approach...');
+           // Add delay to ensure catalog is fully created in backend
+           await new Promise(resolve => setTimeout(resolve, 2000));
+           await refreshCatalogsAndCounts();
+          
+          if (catalogs && catalogs.length > 0) {
+            // Find the catalog by name more precisely
+            const matchingCatalog = catalogs.find(cat => 
+              cat.name === form.name || 
+              cat.name === catalogData.name ||
+              cat.name === newCatalog.data?.data?.name ||
+              cat.name === newCatalog.data?.name
+            );
+            
+            console.log('Looking for catalog with name:', form.name);
+            console.log('Available catalog names:', catalogs.map(cat => cat.name));
+            console.log('Matching catalog found:', matchingCatalog);
+            
+                         if (matchingCatalog) {
+               const fallbackCatalogId = matchingCatalog.id || matchingCatalog._id;
+               console.log('Found fallback catalog ID:', fallbackCatalogId);
+              
+              if (fallbackCatalogId) {
+                console.log('Attempting course addition with fallback catalog ID');
+                try {
+                  const addResult = await addCoursesToCatalog(fallbackCatalogId, selectedCourses);
+                  console.log('Fallback course addition result:', addResult);
+                  
+                                   if (addResult.success) {
+                   // Verify the courses were actually added
+                   try {
+                     await new Promise(resolve => setTimeout(resolve, 500));
+                     const verifyCourses = await getCatalogCourses(fallbackCatalogId);
+                     console.log('Fallback verification - courses in catalog:', verifyCourses);
+                     
+                     if (verifyCourses && verifyCourses.length > 0) {
+                       setFormSuccess(prev => prev + ` (${verifyCourses.length} courses added via fallback)`);
+                     } else {
+                       setFormSuccess(prev => prev + ' (Courses added via fallback, but verification failed)');
+                     }
+                   } catch (verifyError) {
+                     console.warn('Could not verify fallback course addition:', verifyError);
+                     setFormSuccess(prev => prev + ' (Courses added via fallback)');
+                   }
+                 } else {
+                   setFormSuccess(prev => prev + ' (Fallback course addition failed)');
+                 }
+                } catch (fallbackError) {
+                  console.error('Fallback course addition failed:', fallbackError);
+                  setFormSuccess(prev => prev + ' (Fallback course addition failed)');
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Final refresh to update the UI
+      console.log('🔄 Performing final refresh...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await refreshCatalogsAndCounts();
+      console.log('✅ All operations completed successfully');
+      console.log('🎯 COURSE ASSOCIATION PROCESS COMPLETED');
+      console.log('Final course counts:', courseCounts);
     } catch (err) {
       setFormError((err && err.message ? err.message : "Failed to save catalog. Please try again.") + (err && err.stack ? "\n" + err.stack : ""));
     } finally {
@@ -392,15 +543,16 @@ const AddCatelog = () => {
       try {
         const result = await deleteCatalog(id);
         
-        // Remove from state
-        setCatalogs(catalogs => catalogs.filter(cat => cat.id !== id));
-        
         // Show appropriate message
         if (result.warning) {
           setFormSuccess(`${result.message} (${result.warning})`);
         } else {
           setFormSuccess(result.message || "Catalog deleted successfully!");
         }
+        
+        // Refresh catalogs and course counts after successful deletion
+        console.log('🔄 Refreshing data after catalog deletion...');
+        await refreshCatalogsAndCounts();
       } catch (err) {
         setFormError(err.message || "Failed to delete catalog. Please try again.");
       }
@@ -422,6 +574,189 @@ const AddCatelog = () => {
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span>Loading catalogs...</span>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show refreshing overlay when refreshing data
+  if (refreshing && !loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 relative">
+        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span>Refreshing data...</span>
+          </div>
+        </div>
+        {/* Render the normal content behind the overlay */}
+        <div className="opacity-50">
+          {/* Permission Notice */}
+          {!isInstructorOrAdmin() && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start">
+                <svg className="h-5 w-5 text-yellow-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-medium text-yellow-800">Limited Permissions</h3>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    You are logged in with role: <strong>{userRole || 'user'}</strong>. Catalog changes will be saved locally only. 
+                    Contact an administrator to get instructor or admin permissions for full functionality.
+                  </p>
+                  <p className="text-sm text-yellow-600 mt-2">
+                    <strong>Note:</strong> When you try to delete or update catalogs, they will be removed/updated from your local storage instead of the server.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+            <h2 className="text-2xl font-bold text-gray-800">Course Catalogs</h2>
+            <div className="flex gap-3">
+              <button
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={refreshCatalogsAndCounts}
+                disabled={refreshing}
+                title="Refresh catalogs and course counts"
+              >
+                {refreshing ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    Refreshing...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </div>
+                )}
+              </button>
+              <button
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                onClick={() => { 
+                  setShowModal(true); 
+                  setEditId(null); 
+                  setForm({ name: "", description: "", thumbnail: "", courses: [] }); 
+                  setFormError("");
+                  setFormSuccess("");
+                }}
+              >
+                Add New Catalog
+              </button>
+            </div>
+          </div>
+
+          {formSuccess && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start">
+                <svg className="h-5 w-5 text-green-400 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-green-800">{formSuccess}</p>
+                  {formSuccess.includes('locally') && (
+                    <p className="text-green-700 text-sm mt-1">
+                      Your changes have been saved to your browser's local storage. 
+                      They will persist until you clear your browser data.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {safeCatalogs.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <h3 className="mt-4 text-lg font-medium text-gray-900">No catalogs found</h3>
+                <p className="mt-2 text-gray-500">Create your first catalog to organize your courses.</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {paginatedCatalogs.map((catalog, index) => (
+                  <div key={`${catalog.id}-${index}`} className="border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow">
+                    <div className="flex">
+                      <div className="w-1/3">
+                        <img
+                          src={catalog.thumbnail || PLACEHOLDER_IMAGE}
+                          alt={catalog.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = PLACEHOLDER_IMAGE;
+                          }}
+                        />
+                      </div>
+                      <div className="w-2/3 p-5 flex flex-col">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-lg font-semibold text-gray-800">{catalog.name}</h3>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleEdit(catalog)}
+                              className="text-blue-600 hover:text-blue-800 transition-colors p-1 rounded hover:bg-blue-50"
+                              aria-label="Edit"
+                              title="Edit catalog"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(catalog.id)}
+                              className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50"
+                              aria-label="Delete"
+                              title="Delete catalog"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{catalog.description}</p>
+                        
+                        {/* Catalog metadata */}
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                          <span className="flex items-center gap-1">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            {courseCounts[catalog.id] || 0} published courses
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <button
+                  className="px-4 py-2 rounded border bg-gray-100 text-gray-700 disabled:opacity-50"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
+                <button
+                  className="px-4 py-2 rounded border bg-gray-100 text-gray-700 disabled:opacity-50"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -468,18 +803,57 @@ const AddCatelog = () => {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Course Catalogs</h2>
-        <button
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          onClick={() => { 
-            setShowModal(true); 
-            setEditId(null); 
-            setForm({ name: "", description: "", thumbnail: "", courses: [] }); 
-            setFormError("");
-            setFormSuccess("");
-          }}
-        >
-          Add New Catalog
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={refreshCatalogsAndCounts}
+            disabled={refreshing}
+            title="Refresh catalogs and course counts"
+          >
+            {refreshing ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                Refreshing...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </div>
+            )}
+          </button>
+          {/* {process.env.NODE_ENV === 'development' && (
+            // <button
+            //   className="px-3 py-2.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 text-xs"
+            //   onClick={() => {
+            //     console.log('🔍 Debug Info:');
+            //     console.log('Available courses:', availableCourses);
+            //     console.log('Current catalogs:', catalogs);
+            //     console.log('Course counts:', courseCounts);
+            //     console.log('Form state:', form);
+            //   }}
+            //   title="Debug Info (Development Only)"
+            // >
+            //   Debug
+            // </button>
+          )} */}
+          <button
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            onClick={() => { 
+              console.log('Opening modal for new catalog creation');
+              setShowModal(true); 
+              setEditId(null); 
+              setForm({ name: "", description: "", thumbnail: "", courses: [] }); 
+              setFormError("");
+              setFormSuccess("");
+              console.log('Form reset for new catalog');
+            }}
+          >
+            Add New Catalog
+          </button>
+        </div>
       </div>
 
       {formSuccess && (
@@ -765,10 +1139,10 @@ const AddCatelog = () => {
                     {submitting ? (
                       <div className="flex items-center gap-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        {editId ? "Saving..." : "Creating..."}
+                        {editId ? "Saving..." : form.courses.length > 0 ? "Creating & Adding Courses..." : "Creating..."}
                       </div>
                     ) : (
-                      editId ? "Save Changes" : "Create Catalog"
+                      editId ? "Save Changes" : form.courses.length > 0 ? `Create Catalog (${form.courses.length} courses)` : "Create Catalog"
                     )}
                   </button>
                 </div>
