@@ -15,7 +15,7 @@ import { getUserAvatarUrl } from "@/lib/avatar-utils";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { fetchUserProfile } from "@/services/userService";
+import { fetchUserProfile, clearUserData } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 
 export function ProfileDropdown() {
@@ -45,9 +45,15 @@ export function ProfileDropdown() {
   }, []);
 
   const handleLogout = () => {
+    // Clear all user data
+    clearUserData();
     localStorage.removeItem("token");
+    localStorage.removeItem("userId");
     Cookies.remove("token");
-    window.location.href = "/"; // Redirect to landing page
+    Cookies.remove("userId");
+    
+    // Redirect to landing page
+    window.location.href = "/";
   };
   
   return (

@@ -1,36 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Play, Video, Clock, Calendar, Users } from "lucide-react";
+import { ExternalLink, Play, Video, Clock, Calendar, Users, FileVideo } from "lucide-react";
 import { AttendanceViewerModal } from "./AttendanceViewerModal";
 
-// Mock data
-const recordedSessions = [
-  {
-    id: "1",
-    title: "Constitutional Rights Deep Dive",
-    date: "2025-06-08",
-    duration: "1h 45m",
-    thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/1ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-  {
-    id: "2",
-    title: "Civil Procedure Fundamentals",
-    date: "2025-06-05",
-    duration: "2h 15m",
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/2ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-  {
-    id: "3",
-    title: "Criminal Law Case Studies",
-    date: "2025-06-03",
-    duration: "1h 30m",
-    thumbnail: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/3ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-];
+// Empty array - no recordings exist yet
+const recordedSessions = [];
 
 // Helper function to convert UTC time to user's timezone
 const convertUTCToUserTimezone = (utcTime, userTimezone) => {
@@ -361,7 +336,7 @@ export function LiveClasses() {
               <Play className="h-5 w-5 text-primary" />
               Class Recordings
             </CardTitle>
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={handleViewAllRecordings}
@@ -369,39 +344,47 @@ export function LiveClasses() {
             >
               <ExternalLink className="h-4 w-4" />
               View All
-            </Button>
+            </Button> */}
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recordedSessions.map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-all cursor-pointer group"
-                onClick={() => window.open(session.driveLink, "_blank")}
-              >
-                <div className="relative w-16 h-12 rounded overflow-hidden flex-shrink-0">
-                  <img
-                    src={session.thumbnail}
-                    alt={session.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                    <ExternalLink className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                    {session.title}
-                  </h4>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <span>{new Date(session.date).toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{session.duration}</span>
-                  </div>
-                </div>
+            {recordedSessions.length === 0 ? (
+              <div className="text-center py-8">
+                <FileVideo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-600">No class recordings available yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Check back later for available recordings.</p>
               </div>
-            ))}
+            ) : (
+              recordedSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-all cursor-pointer group"
+                  onClick={() => window.open(session.driveLink, "_blank")}
+                >
+                  <div className="relative w-16 h-12 rounded overflow-hidden flex-shrink-0">
+                    <img
+                      src={session.thumbnail}
+                      alt={session.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
+                      <ExternalLink className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      {session.title}
+                    </h4>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                      <span>{new Date(session.date).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span>{session.duration}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

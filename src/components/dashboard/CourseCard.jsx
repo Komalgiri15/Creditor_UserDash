@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Link, useNavigate } from "react-router-dom";
-import { BookOpen, Clock } from "lucide-react";
+import { BookOpen, Clock, Calendar } from "lucide-react";
 
 function formatDuration(secs) {
   if (!secs) return "Duration not specified";
@@ -18,8 +18,10 @@ export function CourseCard({
   image,
   modulesCount,
   totalDurationSecs,
-  category
+  category,
+  isUpcoming = false
 }) {
+
   const navigate = useNavigate();
   return (
     <div>
@@ -42,22 +44,38 @@ export function CourseCard({
         <div className="flex flex-col flex-1 p-3 relative">
           <h3 className="font-semibold text-base line-clamp-1">{title}</h3>
           <p className="text-muted-foreground line-clamp-2 text-xs mt-1 mb-2">{description}</p>
-          <div className="flex items-center text-xs text-muted-foreground gap-3 mt-auto">
-            <div className="flex items-center gap-1">
-              <BookOpen size={12} />
-              <span>{modulesCount || 0} modules</span>
+          
+          {!isUpcoming && (
+            <div className="flex items-center text-xs text-muted-foreground gap-3 mt-auto">
+              <div className="flex items-center gap-1">
+                <BookOpen size={12} />
+                <span>{modulesCount || 0} modules</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock size={12} />
+                <span>{formatDuration(totalDurationSecs)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock size={12} />
-              <span>{formatDuration(totalDurationSecs)}</span>
+          )}
+          
+          {isUpcoming ? (
+            <div className="mt-auto pt-2">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Stay tuned for more details</p>
+                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 px-4 py-2 rounded-lg border border-blue-200 text-sm font-medium">
+                  <Calendar size={14} />
+                  Coming Soon
+                </div>
+              </div>
             </div>
-          </div>
-          <button
-            className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition-colors duration-200"
-            onClick={() => navigate(`/dashboard/courses/${id}`)}
-          >
-            View Course
-          </button>
+          ) : (
+            <button
+              className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition-colors duration-200"
+              onClick={() => navigate(`/dashboard/courses/${id}`)}
+            >
+              View Course
+            </button>
+          )}
         </div>
       </div>
     </div>

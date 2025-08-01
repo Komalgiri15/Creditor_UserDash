@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 // import img1 from '../assets/carluxury.jpg';
@@ -15,13 +15,39 @@ import HeroCarousel from '../components/HeroCarousel.jsx';
 import StatHighlights from '../components/stathighlight.jsx';
 import Navbar from '../components/navbar';
 import Footer from '../components/Footer';
+import Cookies from 'js-cookie';
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0); // Optional: scroll to top on mount
-  }, []);
+    
+    // Check if user is already logged in
+    const token = Cookies.get("token") || localStorage.getItem("token");
+    if (token) {
+      // User is already logged in, redirect to dashboard
+      navigate("/dashboard");
+      return;
+    }
+    
+    // User is not logged in, show landing page
+    setIsCheckingAuth(false);
+  }, [navigate]);
+
+  // Show loading spinner while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Navbar />
