@@ -393,112 +393,95 @@ export function LiveClasses() {
         </CardContent>
       </Card>
 
-      {/* Cancelled Events Section */}
-      {cancelledEvents.length > 0 && (
-        <Card className="border-2 border-red-200 bg-gradient-to-r from-red-50 to-red-100 hover:shadow-md transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <div className="p-2 bg-red-100 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-lg font-semibold">Cancelled Classes</span>
-                <div className="text-xs text-red-600 font-medium">
-                  {cancelledEvents.length} class{cancelledEvents.length !== 1 ? 'es' : ''} cancelled
+      {/* Cancelled Events Section - Only show if there are cancelled events */}
+      {cancelledEvents && cancelledEvents.length > 0 && (
+  <Card className="border border-red-100 bg-white hover:shadow-md transition-all duration-300">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-3">
+        <div className="p-2 bg-red-50 rounded-lg text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
+          </svg>
+        </div>
+        <div>
+          <span className="text-lg font-semibold text-gray-800">Cancelled Classes</span>
+          <div className="text-sm text-gray-500 font-medium">
+            {cancelledEvents.length} cancelled session{cancelledEvents.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-3">
+        {cancelledEvents.map((cancelledEvent, i) => (
+          <div key={cancelledEvent.id || i} className="group relative border-l-4 border-red-300 rounded-r-lg p-4 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-medium text-gray-800">
+                    {cancelledEvent.event?.title || 'Untitled Event'}
+                  </h4>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-700 text-xs font-medium rounded-md">
+                    Cancelled
+                  </span>
                 </div>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {cancelledEvents.map((cancelledEvent, i) => (
-                <div key={cancelledEvent.id || i} className="group relative border border-red-200 rounded-xl p-4 bg-white/50 hover:bg-white/80 transition-all duration-300 shadow-sm hover:shadow-md">
-                  {/* Cancelled indicator dot */}
-                  <div className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                
+                {cancelledEvent.event?.course && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>{cancelledEvent.event.course.title}</span>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
+                  </div>
                   
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                                             <div className="flex items-center gap-3 mb-3">
-                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                         <h4 className="font-semibold text-gray-700">
-                           {cancelledEvent.event?.title || 'Untitled Event'}
-                         </h4>
-                         <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full border border-red-200">
-                           CANCELLED
-                         </span>
-                       </div>
-                      
-                      {/* Course information */}
-                      {cancelledEvent.event?.course && (
-                        <div className="mb-3">
-                          <span className="inline-flex items-center px-3 py-1 bg-red-50 text-red-800 text-xs font-medium rounded-full border border-red-200">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
-                            {cancelledEvent.event.course.title}
-                          </span>
-                        </div>
-                      )}
-                      
-                                             {/* Event details */}
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                         <div className="flex items-center gap-2 text-gray-600">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                           </svg>
-                           <span className="font-medium">
-                             {(() => {
-                               try {
-                                 const occurrenceDate = new Date(cancelledEvent.occurrence_date);
-                                 return occurrenceDate.toLocaleDateString('en-US', { 
-                                   weekday: 'short',
-                                   month: 'short', 
-                                   day: 'numeric',
-                                   year: 'numeric',
-                                   timeZone: userTimezone 
-                                 });
-                               } catch (error) {
-                                 console.error('Error formatting cancelled event date:', error);
-                                 return new Date(cancelledEvent.occurrence_date).toLocaleDateString();
-                               }
-                             })()}
-                           </span>
-                         </div>
-                         
-                         <div className="flex items-center gap-2 text-gray-600">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                           </svg>
-                           <span className="font-medium">
-                             {(() => {
-                               try {
-                                 const occurrenceDate = new Date(cancelledEvent.occurrence_date);
-                                 return occurrenceDate.toLocaleTimeString('en-US', { 
-                                   hour: '2-digit', 
-                                   minute: '2-digit',
-                                   hour12: true,
-                                   timeZone: userTimezone 
-                                 });
-                               } catch (error) {
-                                 console.error('Error formatting cancelled event time:', error);
-                                 return new Date(cancelledEvent.occurrence_date).toLocaleTimeString();
-                               }
-                             })()}
-                           </span>
-                         </div>
-                       </div>
-                    </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+              
 
-      <Card className="hover:shadow-lg transition-shadow">
+            </div>
+            
+            {cancelledEvent.reason && (
+              <div className="mt-3 p-3 bg-red-50 rounded-md text-sm text-red-700">
+                <div className="font-medium">Cancellation reason:</div>
+                <div>{cancelledEvent.reason}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
+<Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
