@@ -1315,7 +1315,7 @@ const AddEvent = () => {
       {/* Recurring Delete Modal */}
       {showRecurringDeleteModal && recurringDeleteEvent && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
-    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 relative">
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-3xl mx-4 relative">
       <button
         className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 transition-colors duration-200 rounded-full p-1 hover:bg-gray-100"
         onClick={() => setShowRecurringDeleteModal(false)}
@@ -1326,14 +1326,14 @@ const AddEvent = () => {
         </svg>
       </button>
       
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Manage Recurring Event</h2>
-          <p className="text-gray-600">This event repeats. Manage occurrences below:</p>
+          <h2 className="text-xl font-bold text-gray-900">Manage Recurring Event</h2>
+          <p className="text-sm text-gray-600">This event repeats. Manage occurrences below:</p>
         </div>
         
         {/* Dual column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Upcoming Occurrences Column */}
           <div className="border rounded-lg overflow-hidden shadow-sm">
             <div className="bg-blue-50 px-4 py-3 border-b">
@@ -1344,7 +1344,7 @@ const AddEvent = () => {
                 Upcoming Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.occurrences && recurringDeleteEvent.occurrences.map((occ, idx) => {
                 const deletedOccurrences = recurringDeleteEvent.deletedOccurrences || [];
                 const isDeleted = deletedOccurrences.includes(occ.startTime);
@@ -1406,7 +1406,7 @@ const AddEvent = () => {
                 Deleted Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.deletedOccurrences && recurringDeleteEvent.deletedOccurrences.length > 0 ? (
                 recurringDeleteEvent.deletedOccurrences.map((deletedObj) => {
                   // Support both string and object for backward compatibility
@@ -1452,9 +1452,9 @@ const AddEvent = () => {
         </div>
 
         {/* Delete All Button */}
-        <div className="pt-4 border-t">
+        <div className="pt-3 border-t">
           <button
-            className={`w-full py-3 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+            className={`w-full py-2.5 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
             disabled={deletingAll}
             onClick={() => handleDeleteAllOccurrences(recurringDeleteEvent.id)}
           >
@@ -1469,7 +1469,7 @@ const AddEvent = () => {
             ) : 'Delete entire series'}
           </button>
           <button
-            className="w-full mt-3 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
+            className="w-full mt-2 py-2 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
             onClick={() => setShowRecurringDeleteModal(false)}
           >
             Cancel
