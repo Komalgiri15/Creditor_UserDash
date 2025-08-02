@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
-import { getAllUpcomingEvents } from "@/services/calendarService";
+import { getAllUpcomingEvents, expandRecurringEvents } from "@/services/calendarService";
 
 export function DashboardCalendar() {
   const today = new Date();
@@ -42,58 +42,10 @@ export function DashboardCalendar() {
       setError(null);
       try {
         const events = await getAllUpcomingEvents();
-        const now = new Date();
-        const expanded = [];
-        
         console.log('Raw events from API:', events);
         
-        events.forEach(event => {
-          // Handle recurring events
-          if (event.isRecurring && Array.isArray(event.occurrences)) {
-            console.log('Processing recurring event:', event.title, 'with', event.occurrences.length, 'occurrences');
-            event.occurrences.forEach(occ => {
-              const occDate = new Date(occ);
-              if (occDate >= now) {
-                // Calculate the end time for this occurrence
-                const duration = new Date(event.endTime) - new Date(event.startTime);
-                const occEndTime = new Date(occDate.getTime() + duration);
-                
-                expanded.push({
-                  ...event,
-                  date: occDate,
-                  startTime: occDate.toISOString(), // Use occurrence start time
-                  endTime: occEndTime.toISOString(), // Use calculated end time
-                  time: occDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  isOccurrence: true,
-                  originalEvent: event
-                });
-              }
-            });
-          } else if (event.isRecurring && event.recurrenceRule) {
-            // If occurrences array is missing, try to generate them from recurrenceRule
-            console.log('Recurring event without occurrences array:', event.title);
-            const eventDate = new Date(event.startTime);
-            if (eventDate >= now) {
-              expanded.push({
-                ...event,
-                date: eventDate,
-                time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isOccurrence: false
-              });
-            }
-          } else if (event.startTime) {
-            // Handle non-recurring events
-            const eventDate = new Date(event.startTime);
-            if (eventDate >= now) {
-              expanded.push({
-                ...event,
-                date: eventDate,
-                time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isOccurrence: false
-              });
-            }
-          }
-        });
+        // Use the utility function to expand recurring events
+        const expanded = expandRecurringEvents(events);
         
         console.log('Expanded events:', expanded.length);
         // Debug live events
@@ -117,6 +69,33 @@ export function DashboardCalendar() {
       }
     }
     fetchAllUpcoming();
+  }, []);
+
+  // Refresh events when timezone changes
+  React.useEffect(() => {
+    const handleTimezoneChange = () => {
+      // Re-fetch events when timezone changes
+      const fetchEvents = async () => {
+        try {
+          const events = await getAllUpcomingEvents();
+          const expanded = expandRecurringEvents(events);
+          setAllEvents(expanded);
+        } catch (err) {
+          console.error('Error refreshing events:', err);
+        }
+      };
+      fetchEvents();
+    };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'userTimezone') {
+        handleTimezoneChange();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('storage', handleTimezoneChange);
+    };
   }, []);
 
   // Filter events for the selected date and add live status
