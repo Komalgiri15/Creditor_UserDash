@@ -88,7 +88,6 @@ const AddEvent = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        console.log("Decoded JWT token:", decoded);
         return decoded;
       } catch (error) {
         console.error("Failed to decode token:", error);
@@ -101,10 +100,8 @@ const AddEvent = () => {
   // Try to refresh the token to get one with role information
   const refreshToken = async () => {
     try {
-      console.log("Attempting to refresh token...");
       // This would require the user's credentials, which we don't have stored
       // For now, let's just log that we need a token with role information
-      console.log("Current token doesn't contain role information. Need to contact backend team to include role in JWT token.");
       return false;
     } catch (error) {
       console.error("Failed to refresh token:", error);
@@ -227,9 +224,6 @@ const AddEvent = () => {
       }
     };
     
-    console.log("=== TESTING RECURRING EVENT CREATION ===");
-    console.log("Test payload:", testPayload);
-    
     // Test the API call
     const token = getAuthToken();
     fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
@@ -243,16 +237,13 @@ const AddEvent = () => {
       credentials: "include"
     })
     .then(response => {
-      console.log("Test API response status:", response.status);
       return response.text();
     })
     .then(text => {
-      console.log("Test API response text:", text);
       try {
         const data = JSON.parse(text);
-        console.log("Test API response parsed:", data);
       } catch (e) {
-        console.log("Test API response is not JSON");
+        // Response is not JSON
       }
     })
     .catch(error => {
@@ -314,7 +305,6 @@ const AddEvent = () => {
       try {
         const data = await getAllEvents();
         setEvents(data);
-        console.log('Loaded events:', data.map(e => e.id));
       } catch (err) {
         console.error("Failed to fetch events", err);
       }
@@ -344,25 +334,16 @@ const AddEvent = () => {
 
     setSelectedDate(date);
     
-    console.log('=== DATE CLICK DEBUG ===');
-    console.log('Clicked date:', date.toDateString());
-    console.log('Total events available:', events.length);
-    
     // Check if there are existing events for this date
     const eventsForDate = getEventsForDate(date);
     
-    console.log('Events found for this date:', eventsForDate.length);
-    console.log('Events for date:', eventsForDate);
-    
     if (eventsForDate.length > 0) {
       // Show existing events for this date
-      console.log('Showing existing events modal');
       setSelectedDateEvents(eventsForDate);
       setSelectedDateForEvents(date);
       setShowDateEvents(true);
     } else {
       // No events exist, open the modal directly
-      console.log('No events found, opening new event modal');
       openEventModal(date);
     }
   };
@@ -423,7 +404,6 @@ const AddEvent = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      console.log('GET /calendar/events/:eventId response:', data);
       return data.data || null;
     } catch (err) {
       console.error('Failed to fetch event details', err);
@@ -445,7 +425,6 @@ const AddEvent = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      console.log('API /recurrence-exception GET response:', data);
       // Return array of deleted occurrence objects
       return (data.data || []);
     } catch (err) {
@@ -456,22 +435,12 @@ const AddEvent = () => {
 
   // Edit handler: fetch event details and populate modal
   const handleEdit = async (index) => {
-    console.log('Edit clicked for index:', index, 'event:', events[index]);
     const event = events[index];
     // Fetch latest event details from backend
     const backendEvent = await fetchEventDetails(event.id);
-    console.log('Fetched backend event:', backendEvent);
     const e = backendEvent || event;
     setSelectedDate(e.date ? new Date(e.date) : (e.startTime ? new Date(e.startTime) : null));
     
-    // Debug timezone conversion
-    console.log('=== TIMEZONE CONVERSION DEBUG ===');
-    console.log('Original UTC startTime:', e.startTime);
-    console.log('Original UTC endTime:', e.endTime);
-    console.log('Converted local startTime:', convertUtcToLocal(e.startTime));
-    console.log('Converted local endTime:', convertUtcToLocal(e.endTime));
-    console.log('User timezone:', userTimezone);
-    console.log('=== END TIMEZONE DEBUG ===');
     setForm({
       id: e.id,
       title: e.title || '',
@@ -487,7 +456,6 @@ const AddEvent = () => {
     });
     setEditIndex(index);
     setShowModal(true);
-    console.log('setShowModal(true) called, modal should now be open');
     // If recurring, fetch deleted occurrences
     let deletedOccurrences = [];
     if ((e.isRecurring || e.recurrence !== 'none') && e.id) {
@@ -553,7 +521,6 @@ const AddEvent = () => {
     setDeletingOccurrenceKey(occurrenceStartTime);
     try {
       const token = getAuthToken();
-      console.log('Deleting occurrence:', { eventId, occurrenceDate: occurrenceStartTime });
       // DELETE a single occurrence in a recurring event (POST)
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`, {
         method: "POST",
@@ -608,7 +575,6 @@ const AddEvent = () => {
     setDeletingOccurrenceKey(occurrenceDate);
     try {
       const token = getAuthToken();
-      console.log('Restoring occurrence:', { eventId, occurrenceDate });
       // RESTORE a single occurrence in a recurring event (DELETE)
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`,
@@ -652,7 +618,6 @@ const AddEvent = () => {
     
     // Decode and log the JWT token to see what's in it
     const decodedToken = decodeToken();
-    console.log("Token contents:", decodedToken);
 
     // Validate recurring event data
     const validationErrors = validateRecurringEvent(form);
@@ -726,22 +691,12 @@ const AddEvent = () => {
       payload.userRole = currentRole;
     }
 
-    console.log("=== EVENT CREATION DEBUG INFO ===");
-    console.log("Form startTime:", form.startTime);
-    console.log("Form endTime:", form.endTime);
-    console.log("Is Recurring:", isRecurring);
-    console.log("Recurrence Type:", form.recurrence);
-    console.log("Recurrence Rule:", recurrenceRule);
-    console.log("Payload being sent:", payload);
-    console.log("User role:", currentRole);
-    console.log("JWT token role (if any):", decodedToken?.role || decodedToken?.userRole || "No role in token");
-    console.log("=== END DEBUG INFO ===");
+
 
     if (editIndex !== null) {
       // Update event in backend
       try {
         const token = getAuthToken();
-        console.log('Updating event with ID:', form.id);
         const patchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`, {
           method: "PATCH",
           headers: {
@@ -766,12 +721,9 @@ const AddEvent = () => {
         }
         
         const patchData = await patchRes.json();
-        console.log('PATCH /calendar/events/:eventId payload:', payload);
-        console.log('PATCH /calendar/events/:eventId response:', patchData);
         
         // Refetch events after updating
         const data = await getAllEvents();
-        console.log("Fetched events after update:", data);
         setEvents(data);
         alert("Event updated successfully!");
       } catch (err) {
@@ -783,8 +735,6 @@ const AddEvent = () => {
       // Send to backend only on add
       try {
         const token = getAuthToken();
-        console.log('Creating new event with payload:', payload);
-        console.log('Payload JSON:', JSON.stringify(payload, null, 2));
         
         const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
           method: "POST",
@@ -798,9 +748,7 @@ const AddEvent = () => {
         });
         
         // Log the response status and body for debugging
-        console.log('POST /calendar/events status:', postRes.status);
         const responseText = await postRes.text();
-        console.log('POST /calendar/events response:', responseText);
         if (!postRes.ok) {
           let errorMessage = 'Failed to create event';
           try {
@@ -819,11 +767,9 @@ const AddEvent = () => {
         }
         
         const postData = JSON.parse(responseText);
-        console.log("POST response (parsed):", postData);
         
         // Refetch events after adding
         const data = await getAllEvents();
-        console.log("Fetched events after add:", data);
         // Normalize course_id to courseId for all events
         const normalizedEvents = data.map(ev => ({
             ...ev,
@@ -866,22 +812,17 @@ const AddEvent = () => {
   const getEventsForDate = (date) => {
     if (!date) return [];
     
-    console.log('Getting events for date:', date.toDateString());
-    console.log('Available events:', events);
-    
     return events.filter(ev => {
       // Try different date fields that might exist
       const eventDate = ev.date || ev.startTime || ev.createdAt;
       
       if (!eventDate) {
-        console.log('Event has no date field:', ev);
         return false;
       }
       
       const evDate = new Date(eventDate);
       
       if (isNaN(evDate.getTime())) {
-        console.log('Invalid date for event:', ev);
         return false;
       }
       
@@ -890,13 +831,6 @@ const AddEvent = () => {
         evDate.getMonth() === date.getMonth() &&
         evDate.getDate() === date.getDate()
       );
-      
-      console.log('Event date check:', {
-        eventTitle: ev.title,
-        eventDate: evDate.toDateString(),
-        selectedDate: date.toDateString(),
-        isSameDate
-      });
       
       return isSameDate;
     });
