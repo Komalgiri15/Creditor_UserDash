@@ -1052,7 +1052,7 @@ const AddEvent = () => {
               </span>
               {eventsForDate.length > 0 && (
                 <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                  {eventsForDate.map((event, i) => (
+                  {eventsForDate.slice(0, 5).map((event, i) => (
                     <span 
                       key={i} 
                       className={`w-1.5 h-1.5 rounded-full ${
@@ -1061,6 +1061,12 @@ const AddEvent = () => {
                       title={event.title}
                     ></span>
                   ))}
+                  {eventsForDate.length > 5 && (
+                    <span 
+                      className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                      title={`+${eventsForDate.length - 5} more events`}
+                    ></span>
+                  )}
                 </div>
               )}
             </div>
