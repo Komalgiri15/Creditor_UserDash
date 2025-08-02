@@ -202,13 +202,6 @@ const ManageUsers = () => {
 
   // Helper function to get user role from user_roles array
   const getUserRole = (user) => {
-    console.log('🔍 Getting role for user:', {
-      id: user.id,
-      name: `${user.first_name} ${user.last_name}`,
-      user_roles: user.user_roles,
-      hasRoles: !!user.user_roles,
-      rolesLength: user.user_roles?.length
-    });
     
     if (user.user_roles && user.user_roles.length > 0) {
       // Priority order: admin > instructor > user (single role system)

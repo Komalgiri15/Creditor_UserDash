@@ -90,7 +90,7 @@ const AddEvent = () => {
         const decoded = jwtDecode(token);
         return decoded;
       } catch (error) {
-        console.error("Failed to decode token:", error);
+       
         return null;
       }
     }
@@ -104,7 +104,7 @@ const AddEvent = () => {
       // For now, let's just log that we need a token with role information
       return false;
     } catch (error) {
-      console.error("Failed to refresh token:", error);
+     
       return false;
     }
   };
@@ -137,7 +137,7 @@ const AddEvent = () => {
         timeZone: tz
       })}`;
     } catch (error) {
-      console.error('Error formatting timezone:', error);
+      
       return `${label}: Error`;
     }
   };
@@ -177,7 +177,6 @@ const AddEvent = () => {
       
       // Check if the date is valid
       if (isNaN(utcDate.getTime())) {
-        console.error('Invalid UTC date:', utcIsoString);
         return '';
       }
       
@@ -190,7 +189,7 @@ const AddEvent = () => {
       
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch (error) {
-      console.error('Error converting UTC to local:', error);
+      
       return '';
     }
   };
@@ -247,7 +246,7 @@ const AddEvent = () => {
       }
     })
     .catch(error => {
-      console.error("Test API error:", error);
+      
     });
   };
 
@@ -265,7 +264,7 @@ const AddEvent = () => {
         const role = getUserRole();
         setUserRole(role);
       } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+        
       }
     };
     fetchUserProfileData();
@@ -294,7 +293,7 @@ const AddEvent = () => {
           }
         }
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        
       }
     };
     fetchCourses();
@@ -306,7 +305,7 @@ const AddEvent = () => {
         const data = await getAllEvents();
         setEvents(data);
       } catch (err) {
-        console.error("Failed to fetch events", err);
+        
       }
     };
     fetchEvents();
@@ -406,7 +405,7 @@ const AddEvent = () => {
       const data = await res.json();
       return data.data || null;
     } catch (err) {
-      console.error('Failed to fetch event details', err);
+      
       return null;
     }
   };
@@ -428,8 +427,7 @@ const AddEvent = () => {
       // Return array of deleted occurrence objects
       return (data.data || []);
     } catch (err) {
-      console.error('Failed to fetch deleted occurrences', err);
-      return [];
+      
     }
   };
 
@@ -509,7 +507,7 @@ const AddEvent = () => {
       }));
       setEvents(normalizedEvents);
     } catch (err) {
-      console.error("Failed to delete event", err);
+      
     } finally {
       setShowDeleteConfirmModal(false);
       setDeleteIndex(null);
@@ -538,7 +536,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event deleted");
     } catch (err) {
-      console.error("Failed to delete occurrence", err);
+      
     } finally {
       setDeletingOccurrenceKey(null);
     }
@@ -564,7 +562,7 @@ const AddEvent = () => {
       setEvents(data);
       setShowRecurringDeleteModal(false);
     } catch (err) {
-      console.error("Failed to delete all occurrences", err);
+      
     } finally {
       setDeletingAll(false);
     }
@@ -598,7 +596,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event restored successfully");
     } catch (err) {
-      console.error("Failed to restore occurrence", err);
+     
       setModalMessage("Failed to restore event occurrence");
     } finally {
       setDeletingOccurrenceKey(null);
@@ -611,7 +609,7 @@ const AddEvent = () => {
     // Check if user has permission to create events
     const currentRole = getUserRole();
     if (!currentRole || (currentRole !== 'admin' && currentRole !== 'instructor')) {
-      console.error("User does not have permission to create events. Required role: admin or instructor. Current role:", currentRole);
+     
       alert("You don't have permission to create events. Only administrators and instructors can create events.");
       return;
     }
@@ -640,7 +638,7 @@ const AddEvent = () => {
         // Convert to UTC directly - simpler and more reliable
         return localDate.toISOString();
       } catch (error) {
-        console.error('Error converting date to UTC:', error);
+        
         return "";
       }
     };
@@ -727,7 +725,7 @@ const AddEvent = () => {
         setEvents(data);
         alert("Event updated successfully!");
       } catch (err) {
-        console.error("Failed to update event", err);
+        
         alert(err.message || 'Failed to update event');
       }
       setEditIndex(null);
@@ -778,7 +776,6 @@ const AddEvent = () => {
         setEvents(normalizedEvents);
         alert("Event created successfully!");
       } catch (err) {
-        console.error("Failed to add event to backend", err);
         alert("Failed to create event: " + err.message);
       }
     }
@@ -854,7 +851,7 @@ const AddEvent = () => {
         const eventDate = ev.date || ev.startTime || ev.createdAt;
         
         if (!eventDate) {
-          console.log('Event has no date field:', ev);
+          
           return;
         }
         
@@ -877,8 +874,7 @@ const AddEvent = () => {
       }
     });
     
-    console.log('Events found for this date:', eventsForDate.length);
-    console.log('Events for date:', eventsForDate);
+    
     
     return eventsForDate;
   };
