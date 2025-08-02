@@ -81,9 +81,48 @@ export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [todayEvents, setTodayEvents] = useState([]);
+  const [cancelledEvents, setCancelledEvents] = useState([]);
   const [courses, setCourses] = useState([]);
 
   const userTimezone = localStorage.getItem('userTimezone') || 'America/Los_Angeles';
+
+  // Fetch cancelled events
+  const fetchCancelledEvents = async () => {
+    try {
+      // Get current time in UTC (API fetching time)
+      const startTime = new Date().toISOString();
+      
+      // Get user's timezone end-of-day time converted to UTC
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Convert end-of-day to UTC
+      const endTime = endOfDay.toISOString();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/cancelledevents?startTime=${startTime}&endTime=${endTime}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cancelled events: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCancelledEvents(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cancelled events", err);
+    }
+  };
 
   // Fetch courses to map course IDs to course names
   useEffect(() => {
@@ -152,6 +191,7 @@ export function LiveClasses() {
     };
 
     fetchLiveClass();
+    fetchCancelledEvents();
   }, [userTimezone]);
 
   useEffect(() => {
@@ -353,7 +393,95 @@ export function LiveClasses() {
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow">
+      {/* Cancelled Events Section - Only show if there are cancelled events */}
+      {cancelledEvents && cancelledEvents.length > 0 && (
+  <Card className="border border-red-100 bg-white hover:shadow-md transition-all duration-300">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-3">
+        <div className="p-2 bg-red-50 rounded-lg text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
+          </svg>
+        </div>
+        <div>
+          <span className="text-lg font-semibold text-gray-800">Cancelled Classes</span>
+          <div className="text-sm text-gray-500 font-medium">
+            {cancelledEvents.length} cancelled session{cancelledEvents.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-3">
+        {cancelledEvents.map((cancelledEvent, i) => (
+          <div key={cancelledEvent.id || i} className="group relative border-l-4 border-red-300 rounded-r-lg p-4 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-medium text-gray-800">
+                    {cancelledEvent.event?.title || 'Untitled Event'}
+                  </h4>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-700 text-xs font-medium rounded-md">
+                    Cancelled
+                  </span>
+                </div>
+                
+                {cancelledEvent.event?.course && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>{cancelledEvent.event.course.title}</span>
+                  </div>
+                )}
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+
+            </div>
+            
+            {cancelledEvent.reason && (
+              <div className="mt-3 p-3 bg-red-50 rounded-md text-sm text-red-700">
+                <div className="font-medium">Cancellation reason:</div>
+                <div>{cancelledEvent.reason}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+)}
+<Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">

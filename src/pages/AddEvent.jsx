@@ -44,6 +44,7 @@ const AddEvent = () => {
   const [showDateEvents, setShowDateEvents] = useState(false);
   const [selectedDateEvents, setSelectedDateEvents] = useState([]);
   const [selectedDateForEvents, setSelectedDateForEvents] = useState(null);
+  const [cancelledEvents, setCancelledEvents] = useState([]);
 
   // Sort events by startTime descending (most recent at top)
   const sortedEvents = [...events].sort((a, b) => {
@@ -80,6 +81,50 @@ const AddEvent = () => {
   // Get user role from localStorage
   const getUserRole = () => {
     return localStorage.getItem("userRole") || "";
+  };
+
+  // Fetch cancelled events
+  const fetchCancelledEvents = async () => {
+    try {
+      const token = getAuthToken();
+      const currentRole = getUserRole();
+      
+      // Get current time in UTC (API fetching time)
+      const startTime = new Date().toISOString();
+      
+      // Get user's timezone end-of-day time converted to UTC
+      const userTimezone = localStorage.getItem('userTimezone') || 'America/New_York';
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Convert end-of-day to UTC
+      const endTime = endOfDay.toISOString();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/cancelledevents?startTime=${startTime}&endTime=${endTime}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-User-Role': currentRole,
+          },
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cancelled events: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCancelledEvents(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cancelled events", err);
+    }
   };
 
   // Decode JWT token to see what's in it
@@ -308,7 +353,11 @@ const AddEvent = () => {
         
       }
     };
+
+
+
     fetchEvents();
+    fetchCancelledEvents();
   }, []);
 
   // Generate calendar for selected month/year
@@ -532,6 +581,9 @@ const AddEvent = () => {
         courseId: ev.courseId || ev.course_id
       }));
       setEvents(normalizedEvents);
+      
+      // Refetch cancelled events after deletion
+      await fetchCancelledEvents();
     } catch (err) {
       
     } finally {
@@ -559,6 +611,10 @@ const AddEvent = () => {
       // Refetch events after deletion
       const data = await getAllEvents();
       setEvents(data);
+      
+      // Refetch cancelled events after deletion
+      await fetchCancelledEvents();
+      
       setShowRecurringDeleteModal(false);
       setModalMessage("Event deleted");
     } catch (err) {
@@ -586,6 +642,10 @@ const AddEvent = () => {
       // Refetch events after deletion
       const data = await getAllEvents();
       setEvents(data);
+      
+      // Refetch cancelled events after deletion
+      await fetchCancelledEvents();
+      
       setShowRecurringDeleteModal(false);
     } catch (err) {
       
@@ -619,6 +679,10 @@ const AddEvent = () => {
       // Refetch events after restore
       const data = await getAllEvents();
       setEvents(data);
+      
+      // Refetch cancelled events after restore
+      await fetchCancelledEvents();
+      
       setShowRecurringDeleteModal(false);
       setModalMessage("Event restored successfully");
     } catch (err) {
@@ -805,6 +869,20 @@ const AddEvent = () => {
         alert("Failed to create event: " + err.message);
       }
     }
+    
+    // Refetch events after adding
+    const data = await getAllEvents();
+    // Normalize course_id to courseId for all events
+    const normalizedEvents = data.map(ev => ({
+        ...ev,
+        courseId: ev.courseId || ev.course_id // fallback to course_id if courseId is missing
+      }));
+    setEvents(normalizedEvents);
+    
+    // Refetch cancelled events after adding
+    await fetchCancelledEvents();
+    
+    alert("Event created successfully!");
     
     setShowModal(false);
   };
@@ -1175,6 +1253,85 @@ const AddEvent = () => {
           </>
         )}
       </div>
+      
+      {/* Cancelled Events Section */}
+      {cancelledEvents.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancelled Classes
+          </h3>
+          <ul className="space-y-3">
+            {cancelledEvents.map((cancelledEvent, i) => (
+              <li key={cancelledEvent.id || i} className="border rounded-lg p-4 bg-red-50 border-red-200 hover:bg-red-100 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-semibold text-gray-800 line-through">{cancelledEvent.event?.title || 'Untitled Event'}
+                      <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full align-middle">Cancelled</span>
+                    </h4>
+                    {cancelledEvent.event?.course && (
+                      <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                        {cancelledEvent.event.course.title}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center text-sm text-gray-500 space-x-4">
+                  <span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {(() => {
+                      try {
+                        const userTz = localStorage.getItem('userTimezone') || 'America/New_York';
+                        const occurrenceDate = new Date(cancelledEvent.occurrence_date);
+                        return occurrenceDate.toLocaleDateString('en-US', { 
+                          weekday: 'short',
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric',
+                          timeZone: userTz 
+                        });
+                      } catch (error) {
+                        console.error('Error formatting cancelled event date:', error);
+                        return new Date(cancelledEvent.occurrence_date).toLocaleDateString();
+                      }
+                    })()}
+                  </span>
+                  <span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {(() => {
+                      try {
+                        const userTz = localStorage.getItem('userTimezone') || 'America/New_York';
+                        const occurrenceDate = new Date(cancelledEvent.occurrence_date);
+                        return occurrenceDate.toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: true,
+                          timeZone: userTz 
+                        });
+                      } catch (error) {
+                        console.error('Error formatting cancelled event time:', error);
+                        return new Date(cancelledEvent.occurrence_date).toLocaleTimeString();
+                      }
+                    })()}
+                  </span>
+                  <span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Cancelled on {new Date(cancelledEvent.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       
       {/* Add Event Modal */}
       {showModal && (
