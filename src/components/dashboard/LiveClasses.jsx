@@ -81,9 +81,48 @@ export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [todayEvents, setTodayEvents] = useState([]);
+  const [cancelledEvents, setCancelledEvents] = useState([]);
   const [courses, setCourses] = useState([]);
 
   const userTimezone = localStorage.getItem('userTimezone') || 'America/Los_Angeles';
+
+  // Fetch cancelled events
+  const fetchCancelledEvents = async () => {
+    try {
+      // Get current time in UTC (API fetching time)
+      const startTime = new Date().toISOString();
+      
+      // Get user's timezone end-of-day time converted to UTC
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Convert end-of-day to UTC
+      const endTime = endOfDay.toISOString();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/cancelledevents?startTime=${startTime}&endTime=${endTime}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cancelled events: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCancelledEvents(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cancelled events", err);
+    }
+  };
 
   // Fetch courses to map course IDs to course names
   useEffect(() => {
@@ -152,6 +191,7 @@ export function LiveClasses() {
     };
 
     fetchLiveClass();
+    fetchCancelledEvents();
   }, [userTimezone]);
 
   useEffect(() => {
@@ -352,6 +392,88 @@ export function LiveClasses() {
           )}
         </CardContent>
       </Card>
+
+      {/* Cancelled Events Section */}
+      {cancelledEvents.length > 0 && (
+        <Card className="border-2 border-red-200 bg-gradient-to-r from-red-50 to-red-100">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancelled Classes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {cancelledEvents.map((cancelledEvent, i) => (
+                <div key={cancelledEvent.id || i} className="border rounded-lg p-4 bg-red-50 border-red-200 hover:bg-red-100 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold text-gray-800 line-through">
+                        {cancelledEvent.event?.title || 'Untitled Event'}
+                        <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full align-middle">Cancelled</span>
+                      </h4>
+                      {cancelledEvent.event?.course && (
+                        <span className="inline-block mt-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                          {cancelledEvent.event.course.title}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center text-sm text-gray-500 space-x-4">
+                    <span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {(() => {
+                        try {
+                          const occurrenceDate = new Date(cancelledEvent.occurrence_date);
+                          return occurrenceDate.toLocaleDateString('en-US', { 
+                            weekday: 'short',
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric',
+                            timeZone: userTimezone 
+                          });
+                        } catch (error) {
+                          console.error('Error formatting cancelled event date:', error);
+                          return new Date(cancelledEvent.occurrence_date).toLocaleDateString();
+                        }
+                      })()}
+                    </span>
+                    <span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {(() => {
+                        try {
+                          const occurrenceDate = new Date(cancelledEvent.occurrence_date);
+                          return occurrenceDate.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: userTimezone 
+                          });
+                        } catch (error) {
+                          console.error('Error formatting cancelled event time:', error);
+                          return new Date(cancelledEvent.occurrence_date).toLocaleTimeString();
+                        }
+                      })()}
+                    </span>
+                    <span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Cancelled on {new Date(cancelledEvent.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
