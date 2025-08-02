@@ -172,7 +172,6 @@ class ScormService {
       throw new Error(errorData.message || `Failed to upload SCORM (${response.status})`);
     }
     const data = await response.json();
-    console.log('SCORM upload response:', data);
     return data;
   }
 
@@ -192,7 +191,6 @@ class ScormService {
       }
       
       const data = await response.json();
-      console.log('SCORM delete response:', data);
       return data;
     } catch (error) {
       console.error('Error deleting SCORM:', error);

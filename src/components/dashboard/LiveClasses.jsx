@@ -79,41 +79,27 @@ export function LiveClasses() {
         const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
         const params = new URLSearchParams({ startDate: start, endDate: end });
 
-        console.log('Fetching events with params:', { start, end });
-
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
           credentials: 'include',
         });
         const data = await response.json();
 
-        console.log('API Response:', data);
-
         if (data?.data?.length > 0) {
           // Filter events for today in user's timezone
           const todayEvents = data.data.filter(event => {
             if (!event.startTime || !event.endTime) {
-              console.log('Event missing start/end time:', event);
               return false;
             }
 
             const isToday = isTodayInUserTimezone(event.startTime, userTimezone);
-            console.log('Event date check:', {
-              eventTitle: event.title,
-              startTime: event.startTime,
-              isToday,
-              userTimezone
-            });
 
             return isToday;
           });
-
-          console.log('Today events after filtering:', todayEvents);
 
           // Sort events by start time
           todayEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
           setTodayEvents(todayEvents);
         } else {
-          console.log('No events found in API response');
           setTodayEvents([]);
         }
       } catch (err) {
@@ -139,7 +125,6 @@ export function LiveClasses() {
           
           // Remove ended events
           if (isEnded) {
-            console.log('Removing ended event:', event.title);
             return false;
           }
           
@@ -191,13 +176,6 @@ export function LiveClasses() {
     const end = new Date(event.endTime);
     return now >= start && now <= end;
   }).length;
-
-  console.log('Render state:', {
-    loading,
-    todayEventsCount: todayEvents.length,
-    liveEventsCount,
-    userTimezone
-  });
 
   return (
     <div className="space-y-6">

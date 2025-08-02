@@ -98,24 +98,14 @@ export function Dashboard() {
           withCredentials: true
         });
         
-        console.log('✅ API Response:', userCoursesResponse.data);
-        
         if (userCoursesResponse.data && userCoursesResponse.data.data) {
           const courses = userCoursesResponse.data.data;
-           console.log('📚 Courses found:', courses.length, courses);
           
           // Calculate basic dashboard stats from available data
           const activeCourses = courses.length;
           const completedCourses = 0; // Will be calculated when progress tracking is implemented
           const totalLearningHours = 0; // Will be calculated when time tracking is implemented
           const averageProgress = 0; // Will be calculated when progress tracking is implemented
-          
-          // console.log('📊 Dashboard stats calculated:', {
-          //   activeCourses,
-          //   completedCourses,
-          //   totalLearningHours,
-          //   averageProgress
-          // });
           
                       const newDashboardData = {
               summary: {
@@ -132,10 +122,8 @@ export function Dashboard() {
               learningActivities: []
             };
             
-            // console.log('📊 Setting dashboard data:', newDashboardData);
             setDashboardData(newDashboardData);
         } else {
-          console.log('⚠️ No courses data found in response');
           // No courses found, set default values
           setDashboardData({
             summary: {
@@ -214,17 +202,12 @@ export function Dashboard() {
   };
 
   useEffect(() => {
-    // console.log('🚀 Dashboard useEffect triggered');
     // Check if user is authenticated before making API call
     const token = Cookies.get('token') || localStorage.getItem('token');
-    // console.log('🔑 Token found:', !!token);
-    // console.log('👤 Current userId:', userId);
     
     if (token) {
-      // console.log('✅ Token available, calling fetchUserOverview');
       fetchUserOverview();
     } else {
-      // console.log('❌ No token found, redirecting to login');
       setError('Please log in to view your dashboard.');
       // Redirect to login
       setTimeout(() => {
@@ -264,7 +247,6 @@ export function Dashboard() {
 
   // Monitor dashboard data changes
   useEffect(() => {
-    // console.log('📊 Dashboard data updated:', dashboardData);
   }, [dashboardData]);
 
   // Fetch user profile to get userId and userName if not available

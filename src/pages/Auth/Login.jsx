@@ -53,15 +53,12 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      console.log("Attempting login with:", { email, API_BASE });
       const response = await axios.post(`${API_BASE}/api/auth/login`, {
         email,
         password,
       }, {
         withCredentials: true
       });
-
-      console.log('Login response from backend:', response.data);
 
       if (response.data.success && response.data.token) {
         // Store token in cookies for 7 days
@@ -77,7 +74,6 @@ export function Login() {
         // Fetch user profile and set single user role in localStorage
         try {
           const profile = await fetchUserProfile();
-          console.log('Fetched user profile after login:', profile);
           if (profile && Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
             // Extract role names and use the highest priority role (admin > instructor > user)
             const roles = profile.user_roles.map(roleObj => roleObj.role);
@@ -86,7 +82,6 @@ export function Login() {
             
             // Set single role (enforces single role system)
             setUserRoles([highestRole]);
-            console.log('Set user single role to:', highestRole);
           } else {
             // If no roles found, set default user role
             setUserRoles(['user']);
@@ -102,17 +97,13 @@ export function Login() {
         toast.error(response.data.message || "Login failed");
       }
     } catch (err) {
-      console.error("Login error:", err);
       if (err.response) {
         const errorMessage = err.response.data?.message || "Login failed";
         toast.error(errorMessage);
-        console.error("Server error details:", err.response.data);
       } else if (err.request) {
         toast.error("Network error. Please check your connection.");
-        console.error("Network error details:", err.request);
       } else {
         toast.error("An unexpected error occurred.");
-        console.error("Other error details:", err.message);
       }
     } finally {
       setIsLoading(false);

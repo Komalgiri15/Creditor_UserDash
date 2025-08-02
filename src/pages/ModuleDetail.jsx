@@ -418,7 +418,6 @@ function ModuleDetail() {
 
   const handleAssessmentClick = (type) => {
     setActiveAssessment(type);
-    console.log(`${type} clicked`);
   };
 
   const handleSubmitAssignment = (assignment) => {
@@ -479,7 +478,6 @@ function ModuleDetail() {
   };
 
   const handleTryDemo = (assessmentTitle, assessmentType) => {
-    console.log(`Trying demo for: ${assessmentTitle}`);
     navigate(`/demo-quiz/${encodeURIComponent(assessmentTitle)}`);
   };
 

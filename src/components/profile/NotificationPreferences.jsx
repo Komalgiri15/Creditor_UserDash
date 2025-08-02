@@ -16,7 +16,6 @@ const NotificationPreferences = () => {
   const handleNotificationChange = (key) => {
     setNotifications(prev => {
       const newState = { ...prev, [key]: !prev[key] };
-      console.log(`Notification preference updated: ${key} -> ${newState[key]}`);
       return newState;
     });
   };
