@@ -77,10 +77,10 @@ export function ProfileDropdown() {
           </div>
           <div className="hidden md:block text-left group/text">
             <p className="text-sm font-semibold group-hover/text:text-primary transition-colors duration-300">
-              {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Unknown' : 'Unknown'}
+              {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'User' : 'User'}
             </p>
             <p className="text-xs text-muted-foreground group-hover/text:text-primary/70 transition-colors duration-300">
-              {userProfile?.email || 'Unknown'}
+              {userProfile?.email || 'Loading...'}
             </p>
           </div>
         </motion.button>

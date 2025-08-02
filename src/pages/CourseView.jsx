@@ -144,16 +144,7 @@ export function CourseView() {
                   </div>
                 </div>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Enrolled Students</p>
-                        <p className="font-semibold">{courseDetails.enrolled_students || courseDetails.students_count || 0}</p>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-green-100 rounded-lg">
                         <BookOpen className="h-5 w-5 text-green-600" />

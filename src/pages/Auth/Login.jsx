@@ -97,7 +97,6 @@ export function Login() {
           setUserRoles(['user']);
         }
         
-        toast.success("Login successful!");
         navigate("/dashboard");
       } else {
         toast.error(response.data.message || "Login failed");

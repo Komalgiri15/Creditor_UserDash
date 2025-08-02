@@ -263,19 +263,19 @@ export function Courses() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button 
+              {/* <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter size={16} className="mr-2" />
                 Filters
-              </Button>
+              </Button> */}
             </div>
           </div>
 
           {/* Filters */}
-          {showFilters && (
+          {/* {showFilters && (
             <div className="mb-6 p-4 bg-gray-50 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -308,7 +308,7 @@ export function Courses() {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Course Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
