@@ -869,37 +869,75 @@ const AddEvent = () => {
     console.log('Getting events for date:', date.toDateString());
     console.log('Available events:', events);
     
-    return events.filter(ev => {
-      // Try different date fields that might exist
-      const eventDate = ev.date || ev.startTime || ev.createdAt;
-      
-      if (!eventDate) {
-        console.log('Event has no date field:', ev);
-        return false;
+    const eventsForDate = [];
+    
+    events.forEach(ev => {
+      // Handle recurring events with occurrences
+      if (ev.isRecurring && ev.occurrences && ev.occurrences.length > 0) {
+        // Check each occurrence of the recurring event
+        ev.occurrences.forEach(occurrence => {
+          const occurrenceDate = new Date(occurrence.startTime);
+          
+          if (!isNaN(occurrenceDate.getTime())) {
+            const isSameDate = (
+              occurrenceDate.getFullYear() === date.getFullYear() &&
+              occurrenceDate.getMonth() === date.getMonth() &&
+              occurrenceDate.getDate() === date.getDate()
+            );
+            
+            if (isSameDate) {
+              // Check if this occurrence is not deleted
+              const deletedOccurrences = ev.deletedOccurrences || [];
+              const isDeleted = deletedOccurrences.some(deleted => {
+                const deletedDate = typeof deleted === 'string' ? deleted : deleted.occurrence_date;
+                return new Date(deletedDate).toDateString() === occurrenceDate.toDateString();
+              });
+              
+              if (!isDeleted) {
+                // Create a copy of the event with the occurrence's time
+                const eventForDate = {
+                  ...ev,
+                  startTime: occurrence.startTime,
+                  endTime: occurrence.endTime,
+                  occurrenceDate: occurrenceDate
+                };
+                eventsForDate.push(eventForDate);
+              }
+            }
+          }
+        });
+      } else {
+        // Handle non-recurring events
+        const eventDate = ev.date || ev.startTime || ev.createdAt;
+        
+        if (!eventDate) {
+          console.log('Event has no date field:', ev);
+          return;
+        }
+        
+        const evDate = new Date(eventDate);
+        
+        if (isNaN(evDate.getTime())) {
+          console.log('Invalid date for event:', ev);
+          return;
+        }
+        
+        const isSameDate = (
+          evDate.getFullYear() === date.getFullYear() &&
+          evDate.getMonth() === date.getMonth() &&
+          evDate.getDate() === date.getDate()
+        );
+        
+        if (isSameDate) {
+          eventsForDate.push(ev);
+        }
       }
-      
-      const evDate = new Date(eventDate);
-      
-      if (isNaN(evDate.getTime())) {
-        console.log('Invalid date for event:', ev);
-        return false;
-      }
-      
-      const isSameDate = (
-        evDate.getFullYear() === date.getFullYear() &&
-        evDate.getMonth() === date.getMonth() &&
-        evDate.getDate() === date.getDate()
-      );
-      
-      console.log('Event date check:', {
-        eventTitle: ev.title,
-        eventDate: evDate.toDateString(),
-        selectedDate: date.toDateString(),
-        isSameDate
-      });
-      
-      return isSameDate;
     });
+    
+    console.log('Events found for this date:', eventsForDate.length);
+    console.log('Events for date:', eventsForDate);
+    
+    return eventsForDate;
   };
 
   return (
@@ -1014,8 +1052,14 @@ const AddEvent = () => {
               </span>
               {eventsForDate.length > 0 && (
                 <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                  {eventsForDate.map((_, i) => (
-                    <span key={i} className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  {eventsForDate.map((event, i) => (
+                    <span 
+                      key={i} 
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        event.isRecurring ? 'bg-purple-500' : 'bg-blue-500'
+                      }`}
+                      title={event.title}
+                    ></span>
                   ))}
                 </div>
               )}
