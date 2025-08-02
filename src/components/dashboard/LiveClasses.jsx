@@ -83,6 +83,7 @@ export function LiveClasses() {
   const [todayEvents, setTodayEvents] = useState([]);
   const [cancelledEvents, setCancelledEvents] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const userTimezone = localStorage.getItem('userTimezone') || 'America/Los_Angeles';
 
@@ -194,11 +195,20 @@ export function LiveClasses() {
     fetchCancelledEvents();
   }, [userTimezone]);
 
+  // Update current time every second for smooth countdown
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update the live status of events and remove ended events every 30 seconds
+      // Update the live status of events and remove ended events every second for smoother countdown
       setTodayEvents(prevEvents => {
-        const now = new Date(); // Use current UTC time
+        const now = currentTime; // Use current time state
         
         return prevEvents.filter(event => {
           const endTime = new Date(event.endTime);
@@ -221,10 +231,10 @@ export function LiveClasses() {
           };
         });
       });
-    }, 30 * 1000); // refresh every 30s
+    }, 1000); // refresh every 1 second for smoother countdown
 
     return () => clearInterval(interval);
-  }, []);
+  }, [currentTime]);
 
   const getEventStatus = (event) => {
     const now = new Date(); // Use current UTC time
@@ -380,7 +390,20 @@ export function LiveClasses() {
                           </Button>
                           {isUpcoming && (
                             <div className="text-xs text-blue-600 text-center">
-                              Starts in {Math.max(0, Math.floor((new Date(event.startTime).getTime() - new Date().getTime()) / (1000 * 60)))}m
+                              Starts in {(() => {
+                                const timeDiff = new Date(event.startTime).getTime() - currentTime.getTime();
+                                const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                                const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                                
+                                if (hours > 0) {
+                                  return `${hours}h ${minutes}m ${seconds}s`;
+                                } else if (minutes > 0) {
+                                  return `${minutes}m ${seconds}s`;
+                                } else {
+                                  return `${seconds}s`;
+                                }
+                              })()}
                             </div>
                           )}
                         </div>
