@@ -86,10 +86,16 @@ export function Login() {
             // If no roles found, set default user role
             setUserRoles(['user']);
           }
+          
+          // Dispatch event to trigger UserContext refresh
+          window.dispatchEvent(new Event('userRoleChanged'));
         } catch (profileErr) {
           console.warn("Could not fetch user profile:", profileErr);
           // Keep default 'user' role
           setUserRoles(['user']);
+          
+          // Still dispatch event to trigger UserContext refresh
+          window.dispatchEvent(new Event('userRoleChanged'));
         }
         
         navigate("/dashboard");
