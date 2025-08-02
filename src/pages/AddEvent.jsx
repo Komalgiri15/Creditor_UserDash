@@ -171,6 +171,33 @@ const AddEvent = () => {
     return errors;
   };
 
+  // Convert UTC ISO string to local datetime-local format
+  const convertUtcToLocal = (utcIsoString) => {
+    if (!utcIsoString) return '';
+    try {
+      // Parse the UTC ISO string
+      const utcDate = new Date(utcIsoString);
+      
+      // Check if the date is valid
+      if (isNaN(utcDate.getTime())) {
+        console.error('Invalid UTC date:', utcIsoString);
+        return '';
+      }
+      
+      // Convert to local time and format as YYYY-MM-DDTHH:MM
+      const year = utcDate.getFullYear();
+      const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getDate()).padStart(2, '0');
+      const hours = String(utcDate.getHours()).padStart(2, '0');
+      const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Error converting UTC to local:', error);
+      return '';
+    }
+  };
+
   // Debug function to test recurring event creation
   const debugRecurringEvent = () => {
     const testPayload = {
@@ -370,6 +397,7 @@ const AddEvent = () => {
       zoomLink: "",
       courseId: courses.length > 0 ? courses[0].id : ""
     });
+    setEditIndex(null); // Reset edit index for new events
     setShowModal(true);
   };
 
@@ -435,12 +463,21 @@ const AddEvent = () => {
     console.log('Fetched backend event:', backendEvent);
     const e = backendEvent || event;
     setSelectedDate(e.date ? new Date(e.date) : (e.startTime ? new Date(e.startTime) : null));
+    
+    // Debug timezone conversion
+    console.log('=== TIMEZONE CONVERSION DEBUG ===');
+    console.log('Original UTC startTime:', e.startTime);
+    console.log('Original UTC endTime:', e.endTime);
+    console.log('Converted local startTime:', convertUtcToLocal(e.startTime));
+    console.log('Converted local endTime:', convertUtcToLocal(e.endTime));
+    console.log('User timezone:', userTimezone);
+    console.log('=== END TIMEZONE DEBUG ===');
     setForm({
       id: e.id,
       title: e.title || '',
       description: e.description || '',
-      startTime: e.startTime ? e.startTime.slice(0, 16) : '',
-      endTime: e.endTime ? e.endTime.slice(0, 16) : '',
+      startTime: convertUtcToLocal(e.startTime),
+      endTime: convertUtcToLocal(e.endTime),
       timeZone: e.timeZone || userTimezone,
       location: e.location || '',
       isRecurring: e.isRecurring || false,
@@ -1115,17 +1152,22 @@ const AddEvent = () => {
       {/* Add Event Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl relative transform transition-all duration-300 scale-100 opacity-100">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-5xl relative transform transition-all duration-300 scale-100 opacity-100">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false);
+                setEditIndex(null);
+              }}
               aria-label="Close"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">Schedule New Event</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
+              {editIndex !== null ? 'Edit Event' : 'Schedule New Event'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Column */}
@@ -1157,7 +1199,7 @@ const AddEvent = () => {
                       <p className="text-xs text-red-500 mt-2">Please enter a valid URL (e.g., https://meet.google.com/...)</p>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Start Time*</label>
                       <input
@@ -1165,7 +1207,7 @@ const AddEvent = () => {
                         name="startTime"
                         value={form.startTime}
                         onChange={handleFormChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full min-w-[200px] px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
                     </div>
@@ -1176,7 +1218,7 @@ const AddEvent = () => {
                         name="endTime"
                         value={form.endTime}
                         onChange={handleFormChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full min-w-[200px] px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
                     </div>
@@ -1262,7 +1304,10 @@ const AddEvent = () => {
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditIndex(null);
+                  }}
                   className="px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
                   Cancel
@@ -1271,7 +1316,7 @@ const AddEvent = () => {
                   type="submit"
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
-                  Schedule Event
+                  {editIndex !== null ? 'Update Event' : 'Schedule Event'}
                 </button>
               </div>
             </form>
@@ -1315,7 +1360,7 @@ const AddEvent = () => {
       {/* Recurring Delete Modal */}
       {showRecurringDeleteModal && recurringDeleteEvent && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
-    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 relative">
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-3xl mx-4 relative">
       <button
         className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 transition-colors duration-200 rounded-full p-1 hover:bg-gray-100"
         onClick={() => setShowRecurringDeleteModal(false)}
@@ -1326,14 +1371,14 @@ const AddEvent = () => {
         </svg>
       </button>
       
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Manage Recurring Event</h2>
-          <p className="text-gray-600">This event repeats. Manage occurrences below:</p>
+          <h2 className="text-xl font-bold text-gray-900">Manage Recurring Event</h2>
+          <p className="text-sm text-gray-600">This event repeats. Manage occurrences below:</p>
         </div>
         
         {/* Dual column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Upcoming Occurrences Column */}
           <div className="border rounded-lg overflow-hidden shadow-sm">
             <div className="bg-blue-50 px-4 py-3 border-b">
@@ -1344,7 +1389,7 @@ const AddEvent = () => {
                 Upcoming Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.occurrences && recurringDeleteEvent.occurrences.map((occ, idx) => {
                 const deletedOccurrences = recurringDeleteEvent.deletedOccurrences || [];
                 const isDeleted = deletedOccurrences.includes(occ.startTime);
@@ -1406,7 +1451,7 @@ const AddEvent = () => {
                 Deleted Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.deletedOccurrences && recurringDeleteEvent.deletedOccurrences.length > 0 ? (
                 recurringDeleteEvent.deletedOccurrences.map((deletedObj) => {
                   // Support both string and object for backward compatibility
@@ -1452,9 +1497,9 @@ const AddEvent = () => {
         </div>
 
         {/* Delete All Button */}
-        <div className="pt-4 border-t">
+        <div className="pt-3 border-t">
           <button
-            className={`w-full py-3 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+            className={`w-full py-2.5 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
             disabled={deletingAll}
             onClick={() => handleDeleteAllOccurrences(recurringDeleteEvent.id)}
           >
@@ -1469,7 +1514,7 @@ const AddEvent = () => {
             ) : 'Delete entire series'}
           </button>
           <button
-            className="w-full mt-3 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
+            className="w-full mt-2 py-2 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
             onClick={() => setShowRecurringDeleteModal(false)}
           >
             Cancel
