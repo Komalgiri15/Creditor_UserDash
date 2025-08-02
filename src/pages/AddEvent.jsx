@@ -171,67 +171,7 @@ const AddEvent = () => {
     return errors;
   };
 
-  // Debug function to test recurring event creation
-  const debugRecurringEvent = () => {
-    const testPayload = {
-      title: "Test Recurring Event",
-      description: "https://meet.google.com/test-recurring",
-      startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-      endTime: new Date(Date.now() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(), // Tomorrow + 1 hour
-      location: "Test Location",
-      isRecurring: true,
-      calendarType: "GROUP",
-      visibility: "PRIVATE",
-      courseName: "Test Course",
-      userRole: getUserRole(),
-      timeZone: "America/Los_Angeles",
-      recurrenceRule: {
-        frequency: "WEEKLY",
-        interval: 1,
-        endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
-        count: null,
-        byDay: [],
-        byMonthDay: [],
-        byYearDay: [],
-        byWeekNo: [],
-        byMonth: [],
-        bySetPos: [],
-        weekStart: "MO"
-      }
-    };
-    
-    console.log("=== TESTING RECURRING EVENT CREATION ===");
-    console.log("Test payload:", testPayload);
-    
-    // Test the API call
-    const token = getAuthToken();
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        "X-User-Role": getUserRole(),
-      },
-      body: JSON.stringify(testPayload),
-      credentials: "include"
-    })
-    .then(response => {
-      console.log("Test API response status:", response.status);
-      return response.text();
-    })
-    .then(text => {
-      console.log("Test API response text:", text);
-      try {
-        const data = JSON.parse(text);
-        console.log("Test API response parsed:", data);
-      } catch (e) {
-        console.log("Test API response is not JSON");
-      }
-    })
-    .catch(error => {
-      console.error("Test API error:", error);
-    });
-  };
+
 
   // Fetch user profile to get timezone and role
   useEffect(() => {
@@ -883,16 +823,7 @@ const AddEvent = () => {
               Read-only access
             </span>
           )}
-          {/* Debug button for testing recurring events */}
-          {(userRole === 'admin' || userRole === 'instructor') && (
-            <button
-              onClick={debugRecurringEvent}
-              className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-lg"
-              title="Test recurring event creation"
-            >
-              Debug Recurring
-            </button>
-          )}
+
         </div>
       </div>
       
