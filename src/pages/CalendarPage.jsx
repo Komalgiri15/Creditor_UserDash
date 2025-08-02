@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { getAllEvents, getAllUpcomingEvents } from "@/services/calendarService";
+import { getAllEvents, getUpcomingEvents } from "@/services/calendarService";
 
 // Utility functions for date handling
 const getUserTimezone = () => {
@@ -60,7 +60,7 @@ export function CalendarPage() {
         end.setDate(end.getDate() + 30); // next 30 days
         end.setHours(23, 59, 59, 999);
         const endDate = end.toISOString();
-        const events = await getAllUpcomingEvents({ startDate, endDate });
+        const events = await getUpcomingEvents({ startDate, endDate });
         const expanded = [];
         events.forEach(event => {
           if (event.isRecurring && Array.isArray(event.occurrences)) {

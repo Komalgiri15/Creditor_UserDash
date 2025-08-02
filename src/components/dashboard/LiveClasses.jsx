@@ -1,74 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Play, Video, Clock, Calendar, Users } from "lucide-react";
+import { ExternalLink, Play, Video, Clock, Calendar, Users, X } from "lucide-react";
 import { AttendanceViewerModal } from "./AttendanceViewerModal";
-
-// Mock data
-const recordedSessions = [
-  {
-    id: "1",
-    title: "Constitutional Rights Deep Dive",
-    date: "2025-06-08",
-    duration: "1h 45m",
-    thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/1ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-  {
-    id: "2",
-    title: "Civil Procedure Fundamentals",
-    date: "2025-06-05",
-    duration: "2h 15m",
-    thumbnail: "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/2ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-  {
-    id: "3",
-    title: "Criminal Law Case Studies",
-    date: "2025-06-03",
-    duration: "1h 30m",
-    thumbnail: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?q=80&w=400",
-    driveLink: "https://drive.google.com/file/d/3ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefg/view"
-  },
-];
-
-// Helper function to convert UTC time to user's timezone
-const convertUTCToUserTimezone = (utcTime, userTimezone) => {
-  if (!utcTime) return null;
-  const date = new Date(utcTime);
-  return new Date(date.toLocaleString("en-US", { timeZone: userTimezone }));
-};
-
-// Helper function to check if a date is today in user's timezone
-const isTodayInUserTimezone = (dateString, userTimezone) => {
-  const eventDate = convertUTCToUserTimezone(dateString, userTimezone);
-  const now = convertUTCToUserTimezone(new Date().toISOString(), userTimezone);
-  
-  if (!eventDate || !now) return false;
-  
-  return (
-    eventDate.getFullYear() === now.getFullYear() &&
-    eventDate.getMonth() === now.getMonth() &&
-    eventDate.getDate() === now.getDate()
-  );
-};
-
-// Helper function to format time in user's timezone
-const formatTimeInUserTimezone = (utcTime, userTimezone) => {
-  if (!utcTime) return '';
-  const date = new Date(utcTime);
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: userTimezone
-  });
-};
+import { getCancelledEvents, getTodayEvents } from "@/services/calendarService";
 
 export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [todayEvents, setTodayEvents] = useState([]);
+  const [cancelledEvents, setCancelledEvents] = useState([]);
   const [courses, setCourses] = useState([]);
 
   const userTimezone = localStorage.getItem('userTimezone') || 'America/Los_Angeles';
@@ -85,144 +26,67 @@ export function LiveClasses() {
           credentials: 'include'
         });
         const data = await response.json();
-        if (data && data.data) {
-          setCourses(data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        setCourses(data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch courses:', error);
       }
     };
+
     fetchCourses();
   }, []);
 
+  // Fetch today's events using the calendarService
   useEffect(() => {
-    const fetchLiveClass = async () => {
-      setLoading(true);
+    const fetchTodayEvents = async () => {
       try {
-        const today = new Date();
-        const start = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-        const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
-        const params = new URLSearchParams({ startDate: start, endDate: end });
-
-        console.log('Fetching events with params:', { start, end });
-
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
-          credentials: 'include',
-        });
-        const data = await response.json();
-
-        console.log('API Response:', data);
-
-        if (data?.data?.length > 0) {
-          // Filter events for today in user's timezone
-          const todayEvents = data.data.filter(event => {
-            if (!event.startTime || !event.endTime) {
-              console.log('Event missing start/end time:', event);
-              return false;
-            }
-
-            const isToday = isTodayInUserTimezone(event.startTime, userTimezone);
-            console.log('Event date check:', {
-              eventTitle: event.title,
-              startTime: event.startTime,
-              isToday,
-              userTimezone
-            });
-
-            return isToday;
-          });
-
-          console.log('Today events after filtering:', todayEvents);
-
-          // Sort events by start time
-          todayEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-          setTodayEvents(todayEvents);
-        } else {
-          console.log('No events found in API response');
-          setTodayEvents([]);
-        }
-      } catch (err) {
-        console.error('Error fetching events:', err);
+        setLoading(true);
+        const events = await getTodayEvents();
+        setTodayEvents(events);
+      } catch (error) {
+        console.error('Failed to fetch today\'s events:', error);
         setTodayEvents([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLiveClass();
-  }, [userTimezone]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Update the live status of events and remove ended events every 30 seconds
-      setTodayEvents(prevEvents => {
-        const now = new Date(); // Use current UTC time
-        
-        return prevEvents.filter(event => {
-          const endTime = new Date(event.endTime);
-          const isEnded = now > endTime;
-          
-          // Remove ended events
-          if (isEnded) {
-            console.log('Removing ended event:', event.title);
-            return false;
-          }
-          
-          return true;
-        }).map(event => {
-          const startTime = new Date(event.startTime);
-          const endTime = new Date(event.endTime);
-          const isLive = now >= startTime && now <= endTime;
-          
-          return {
-            ...event,
-            isLive
-          };
-        });
-      });
-    }, 30 * 1000); // refresh every 30s
-
-    return () => clearInterval(interval);
+    fetchTodayEvents();
   }, []);
 
-  const getEventStatus = (event) => {
-    const now = new Date(); // Use current UTC time
-    const start = new Date(event.startTime);
+  // Fetch cancelled events
+  useEffect(() => {
+    const fetchCancelledEvents = async () => {
+      try {
+        const cancelledData = await getCancelledEvents(userTimezone);
+        setCancelledEvents(cancelledData);
+      } catch (error) {
+        console.error('Failed to fetch cancelled events:', error);
+      }
+    };
+
+    fetchCancelledEvents();
+  }, [userTimezone]);
+
+  // Filter out events that have ended
+  const activeEvents = todayEvents.filter(event => {
+    const now = new Date();
     const end = new Date(event.endTime);
+    const isEnded = now > end;
     
-    if (now >= start && now <= end) {
-      return { status: 'live', text: 'LIVE NOW', color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' };
-    } else if (now < start) {
-      return { status: 'upcoming', text: 'UPCOMING', color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' };
-    } else {
-      return { status: 'ended', text: 'ENDED', color: 'text-gray-500', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' };
+    if (isEnded) {
+      return false;
     }
-  };
+    
+    return true;
+  });
 
-  const handleJoinClass = (event) => {
-    const joinLink = event.description || event.zoomLink || "";
-    if (joinLink) {
-      window.open(joinLink, '_blank');
-    }
-  };
-
-  const handleViewAllRecordings = () => {
-    window.open(import.meta.env.VITE_RECORDINGS_DRIVE_URL, '_blank');
-  };
-
-  const liveEventsCount = todayEvents.filter(event => {
+  // Calculate live events count
+  const liveEventsCount = activeEvents.filter(event => {
     const now = new Date();
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
     return now >= start && now <= end;
   }).length;
-
-  console.log('Render state:', {
-    loading,
-    todayEventsCount: todayEvents.length,
-    liveEventsCount,
-    userTimezone
-  });
 
   return (
     <div className="space-y-6">
@@ -242,32 +106,18 @@ export function LiveClasses() {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-sm text-muted-foreground mt-2">Loading today's classes...</p>
+              <p className="text-sm text-muted-foreground mt-2">Loading events...</p>
             </div>
-          ) : todayEvents.filter(event => {
-            // Only show events that have not ended
-            const now = new Date();
-            const end = new Date(event.endTime);
-            return now <= end;
-          }).length === 0 ? (
+          ) : activeEvents.length === 0 && cancelledEvents.length === 0 ? (
             <div className="text-center py-8">
-              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-medium text-gray-600">No classes scheduled for today</p>
+              <Video className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-lg font-medium text-gray-600">No classes scheduled</p>
               <p className="text-sm text-muted-foreground mt-1">Check back later for upcoming classes</p>
-              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  Current timezone: {userTimezone}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  Events are filtered based on your timezone preference
-                </p>
-              </div>
             </div>
           ) : (
             <div className="space-y-4">
-              {todayEvents
+              {activeEvents
                 .filter(event => {
-                  // Only show events that have not ended
                   const now = new Date();
                   const end = new Date(event.endTime);
                   return now <= end;
@@ -280,129 +130,128 @@ export function LiveClasses() {
                     <div
                       key={event.id || index}
                       className={`p-4 rounded-lg border transition-all duration-300 ${
-                        isLive 
-                          ? 'border-purple-200 bg-gradient-to-r from-purple-50 to-purple-100 shadow-sm' 
-                          : 'border-blue-200 bg-blue-50 shadow-sm'
+                        isLive
+                          ? 'border-purple-300 bg-purple-50 shadow-lg'
+                          : isUpcoming
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-200 bg-white'
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`w-3 h-3 rounded-full ${
-                              isLive ? 'bg-purple-500 animate-pulse' : 'bg-blue-500'
-                            }`}></div>
-                            <h4 className="font-semibold text-gray-800">{event.title}</h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              isLive ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                            }`}>
-                              {eventStatus.text}
-                            </span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                            {isLive && (
+                              <span className="px-2 py-1 bg-purple-100 text-purple-600 text-xs rounded-full animate-pulse">
+                                LIVE
+                              </span>
+                            )}
                           </div>
-                          {/* Show course name if available */}
-                          {(event.courseName || event.courseId || event.course_id) && (
-                            <span className="inline-block mb-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                              {event.courseName || courses.find(c => c.id === (event.courseId || event.course_id))?.title || (event.courseId || event.course_id)}
-                            </span>
+                          {event.description && (
+                            <p className="text-sm text-gray-600 mb-3">{event.description}</p>
                           )}
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 mr-1" />
                               <span>
-                                {formatTimeInUserTimezone(event.startTime, userTimezone)} - {formatTimeInUserTimezone(event.endTime, userTimezone)}
+                                {formatTimeInUserTimezone(event.startTime, userTimezone)} - 
+                                {formatTimeInUserTimezone(event.endTime, userTimezone)}
                               </span>
                             </div>
+                            {event.location && (
+                              <div className="flex items-center">
+                                <Calendar className="w-4 h-4 mr-1" />
+                                <span>{event.location}</span>
+                              </div>
+                            )}
                             {event.instructor && (
-                              <div className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
+                              <div className="flex items-center">
+                                <Users className="w-4 h-4 mr-1" />
                                 <span>{event.instructor}</span>
                               </div>
                             )}
                           </div>
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                              {event.description}
-                            </p>
-                          )}
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            onClick={() => handleJoinClass(event)}
-                            disabled={!isLive}
-                            className={`${
-                              isLive 
-                                ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 animate-pulse' 
-                                : 'bg-blue-600 hover:bg-blue-700'
-                            } text-white transition-all duration-300`}
-                            size="sm"
-                          >
-                            <Video className="w-4 h-4 mr-2" />
-                            {isLive ? 'Join Now' : 'Class Not Started'}
-                            {isLive && <ExternalLink className="w-3 h-3 ml-1" />}
-                          </Button>
-                          {isUpcoming && (
-                            <div className="text-xs text-blue-600 text-center">
-                              Starts in {Math.max(0, Math.floor((new Date(event.startTime).getTime() - new Date().getTime()) / (1000 * 60)))}m
-                            </div>
+                        <div className="flex space-x-2 ml-4">
+                          {event.description && event.description.includes('meet.google.com') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => window.open(event.description, '_blank')}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsAttendanceModalOpen(true)}
+                          >
+                            <Play className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
                   );
                 })}
+              
+              {/* Cancelled Events Section */}
+              {cancelledEvents.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                    <X className="w-4 h-4 mr-2 text-red-500" />
+                    Cancelled Classes
+                  </h4>
+                  <div className="space-y-3">
+                    {cancelledEvents.map((event, index) => (
+                      <div
+                        key={event.id || index}
+                        className="p-4 rounded-lg border border-red-200 bg-red-50"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-gray-900 line-through">{event.title}</h3>
+                              <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
+                                CANCELLED
+                              </span>
+                            </div>
+                            {event.description && (
+                              <p className="text-sm text-gray-600 mb-3 line-through">{event.description}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1" />
+                                <span>
+                                  {formatTimeInUserTimezone(event.startTime, userTimezone)} - 
+                                  {formatTimeInUserTimezone(event.endTime, userTimezone)}
+                                </span>
+                              </div>
+                              {event.location && (
+                                <div className="flex items-center">
+                                  <Calendar className="w-4 h-4 mr-1" />
+                                  <span>{event.location}</span>
+                                </div>
+                              )}
+                              {event.instructor && (
+                                <div className="flex items-center">
+                                  <Users className="w-4 h-4 mr-1" />
+                                  <span>{event.instructor}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-2 text-xs text-red-600">
+                              Cancelled on {new Date(event.cancelledAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-primary" />
-              Class Recordings
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewAllRecordings}
-              className="flex items-center gap-1"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View All
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recordedSessions.map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-all cursor-pointer group"
-                onClick={() => window.open(session.driveLink, "_blank")}
-              >
-                <div className="relative w-16 h-12 rounded overflow-hidden flex-shrink-0">
-                  <img
-                    src={session.thumbnail}
-                    alt={session.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                    <ExternalLink className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                    {session.title}
-                  </h4>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                    <span>{new Date(session.date).toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{session.duration}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </CardContent>
       </Card>
 
@@ -414,4 +263,36 @@ export function LiveClasses() {
   );
 }
 
-export default LiveClasses;
+// Helper functions
+function getEventStatus(event) {
+  const now = new Date();
+  const start = new Date(event.startTime);
+  const end = new Date(event.endTime);
+  
+  if (now >= start && now <= end) {
+    return { status: 'live', text: 'Live Now' };
+  } else if (now < start) {
+    return { status: 'upcoming', text: 'Upcoming' };
+  } else {
+    return { status: 'ended', text: 'Ended' };
+  }
+}
+
+function formatTimeInUserTimezone(utcTime, userTimezone) {
+  if (!utcTime) return '';
+  
+  try {
+    const date = new Date(utcTime);
+    return date.toLocaleString('en-US', {
+      timeZone: userTimezone,
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch (error) {
+    return utcTime;
+  }
+}

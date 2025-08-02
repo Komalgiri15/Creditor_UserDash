@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { motion } from "framer-motion";
-import { getAllUpcomingEvents } from "@/services/calendarService";
+import { getUpcomingEvents } from "@/services/calendarService";
 
 export function DashboardCalendar() {
   const today = new Date();
@@ -41,7 +41,7 @@ export function DashboardCalendar() {
       setLoading(true);
       setError(null);
       try {
-        const events = await getAllUpcomingEvents();
+        const events = await getUpcomingEvents();
         const now = new Date();
         const expanded = [];
         events.forEach(event => {

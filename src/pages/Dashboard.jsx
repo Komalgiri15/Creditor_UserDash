@@ -9,7 +9,7 @@ import DashboardCalendar from "@/components/dashboard/DashboardCalendar";
 import DashboardTodo from "@/components/dashboard/DashboardTodo";
 import MonthlyProgress from "@/components/dashboard/MonthlyProgress";
 import DashboardAnnouncements from "@/components/dashboard/DashboardAnnouncements";
-import LiveClasses from "@/components/dashboard/LiveClasses";
+import { LiveClasses } from "@/components/dashboard/LiveClasses";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { fetchUserCourses, fetchCourseModules } from '../services/courseService';

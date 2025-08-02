@@ -57,7 +57,7 @@ const ManageUsers = () => {
   // Force refresh when forceUpdate changes
   useEffect(() => {
     if (forceUpdate > 0) {
-      console.log('🔄 Force update triggered, refreshing users...');
+     // console.log('🔄 Force update triggered, refreshing users...');
       fetchUsers();
     }
   }, [forceUpdate]);
@@ -77,19 +77,19 @@ const ManageUsers = () => {
         token = document.cookie.split('token=')[1]?.split(';')[0];
       }
       
-      console.log('🔍 Token debug:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token?.substring(0, 20) + '...',
-        localStorage: localStorage.getItem('token') ? 'exists' : 'not found',
-        cookies: document.cookie.includes('token=') ? 'exists' : 'not found'
-      });
+      // console.log('🔍 Token debug:', {
+      //   hasToken: !!token,
+      //   tokenLength: token?.length,
+      //   tokenStart: token?.substring(0, 20) + '...',
+      //   localStorage: localStorage.getItem('token') ? 'exists' : 'not found',
+      //   cookies: document.cookie.includes('token=') ? 'exists' : 'not found'
+      // });
       
       if (!token) {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      console.log('📡 Making API call to:', `${API_BASE}/api/user/all`);
+   //   console.log('📡 Making API call to:', `${API_BASE}/api/user/all`);
       
       const response = await axios.get(`${API_BASE}/api/user/all`, {
         headers: {
@@ -99,16 +99,16 @@ const ManageUsers = () => {
         withCredentials: true, // Include cookies in the request
       });
 
-      console.log('✅ API Response:', response.data);
+    //  console.log('✅ API Response:', response.data);
 
       if (response.data && response.data.code === 200) {
         const fetchedUsers = response.data.data || [];
-        console.log('📋 Fetched users with roles:', fetchedUsers.map(user => ({
-          id: user.id,
-          name: `${user.first_name} ${user.last_name}`,
-          role: getUserRole(user),
-          user_roles: user.user_roles
-        })));
+        // console.log('📋 Fetched users with roles:', fetchedUsers.map(user => ({
+        //   id: user.id,
+        //   name: `${user.first_name} ${user.last_name}`,
+        //   role: getUserRole(user),
+        //   user_roles: user.user_roles
+        // })));
         setUsers(fetchedUsers);
       } else {
         throw new Error('Failed to fetch users');
@@ -143,18 +143,18 @@ const ManageUsers = () => {
         token = document.cookie.split('token=')[1]?.split(';')[0];
       }
       
-      console.log('🔍 Courses - Token debug:', {
-        hasToken: !!token,
-        tokenLength: token?.length,
-        tokenStart: token?.substring(0, 20) + '...'
-      });
+      // console.log('🔍 Courses - Token debug:', {
+      //   hasToken: !!token,
+      //   tokenLength: token?.length,
+      //   tokenStart: token?.substring(0, 20) + '...'
+      // });
       
       if (!token) {
         console.warn(' No token found for courses API call');
         // Still try to fetch courses without token
       }
       
-      console.log(' Making courses API call to:', `${API_BASE}/api/course/getAllCourses`);
+     // console.log(' Making courses API call to:', `${API_BASE}/api/course/getAllCourses`);
       
       const response = await axios.get(`${API_BASE}/api/course/getAllCourses`, {
         headers: {
@@ -164,14 +164,14 @@ const ManageUsers = () => {
         withCredentials: true, // Include cookies in the request
       });
 
-      console.log('✅ Courses API Response:', response.data);
+     // console.log('✅ Courses API Response:', response.data);
 
       if (response.data && response.data.data) {
         // Filter to only show published courses
         const publishedCourses = response.data.data.filter(course => 
           course.course_status === 'PUBLISHED'
         );
-        console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
+      //  console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
         setCourses(publishedCourses);
       } else if (response.data && Array.isArray(response.data)) {
         // Handle case where response.data is directly an array
@@ -179,7 +179,7 @@ const ManageUsers = () => {
         const publishedCourses = response.data.filter(course => 
           course.course_status === 'PUBLISHED'
         );
-        console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
+     //   console.log('📋 Filtered courses - showing only published:', publishedCourses.map(c => ({ id: c.id, title: c.title, status: c.course_status })));
         setCourses(publishedCourses);
       }
     } catch (error) {
@@ -202,31 +202,31 @@ const ManageUsers = () => {
 
   // Helper function to get user role from user_roles array
   const getUserRole = (user) => {
-    console.log('🔍 Getting role for user:', {
-      id: user.id,
-      name: `${user.first_name} ${user.last_name}`,
-      user_roles: user.user_roles,
-      hasRoles: !!user.user_roles,
-      rolesLength: user.user_roles?.length
-    });
+    // console.log('🔍 Getting role for user:', {
+    //   id: user.id,
+    //   name: `${user.first_name} ${user.last_name}`,
+    //   user_roles: user.user_roles,
+    //   hasRoles: !!user.user_roles,
+    //   rolesLength: user.user_roles?.length
+    // });
     
     if (user.user_roles && user.user_roles.length > 0) {
       // Priority order: admin > instructor > user (single role system)
       const roles = user.user_roles.map(r => r.role);
       
       if (roles.includes('admin')) {
-        console.log('✅ User role found: admin');
+      //  console.log('✅ User role found: admin');
         return 'admin';
       } else if (roles.includes('instructor')) {
-        console.log('✅ User role found: instructor');
+      //  console.log('✅ User role found: instructor');
         return 'instructor';
       } else {
         const role = roles[0];
-        console.log('✅ User role found:', role);
+      //  console.log('✅ User role found:', role);
         return role;
       }
     }
-    console.log('⚠️ No user roles found, defaulting to "user"');
+  //  console.log('⚠️ No user roles found, defaulting to "user"');
     return 'user'; // default role when no role is assigned in backend
   };
 
@@ -290,15 +290,15 @@ const ManageUsers = () => {
     
     // Debug logging for filtering
     if (user.first_name && user.last_name) {
-      console.log(`🔍 Filtering user: ${user.first_name} ${user.last_name}`, {
-        id: user.id,
-        userRole,
-        filterRole,
-        matchesRole,
-        matchesSearch,
-        user_roles: user.user_roles
-      });
-    }
+    //   console.log(`🔍 Filtering user: ${user.first_name} ${user.last_name}`, {
+    //     id: user.id,
+    //     userRole,
+    //     filterRole,
+    //     matchesRole,
+    //     matchesSearch,
+    //     user_roles: user.user_roles
+    //   });
+     }
     
     return matchesSearch && matchesRole;
   });
@@ -348,9 +348,9 @@ const ManageUsers = () => {
       // Different API endpoints based on the current filter role
       if (filterRole === "user") {
         // Add learners to course
-        console.log('🔄 Adding learners to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
+        // console.log('🔄 Adding learners to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
+        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
+        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
         
         // Check if the selected course actually exists
         const selectedCourseData = courses.find(c => c.id === selectedCourse);
@@ -370,9 +370,9 @@ const ManageUsers = () => {
         });
       } else if (filterRole === "instructor") {
         // Add instructors to course
-        console.log('🔄 Adding instructors to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
+        // console.log('🔄 Adding instructors to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
+        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
+        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
         
         // Check if the selected course actually exists
         const selectedCourseData = courses.find(c => c.id === selectedCourse);
@@ -394,9 +394,9 @@ const ManageUsers = () => {
     
        else if (filterRole === "admin") {
         // Add admins to course
-        console.log('🔄 Adding admins to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
+        // console.log('🔄 Adding admins to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
+        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
+        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
         
         // Check if the selected course actually exists
         const selectedCourseData = courses.find(c => c.id === selectedCourse);
@@ -416,9 +416,9 @@ const ManageUsers = () => {
         });
       }
 
-      console.log('✅ API Response:', response.data);
-      console.log('✅ Response status:', response.status);
-      console.log('✅ Response headers:', response.headers);
+      // console.log('✅ API Response:', response.data);
+      // console.log('✅ Response status:', response.status);
+      // console.log('✅ Response headers:', response.headers);
 
       if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
         // Get the selected course title
@@ -441,7 +441,7 @@ const ManageUsers = () => {
         // Don't clear selectedUsers here - keep them selected for potential "Add to More Courses"
         
         // After successful addition, verify the users are actually in the course
-        console.log('🔄 Verifying course users after addition...');
+      //  console.log('🔄 Verifying course users after addition...');
         try {
           const verifyResponse = await axios.get(`${API_BASE}/api/course/${selectedCourse}/getAllUsersByCourseId`, {
             headers: {
@@ -451,8 +451,8 @@ const ManageUsers = () => {
             withCredentials: true,
           });
           
-          console.log('✅ Course users verification response:', verifyResponse.data);
-          console.log('📋 Users in course after addition:', verifyResponse.data?.data || []);
+          // console.log('✅ Course users verification response:', verifyResponse.data);
+          // console.log('📋 Users in course after addition:', verifyResponse.data?.data || []);
           
           // Check if our added users are actually in the course
           const courseUsers = verifyResponse.data?.data || [];
@@ -478,7 +478,7 @@ const ManageUsers = () => {
         // Refresh users list to get updated course information
         await fetchUsers();
         
-        console.log(`${filterRole}s added to course successfully`);
+      //  console.log(`${filterRole}s added to course successfully`);
       } else {
         throw new Error(response.data?.message || `Failed to add ${filterRole}s to course`);
       }
@@ -497,13 +497,13 @@ const ManageUsers = () => {
       // Handle specific error cases
       if (error.response?.status === 409) {
         // 409 means some users are already assigned, but this is not a complete failure
-        console.log('⚠️ 409 Conflict - Some users already assigned to course:', error.response.data);
-        console.log('🔍 Full 409 response analysis:', {
-          status: error.response.status,
-          data: error.response.data,
-          error: error.response.data?.error,
-          message: error.response.data?.message
-        });
+        // console.log('⚠️ 409 Conflict - Some users already assigned to course:', error.response.data);
+        // console.log('🔍 Full 409 response analysis:', {
+        //   status: error.response.status,
+        //   data: error.response.data,
+        //   error: error.response.data?.error,
+        //   message: error.response.data?.message
+        // });
         
         // Get the selected course title
         const selectedCourseData = courses.find(course => course.id === selectedCourse);
@@ -512,7 +512,7 @@ const ManageUsers = () => {
         // Extract error message from backend response
         const errorMessage = error.response.data?.error || error.response.data?.message || 'Unknown error';
         
-        console.log('📋 Backend error message:', errorMessage);
+       // console.log('📋 Backend error message:', errorMessage);
         
         // Parse the error message to extract user IDs if present
         // Backend returns: "Users fc78ddd2-d389-4844-a387-53d257fb04a0 are already instructors for this course"
@@ -520,8 +520,7 @@ const ManageUsers = () => {
         
         if (userMatch) {
           const existingUserIds = userMatch[1].split(',').map(id => id.trim());
-          console.log('🔍 Found existing user IDs in error message:', existingUserIds);
-          
+        //  
           // Check which users are already assigned vs. which are new
           const alreadyAssignedIds = existingUserIds;
           const newUserIds = selectedUsers.filter(id => !alreadyAssignedIds.includes(id));
