@@ -437,7 +437,33 @@ const AddEvent = () => {
     // Fetch latest event details from backend
     const backendEvent = await fetchEventDetails(event.id);
     const e = backendEvent || event;
+    
+
+    
     setSelectedDate(e.date ? new Date(e.date) : (e.startTime ? new Date(e.startTime) : null));
+    
+    // Map backend recurrence format to frontend format if needed
+    let recurrenceValue = e.recurrence || 'none';
+    
+    // Create reverse mapping from backend frequency to frontend recurrence
+    const reverseFrequencyMap = {
+      'DAILY': 'daily',
+      'WEEKLY': 'weekly', 
+      'MONTHLY': 'monthly',
+      'YEARLY': 'yearly'
+    };
+    
+    // If the backend returns a different format, map it to our expected format
+    if (e.frequency) {
+      recurrenceValue = reverseFrequencyMap[e.frequency] || e.recurrence || 'none';
+    }
+    
+    // Check if recurrenceRule exists and extract frequency from it
+    if (e.recurrenceRule && e.recurrenceRule.frequency) {
+      recurrenceValue = reverseFrequencyMap[e.recurrenceRule.frequency] || e.recurrence || 'none';
+    }
+    
+
     
     setForm({
       id: e.id,
@@ -448,7 +474,7 @@ const AddEvent = () => {
       timeZone: e.timeZone || userTimezone,
       location: e.location || '',
       isRecurring: e.isRecurring || false,
-      recurrence: e.recurrence || 'none',
+      recurrence: recurrenceValue,
       zoomLink: e.zoomLink || '',
       courseId: e.courseId || e.course_id || (courses.length > 0 ? courses[0].id : ''),
     });
@@ -689,7 +715,13 @@ const AddEvent = () => {
       // Update event in backend
       try {
         const token = getAuthToken();
-        const patchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`, {
+        
+        // Use different endpoint based on whether the event is recurring
+        const endpoint = form.isRecurring 
+          ? `${import.meta.env.VITE_API_BASE_URL}/calendar/events/recurring/${form.id}`
+          : `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`;
+        
+        const patchRes = await fetch(endpoint, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
