@@ -3,7 +3,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, ChevronUp, Radio } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,20 +44,45 @@ export function DashboardCalendar() {
         const events = await getAllUpcomingEvents();
         const now = new Date();
         const expanded = [];
+        
+        console.log('Raw events from API:', events);
+        
         events.forEach(event => {
+          // Handle recurring events
           if (event.isRecurring && Array.isArray(event.occurrences)) {
+            console.log('Processing recurring event:', event.title, 'with', event.occurrences.length, 'occurrences');
             event.occurrences.forEach(occ => {
               const occDate = new Date(occ);
               if (occDate >= now) {
+                // Calculate the end time for this occurrence
+                const duration = new Date(event.endTime) - new Date(event.startTime);
+                const occEndTime = new Date(occDate.getTime() + duration);
+                
                 expanded.push({
                   ...event,
                   date: occDate,
+                  startTime: occDate.toISOString(), // Use occurrence start time
+                  endTime: occEndTime.toISOString(), // Use calculated end time
                   time: occDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  isOccurrence: true
+                  isOccurrence: true,
+                  originalEvent: event
                 });
               }
             });
+          } else if (event.isRecurring && event.recurrenceRule) {
+            // If occurrences array is missing, try to generate them from recurrenceRule
+            console.log('Recurring event without occurrences array:', event.title);
+            const eventDate = new Date(event.startTime);
+            if (eventDate >= now) {
+              expanded.push({
+                ...event,
+                date: eventDate,
+                time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isOccurrence: false
+              });
+            }
           } else if (event.startTime) {
+            // Handle non-recurring events
             const eventDate = new Date(event.startTime);
             if (eventDate >= now) {
               expanded.push({
@@ -69,8 +94,22 @@ export function DashboardCalendar() {
             }
           }
         });
+        
+        console.log('Expanded events:', expanded.length);
+        // Debug live events
+        expanded.forEach(event => {
+          const isLive = isEventLive(event);
+          if (isLive) {
+            console.log('LIVE EVENT FOUND:', event.title, {
+              startTime: event.startTime,
+              endTime: event.endTime,
+              now: new Date().toISOString()
+            });
+          }
+        });
         setAllEvents(expanded);
       } catch (err) {
+        console.error('Error fetching events:', err);
         setError('Failed to load events');
         setAllEvents([]);
       } finally {
@@ -91,13 +130,47 @@ export function DashboardCalendar() {
     );
   }, [date, allEvents]);
   
-  const getStatusColor = (status) => {
+  // Check if an event is currently live
+  const isEventLive = (event) => {
+    if (!event.startTime || !event.endTime) {
+      console.log('Event missing startTime or endTime:', event.title, { startTime: event.startTime, endTime: event.endTime });
+      return false;
+    }
+    const now = new Date();
+    const startTime = new Date(event.startTime);
+    const endTime = new Date(event.endTime);
+    const isLive = now >= startTime && now <= endTime;
+    
+    if (isLive) {
+      console.log('Event is LIVE:', event.title, {
+        now: now.toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
+      });
+    }
+    
+    return isLive;
+  };
+  
+  const getStatusColor = (event) => {
+    if (isEventLive(event)) {
+      return 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-800/50';
+    }
+    
+    const status = event.status || 'upcoming';
     switch(status) {
       case 'upcoming': return 'bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-800/50';
       case 'ongoing': return 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-800/50';
       case 'completed': return 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-700/50';
       default: return 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-700/50';
     }
+  };
+
+  const getStatusText = (event) => {
+    if (isEventLive(event)) {
+      return 'LIVE';
+    }
+    return event.status || 'upcoming';
   };
 
   const eventVariants = {
@@ -220,7 +293,7 @@ export function DashboardCalendar() {
             <div className="text-xs text-red-500">{error}</div>
           ) : selectedDateEvents.map((event, index) => (
             <motion.div 
-              key={event.id} 
+              key={`${event.id}-${event.date?.getTime()}`} 
               custom={index}
               variants={eventVariants}
               initial="hidden"
@@ -228,9 +301,21 @@ export function DashboardCalendar() {
               whileHover={{ scale: 1.02, x: 3 }}
               className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-accent/70 transition-all duration-300 cursor-pointer group/event"
             >
-              <span className="text-xs line-clamp-1 group-hover/event:text-primary transition-colors duration-300">{event.title}</span>
-              <Badge className={`${getStatusColor(event.status)} text-xs py-0 px-2 transition-all duration-300 group-hover/event:scale-105`}>
-                {event.status || 'upcoming'}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {isEventLive(event) && (
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <Radio size={12} className="text-red-500" />
+                  </motion.div>
+                )}
+                <span className="text-xs line-clamp-1 group-hover/event:text-primary transition-colors duration-300">
+                  {event.title}
+                </span>
+              </div>
+              <Badge className={`${getStatusColor(event)} text-xs py-0 px-2 transition-all duration-300 group-hover/event:scale-105`}>
+                {getStatusText(event)}
               </Badge>
             </motion.div>
           ))}
