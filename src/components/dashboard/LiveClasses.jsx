@@ -116,26 +116,31 @@ export function LiveClasses() {
         const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
         const params = new URLSearchParams({ startDate: start, endDate: end });
 
-        console.log('Fetching events with params:', { start, end });
-
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
           credentials: 'include',
         });
         const data = await response.json();
-
-        console.log('API Response:', data);
 
         if (data?.data?.length > 0) {
           // Process events to handle recurring events properly
           const processedEvents = processEvents(data.data, userTimezone);
           
           console.log('Processed events:', processedEvents);
+          // Filter events for today in user's timezone
+          const todayEvents = data.data.filter(event => {
+            if (!event.startTime || !event.endTime) {
+              return false;
+            }
+
+            const isToday = isTodayInUserTimezone(event.startTime, userTimezone);
+
+            return isToday;
+          });
 
           // Sort events by start time
           processedEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
           setTodayEvents(processedEvents);
         } else {
-          console.log('No events found in API response');
           setTodayEvents([]);
         }
       } catch (err) {
@@ -161,7 +166,6 @@ export function LiveClasses() {
           
           // Remove ended events
           if (isEnded) {
-            console.log('Removing ended event:', event.title);
             return false;
           }
           
@@ -213,13 +217,6 @@ export function LiveClasses() {
     const end = new Date(event.endTime);
     return now >= start && now <= end;
   }).length;
-
-  console.log('Render state:', {
-    loading,
-    todayEventsCount: todayEvents.length,
-    liveEventsCount,
-    userTimezone
-  });
 
   return (
     <div className="space-y-6">

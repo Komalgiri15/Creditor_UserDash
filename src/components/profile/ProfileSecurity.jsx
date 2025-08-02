@@ -14,7 +14,6 @@ const ProfileSecurity = () => {
       toast.error("New passwords do not match");
       return;
     }
-    console.log("Password update:", data);
     toast.success("Password updated successfully");
     form.reset();
   };

@@ -677,111 +677,58 @@ const AddEvent = () => {
       isRecurring,
       calendarType: "GROUP",
       visibility: "PRIVATE",
-      courseName: selectedCourse ? selectedCourse.title : "",
-      timeZone: "America/Los_Angeles"
+      course_id: selectedCourse ? selectedCourse.id : form.courseId
     };
     
     // Add recurrence rule if it's a recurring event
     if (isRecurring && recurrenceRule) {
       payload.recurrenceRule = recurrenceRule;
-      // Remove userRole if present (for recurring events)
-      // (userRole is not added above, so nothing to remove)
-    } else {
-      // For normal events, add userRole as before if needed
-      payload.userRole = currentRole;
     }
 
+    const token = getAuthToken();
 
+    try {
+      const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "X-User-Role": currentRole,
+        },
+        body: JSON.stringify(payload),
+        credentials: "include"
+      });
 
-    if (editIndex !== null) {
-      // Update event in backend
-      try {
-        const token = getAuthToken();
-        const patchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "X-User-Role": currentRole, // Add role in header as well
-          },
-          body: JSON.stringify(payload),
-          credentials: "include"
-        });
-        
-        if (!patchRes.ok) {
-          const errorText = await patchRes.text();
-          let errorMessage = 'Failed to update event';
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            errorMessage = errorText || errorMessage;
-          }
-          throw new Error(errorMessage);
+      const responseText = await postRes.text();
+
+      if (!postRes.ok) {
+        let errorMessage = 'Failed to create event';
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error('❌ Server error details:', errorData);
+          errorMessage = errorData.message || errorData.errorMessage || errorMessage;
+        } catch (e) {
+          console.error('❌ Raw error response:', responseText);
+          errorMessage = responseText || errorMessage;
         }
-        
-        const patchData = await patchRes.json();
-        
-        // Refetch events after updating
-        const data = await getAllEvents();
-        setEvents(data);
-        alert("Event updated successfully!");
-      } catch (err) {
-        console.error("Failed to update event", err);
-        alert(err.message || 'Failed to update event');
+        throw new Error(errorMessage);
       }
-      setEditIndex(null);
-    } else {
-      // Send to backend only on add
-      try {
-        const token = getAuthToken();
-        
-        const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "X-User-Role": currentRole, // Add role in header as well
-          },
-          body: JSON.stringify(payload),
-          credentials: "include"
-        });
-        
-        // Log the response status and body for debugging
-        const responseText = await postRes.text();
-        if (!postRes.ok) {
-          let errorMessage = 'Failed to create event';
-          try {
-            const errorData = JSON.parse(responseText);
-            errorMessage = errorData.message || errorMessage;
-            // Check if it's a role-related error
-            if (postRes.status === 403 && errorData.message?.includes('Access restricted to admin, instructor roles')) {
-              console.error("Role verification failed. Backend expects role in JWT token but token doesn't contain role information.");
-              alert("Permission Error: Your account role cannot be verified by the server. Please contact support to ensure your instructor role is properly configured in the system.");
-              return;
-            }
-          } catch (e) {
-            errorMessage = responseText || errorMessage;
-          }
-          throw new Error(errorMessage);
-        }
-        
-        const postData = JSON.parse(responseText);
-        
-        // Refetch events after adding
-        const data = await getAllEvents();
-        // Normalize course_id to courseId for all events
-        const normalizedEvents = data.map(ev => ({
-            ...ev,
-            courseId: ev.courseId || ev.course_id // fallback to course_id if courseId is missing
-          }));
-        setEvents(normalizedEvents);
-        alert("Event created successfully!");
-      } catch (err) {
-        console.error("Failed to add event to backend", err);
-        alert("Failed to create event: " + err.message);
-      }
+      
+      const postData = JSON.parse(responseText);
+    } catch (error) {
+      console.error('❌ Error creating event:', error);
+      throw error;
     }
+    
+    // Refetch events after adding
+    const data = await getAllEvents();
+    // Normalize course_id to courseId for all events
+    const normalizedEvents = data.map(ev => ({
+        ...ev,
+        courseId: ev.courseId || ev.course_id // fallback to course_id if courseId is missing
+      }));
+    setEvents(normalizedEvents);
+    alert("Event created successfully!");
     
     setShowModal(false);
   };

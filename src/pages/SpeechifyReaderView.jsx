@@ -11,7 +11,6 @@ export function SpeechifyReaderView() {
     // If no content is provided, navigate back but with a brief delay
     // to ensure the component fully mounts first
     if (!content) {
-      console.log("No content provided to SpeechifyReader, navigating back");
       setTimeout(() => navigate(-1), 100);
     }
     

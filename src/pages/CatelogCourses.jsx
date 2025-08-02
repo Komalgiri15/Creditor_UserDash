@@ -74,8 +74,6 @@ const CatelogCourses = () => {
       try {
         setLoading(true);
         
-        console.log('Fetching courses for catalog ID:', catalogId);
-        
         // Use catalog data from URL state if available, otherwise create basic object
         const catalogFromState = location.state?.catalog;
         if (catalogFromState) {
@@ -89,69 +87,38 @@ const CatelogCourses = () => {
         }
         
         // Fetch the courses in this catalog using the instructor service
-        console.log('🔄 Starting to fetch courses for catalog:', catalogId);
         let coursesData = await getCatalogCourses(catalogId);
-        console.log('📊 Raw courses data from API:', coursesData);
-        console.log('📊 Data type:', typeof coursesData);
-        console.log('📊 Is array:', Array.isArray(coursesData));
-        console.log('📊 Length:', coursesData?.length);
         
         // If API returns empty and we have catalog data from state, try to use that
         if ((!coursesData || coursesData.length === 0) && catalogFromState?.courses) {
-          console.log('⚠️ Using courses from catalog state:', catalogFromState.courses);
           coursesData = catalogFromState.courses;
         }
         
         // Handle nested course structure - extract course objects if they're nested
         let processedCourses = [];
         if (Array.isArray(coursesData)) {
-          console.log('🔄 Processing courses array...');
           processedCourses = coursesData.map((item, index) => {
-            console.log(`📋 Processing item ${index}:`, item);
             
             // If the item has a nested 'course' property, extract it
             if (item && typeof item === 'object' && item.course) {
-              console.log(`📦 Extracting nested course from item ${index}:`, item.course);
               return item.course;
             }
             // If the item is already a course object, use it as is
-            console.log(`✅ Using item ${index} as course object:`, item);
             return item;
           });
         } else {
           console.warn('⚠️ Courses data is not an array:', coursesData);
         }
         
-        console.log('✅ Final processed courses data:', processedCourses);
-        console.log('📊 Number of processed courses:', processedCourses.length);
-        
         if (processedCourses?.[0]) {
-          console.log('🔍 First course structure:', processedCourses[0]);
-          console.log('🔍 Available fields in first course:', Object.keys(processedCourses[0]));
-          console.log('📝 Course title field value:', processedCourses[0].title);
-          console.log('📝 Course description field value:', processedCourses[0].description);
-          console.log('💰 Course price field value:', processedCourses[0].price);
-          console.log('⏱️ Course estimated_duration field value:', processedCourses[0].estimated_duration);
-          console.log('📊 Course course_level field value:', processedCourses[0].course_level);
-          console.log('🎯 Course learning_objectives field value:', processedCourses[0].learning_objectives);
-          console.log('📈 Course course_status field value:', processedCourses[0].course_status);
-          console.log('👥 Course max_students field value:', processedCourses[0].max_students);
-          console.log('📚 Course modules field value:', processedCourses[0].modules);
-          console.log('🖼️ Course thumbnail field value:', processedCourses[0].thumbnail);
-          console.log('📅 Course created_at field value:', processedCourses[0].created_at);
-          console.log('📅 Course updated_at field value:', processedCourses[0].updated_at);
-          console.log('📋 Full course object:', processedCourses[0]);
-          
           // Test individual course API if we have minimal data
           if (processedCourses[0].id && processedCourses[0].title && !processedCourses[0].description) {
-            console.log('🧪 Testing individual course API for first course...');
-            const testResult = await testIndividualCourseAPI(processedCourses[0].id);
-            if (testResult) {
-              console.log('✅ Individual course API test successful!');
-              console.log('📊 Test result fields:', Object.keys(testResult));
-            } else {
-              console.log('❌ Individual course API test failed');
-            }
+                          const testResult = await testIndividualCourseAPI(processedCourses[0].id);
+              if (testResult) {
+                // Individual course API test successful
+              } else {
+                // Individual course API test failed
+              }
           }
         } else {
           console.warn('⚠️ No courses found in processed data');
