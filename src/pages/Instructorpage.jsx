@@ -144,20 +144,27 @@ const InstructorPage = () => {
                 </svg>
                 User Management
               </h2>
-                <div className="relative">
-                  <select
-                    value={userManagementView}
-                    onChange={(e) => setUserManagementView(e.target.value)}
-                    className="appearance-none px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium bg-white hover:bg-gray-50 transition-colors cursor-pointer shadow-sm"
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setUserManagementView("add")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      userManagementView === "add"
+                        ? "bg-indigo-500 text-white shadow-sm"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    }`}
                   >
-                    <option value="add" className="py-2">➕ Add Users</option>
-                    <option value="manage" className="py-2">👥 Manage Users</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
+                    ➕ Add Users
+                  </button>
+                  <button
+                    onClick={() => setUserManagementView("manage")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      userManagementView === "manage"
+                        ? "bg-indigo-500 text-white shadow-sm"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    👥 Manage Users
+                  </button>
                 </div>
               </div>
             </div>

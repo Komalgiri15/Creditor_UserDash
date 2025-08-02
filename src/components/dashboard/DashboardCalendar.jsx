@@ -3,7 +3,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,20 +44,45 @@ export function DashboardCalendar() {
         const events = await getAllUpcomingEvents();
         const now = new Date();
         const expanded = [];
+        
+        console.log('Raw events from API:', events);
+        
         events.forEach(event => {
+          // Handle recurring events
           if (event.isRecurring && Array.isArray(event.occurrences)) {
+            console.log('Processing recurring event:', event.title, 'with', event.occurrences.length, 'occurrences');
             event.occurrences.forEach(occ => {
               const occDate = new Date(occ);
               if (occDate >= now) {
+                // Calculate the end time for this occurrence
+                const duration = new Date(event.endTime) - new Date(event.startTime);
+                const occEndTime = new Date(occDate.getTime() + duration);
+                
                 expanded.push({
                   ...event,
                   date: occDate,
+                  startTime: occDate.toISOString(), // Use occurrence start time
+                  endTime: occEndTime.toISOString(), // Use calculated end time
                   time: occDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  isOccurrence: true
+                  isOccurrence: true,
+                  originalEvent: event
                 });
               }
             });
+          } else if (event.isRecurring && event.recurrenceRule) {
+            // If occurrences array is missing, try to generate them from recurrenceRule
+            console.log('Recurring event without occurrences array:', event.title);
+            const eventDate = new Date(event.startTime);
+            if (eventDate >= now) {
+              expanded.push({
+                ...event,
+                date: eventDate,
+                time: eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                isOccurrence: false
+              });
+            }
           } else if (event.startTime) {
+            // Handle non-recurring events
             const eventDate = new Date(event.startTime);
             if (eventDate >= now) {
               expanded.push({
@@ -69,8 +94,22 @@ export function DashboardCalendar() {
             }
           }
         });
+        
+        console.log('Expanded events:', expanded.length);
+        // Debug live events
+        expanded.forEach(event => {
+          const isLive = isEventLive(event);
+          if (isLive) {
+            console.log('LIVE EVENT FOUND:', event.title, {
+              startTime: event.startTime,
+              endTime: event.endTime,
+              now: new Date().toISOString()
+            });
+          }
+        });
         setAllEvents(expanded);
       } catch (err) {
+        console.error('Error fetching events:', err);
         setError('Failed to load events');
         setAllEvents([]);
       } finally {
@@ -80,23 +119,87 @@ export function DashboardCalendar() {
     fetchAllUpcoming();
   }, []);
 
-  // Filter events for the selected date
+  // Filter events for the selected date and add live status
   const selectedDateEvents = React.useMemo(() => {
     if (!date) return [];
-    return allEvents.filter(event =>
+    const filteredEvents = allEvents.filter(event =>
       event.date &&
       event.date.getDate() === date.getDate() &&
       event.date.getMonth() === date.getMonth() &&
       event.date.getFullYear() === date.getFullYear()
     );
+    
+    // Add live status to events
+    return filteredEvents.map(event => {
+      const now = new Date();
+      const start = new Date(event.startTime);
+      const end = new Date(event.endTime);
+      const isLive = now >= start && now <= end;
+      const isUpcoming = now < start;
+      const isEnded = now > end;
+      
+      return {
+        ...event,
+        isLive,
+        isUpcoming,
+        isEnded,
+        status: isLive ? 'live' : isUpcoming ? 'upcoming' : isEnded ? 'ended' : 'unknown'
+      };
+    });
   }, [date, allEvents]);
   
-  const getStatusColor = (status) => {
+  // Check if an event is currently live
+  const isEventLive = (event) => {
+    if (!event.startTime || !event.endTime) {
+      console.log('Event missing startTime or endTime:', event.title, { startTime: event.startTime, endTime: event.endTime });
+      return false;
+    }
+    const now = new Date();
+    const startTime = new Date(event.startTime);
+    const endTime = new Date(event.endTime);
+    const isLive = now >= startTime && now <= endTime;
+    
+    if (isLive) {
+      console.log('Event is LIVE:', event.title, {
+        now: now.toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
+      });
+    }
+    
+    return isLive;
+  };
+  
+  const getStatusColor = (event) => {
+    if (isEventLive(event)) {
+      return 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-800/50';
+    }
+    
+    const status = event.status || 'upcoming';
     switch(status) {
+      case 'live': return 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-800/50';
       case 'upcoming': return 'bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-800/50';
       case 'ongoing': return 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-800/50';
       case 'completed': return 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-700/50';
+      case 'ended': return 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-700/50';
       default: return 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:hover:bg-gray-700/50';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch(status) {
+      case 'live': return 'LIVE';
+      case 'upcoming': return 'UPCOMING';
+      case 'ongoing': return 'ONGOING';
+      case 'completed': return 'COMPLETED';
+      case 'ended': return 'ENDED';
+      default: return 'UNKNOWN';
+    }
+  };
+
+  const handleJoinLiveClass = (event) => {
+    if (event.isLive && event.description) {
+      window.open(event.description, '_blank');
     }
   };
 
@@ -115,6 +218,9 @@ export function DashboardCalendar() {
     })
   };
 
+  // Count live events for today
+  const liveEventsCount = selectedDateEvents.filter(event => event.isLive).length;
+
   return (
     <Card className="border shadow hover:shadow-lg transition-all duration-300 hover:border-primary/20 group w-full max-w-sm">
       <div className="p-3 flex items-center justify-between border-b">
@@ -126,6 +232,11 @@ export function DashboardCalendar() {
             <CalendarIcon size={18} className="text-primary" />
           </motion.div>
           <h3 className="font-medium text-sm group-hover:text-primary transition-colors duration-300">Calendar</h3>
+          {liveEventsCount > 0 && (
+            <Badge className="bg-purple-100 text-purple-600 text-xs px-2 py-0 ml-1">
+              {liveEventsCount} Live
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button 
@@ -183,16 +294,28 @@ export function DashboardCalendar() {
                 nav_button_next: "mr-1",
               }}
               renderDay={(day) => {
-                const hasEvent = allEvents.some(event =>
+                const dayEvents = allEvents.filter(event =>
                   event.date &&
                   event.date.getDate() === day.getDate() &&
                   event.date.getMonth() === day.getMonth() &&
                   event.date.getFullYear() === day.getFullYear()
                 );
+                const hasEvent = dayEvents.length > 0;
+                const hasLiveEvent = dayEvents.some(event => {
+                  const now = new Date();
+                  const start = new Date(event.startTime);
+                  const end = new Date(event.endTime);
+                  return now >= start && now <= end;
+                });
+                
                 return (
                   <div className="flex flex-col items-center justify-center w-full h-full">
                     <span>{day.getDate()}</span>
-                    {hasEvent && <span className="w-1.5 h-1.5 mt-0.5 rounded-full bg-blue-500 inline-block"></span>}
+                    {hasEvent && (
+                      <span className={`w-1.5 h-1.5 mt-0.5 rounded-full inline-block ${
+                        hasLiveEvent ? 'bg-purple-500' : 'bg-blue-500'
+                      }`}></span>
+                    )}
                   </div>
                 );
               }}
@@ -220,17 +343,34 @@ export function DashboardCalendar() {
             <div className="text-xs text-red-500">{error}</div>
           ) : selectedDateEvents.map((event, index) => (
             <motion.div 
-              key={event.id} 
+              key={`${event.id}-${event.date?.getTime()}`} 
               custom={index}
               variants={eventVariants}
               initial="hidden"
               animate="visible"
               whileHover={{ scale: 1.02, x: 3 }}
-              className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-accent/70 transition-all duration-300 cursor-pointer group/event"
+              className={`flex items-center justify-between p-2 rounded-md transition-all duration-300 cursor-pointer group/event ${
+                event.isLive 
+                  ? 'bg-purple-50 hover:bg-purple-100 border border-purple-200' 
+                  : 'bg-muted/50 hover:bg-accent/70'
+              }`}
+              onClick={() => event.isLive && handleJoinLiveClass(event)}
             >
-              <span className="text-xs line-clamp-1 group-hover/event:text-primary transition-colors duration-300">{event.title}</span>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {event.isLive && (
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <Play size={12} className="text-purple-600" />
+                  </motion.div>
+                )}
+                <span className="text-xs line-clamp-1 group-hover/event:text-primary transition-colors duration-300">
+                  {event.title}
+                </span>
+              </div>
               <Badge className={`${getStatusColor(event.status)} text-xs py-0 px-2 transition-all duration-300 group-hover/event:scale-105`}>
-                {event.status || 'upcoming'}
+                {getStatusText(event.status)}
               </Badge>
             </motion.div>
           ))}

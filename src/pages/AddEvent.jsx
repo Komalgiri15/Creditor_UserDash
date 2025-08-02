@@ -135,7 +135,7 @@ const AddEvent = () => {
         const decoded = jwtDecode(token);
         return decoded;
       } catch (error) {
-        console.error("Failed to decode token:", error);
+       
         return null;
       }
     }
@@ -149,7 +149,7 @@ const AddEvent = () => {
       // For now, let's just log that we need a token with role information
       return false;
     } catch (error) {
-      console.error("Failed to refresh token:", error);
+     
       return false;
     }
   };
@@ -182,7 +182,7 @@ const AddEvent = () => {
         timeZone: tz
       })}`;
     } catch (error) {
-      console.error('Error formatting timezone:', error);
+      
       return `${label}: Error`;
     }
   };
@@ -222,7 +222,6 @@ const AddEvent = () => {
       
       // Check if the date is valid
       if (isNaN(utcDate.getTime())) {
-        console.error('Invalid UTC date:', utcIsoString);
         return '';
       }
       
@@ -235,7 +234,7 @@ const AddEvent = () => {
       
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch (error) {
-      console.error('Error converting UTC to local:', error);
+      
       return '';
     }
   };
@@ -292,7 +291,7 @@ const AddEvent = () => {
       }
     })
     .catch(error => {
-      console.error("Test API error:", error);
+      
     });
   };
 
@@ -310,7 +309,7 @@ const AddEvent = () => {
         const role = getUserRole();
         setUserRole(role);
       } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+        
       }
     };
     fetchUserProfileData();
@@ -339,7 +338,7 @@ const AddEvent = () => {
           }
         }
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        
       }
     };
     fetchCourses();
@@ -351,7 +350,7 @@ const AddEvent = () => {
         const data = await getAllEvents();
         setEvents(data);
       } catch (err) {
-        console.error("Failed to fetch events", err);
+        
       }
     };
 
@@ -455,7 +454,7 @@ const AddEvent = () => {
       const data = await res.json();
       return data.data || null;
     } catch (err) {
-      console.error('Failed to fetch event details', err);
+      
       return null;
     }
   };
@@ -477,8 +476,7 @@ const AddEvent = () => {
       // Return array of deleted occurrence objects
       return (data.data || []);
     } catch (err) {
-      console.error('Failed to fetch deleted occurrences', err);
-      return [];
+      
     }
   };
 
@@ -561,7 +559,7 @@ const AddEvent = () => {
       // Refetch cancelled events after deletion
       await fetchCancelledEvents();
     } catch (err) {
-      console.error("Failed to delete event", err);
+      
     } finally {
       setShowDeleteConfirmModal(false);
       setDeleteIndex(null);
@@ -594,7 +592,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event deleted");
     } catch (err) {
-      console.error("Failed to delete occurrence", err);
+      
     } finally {
       setDeletingOccurrenceKey(null);
     }
@@ -624,7 +622,7 @@ const AddEvent = () => {
       
       setShowRecurringDeleteModal(false);
     } catch (err) {
-      console.error("Failed to delete all occurrences", err);
+      
     } finally {
       setDeletingAll(false);
     }
@@ -662,7 +660,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event restored successfully");
     } catch (err) {
-      console.error("Failed to restore occurrence", err);
+     
       setModalMessage("Failed to restore event occurrence");
     } finally {
       setDeletingOccurrenceKey(null);
@@ -675,7 +673,7 @@ const AddEvent = () => {
     // Check if user has permission to create events
     const currentRole = getUserRole();
     if (!currentRole || (currentRole !== 'admin' && currentRole !== 'instructor')) {
-      console.error("User does not have permission to create events. Required role: admin or instructor. Current role:", currentRole);
+     
       alert("You don't have permission to create events. Only administrators and instructors can create events.");
       return;
     }
@@ -704,7 +702,7 @@ const AddEvent = () => {
         // Convert to UTC directly - simpler and more reliable
         return localDate.toISOString();
       } catch (error) {
-        console.error('Error converting date to UTC:', error);
+        
         return "";
       }
     };
@@ -749,39 +747,95 @@ const AddEvent = () => {
       payload.recurrenceRule = recurrenceRule;
     }
 
-    const token = getAuthToken();
 
-    try {
-      const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "X-User-Role": currentRole,
-        },
-        body: JSON.stringify(payload),
-        credentials: "include"
-      });
 
-      const responseText = await postRes.text();
-
-      if (!postRes.ok) {
-        let errorMessage = 'Failed to create event';
-        try {
-          const errorData = JSON.parse(responseText);
-          console.error('❌ Server error details:', errorData);
-          errorMessage = errorData.message || errorData.errorMessage || errorMessage;
-        } catch (e) {
-          console.error('❌ Raw error response:', responseText);
-          errorMessage = responseText || errorMessage;
+    if (editIndex !== null) {
+      // Update event in backend
+      try {
+        const token = getAuthToken();
+        const patchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "X-User-Role": currentRole, // Add role in header as well
+          },
+          body: JSON.stringify(payload),
+          credentials: "include"
+        });
+        
+        if (!patchRes.ok) {
+          const errorText = await patchRes.text();
+          let errorMessage = 'Failed to update event';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            errorMessage = errorText || errorMessage;
+          }
+          throw new Error(errorMessage);
         }
-        throw new Error(errorMessage);
+        
+        const patchData = await patchRes.json();
+        
+        // Refetch events after updating
+        const data = await getAllEvents();
+        setEvents(data);
+        alert("Event updated successfully!");
+      } catch (err) {
+        
+        alert(err.message || 'Failed to update event');
       }
-      
-      const postData = JSON.parse(responseText);
-    } catch (error) {
-      console.error('❌ Error creating event:', error);
-      throw error;
+      setEditIndex(null);
+    } else {
+      // Send to backend only on add
+      try {
+        const token = getAuthToken();
+        
+        const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+            "X-User-Role": currentRole, // Add role in header as well
+          },
+          body: JSON.stringify(payload),
+          credentials: "include"
+        });
+        
+        // Log the response status and body for debugging
+        const responseText = await postRes.text();
+        if (!postRes.ok) {
+          let errorMessage = 'Failed to create event';
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+            // Check if it's a role-related error
+            if (postRes.status === 403 && errorData.message?.includes('Access restricted to admin, instructor roles')) {
+              console.error("Role verification failed. Backend expects role in JWT token but token doesn't contain role information.");
+              alert("Permission Error: Your account role cannot be verified by the server. Please contact support to ensure your instructor role is properly configured in the system.");
+              return;
+            }
+          } catch (e) {
+            errorMessage = responseText || errorMessage;
+          }
+          throw new Error(errorMessage);
+        }
+        
+        const postData = JSON.parse(responseText);
+        
+        // Refetch events after adding
+        const data = await getAllEvents();
+        // Normalize course_id to courseId for all events
+        const normalizedEvents = data.map(ev => ({
+            ...ev,
+            courseId: ev.courseId || ev.course_id // fallback to course_id if courseId is missing
+          }));
+        setEvents(normalizedEvents);
+        alert("Event created successfully!");
+      } catch (err) {
+        alert("Failed to create event: " + err.message);
+      }
     }
     
     // Refetch events after adding
@@ -827,28 +881,74 @@ const AddEvent = () => {
   const getEventsForDate = (date) => {
     if (!date) return [];
     
-    return events.filter(ev => {
-      // Try different date fields that might exist
-      const eventDate = ev.date || ev.startTime || ev.createdAt;
-      
-      if (!eventDate) {
-        return false;
+    const eventsForDate = [];
+    
+    events.forEach(ev => {
+      // Handle recurring events with occurrences
+      if (ev.isRecurring && ev.occurrences && ev.occurrences.length > 0) {
+        // Check each occurrence of the recurring event
+        ev.occurrences.forEach(occurrence => {
+          const occurrenceDate = new Date(occurrence.startTime);
+          
+          if (!isNaN(occurrenceDate.getTime())) {
+            const isSameDate = (
+              occurrenceDate.getFullYear() === date.getFullYear() &&
+              occurrenceDate.getMonth() === date.getMonth() &&
+              occurrenceDate.getDate() === date.getDate()
+            );
+            
+            if (isSameDate) {
+              // Check if this occurrence is not deleted
+              const deletedOccurrences = ev.deletedOccurrences || [];
+              const isDeleted = deletedOccurrences.some(deleted => {
+                const deletedDate = typeof deleted === 'string' ? deleted : deleted.occurrence_date;
+                return new Date(deletedDate).toDateString() === occurrenceDate.toDateString();
+              });
+              
+              if (!isDeleted) {
+                // Create a copy of the event with the occurrence's time
+                const eventForDate = {
+                  ...ev,
+                  startTime: occurrence.startTime,
+                  endTime: occurrence.endTime,
+                  occurrenceDate: occurrenceDate
+                };
+                eventsForDate.push(eventForDate);
+              }
+            }
+          }
+        });
+      } else {
+        // Handle non-recurring events
+        const eventDate = ev.date || ev.startTime || ev.createdAt;
+        
+        if (!eventDate) {
+          
+          return;
+        }
+        
+        const evDate = new Date(eventDate);
+        
+        if (isNaN(evDate.getTime())) {
+          console.log('Invalid date for event:', ev);
+          return;
+        }
+        
+        const isSameDate = (
+          evDate.getFullYear() === date.getFullYear() &&
+          evDate.getMonth() === date.getMonth() &&
+          evDate.getDate() === date.getDate()
+        );
+        
+        if (isSameDate) {
+          eventsForDate.push(ev);
+        }
       }
-      
-      const evDate = new Date(eventDate);
-      
-      if (isNaN(evDate.getTime())) {
-        return false;
-      }
-      
-      const isSameDate = (
-        evDate.getFullYear() === date.getFullYear() &&
-        evDate.getMonth() === date.getMonth() &&
-        evDate.getDate() === date.getDate()
-      );
-      
-      return isSameDate;
     });
+    
+    
+    
+    return eventsForDate;
   };
 
   return (
@@ -869,16 +969,7 @@ const AddEvent = () => {
               Read-only access
             </span>
           )}
-          {/* Debug button for testing recurring events */}
-          {(userRole === 'admin' || userRole === 'instructor') && (
-            <button
-              onClick={debugRecurringEvent}
-              className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-lg"
-              title="Test recurring event creation"
-            >
-              Debug Recurring
-            </button>
-          )}
+
         </div>
       </div>
       
@@ -972,9 +1063,21 @@ const AddEvent = () => {
               </span>
               {eventsForDate.length > 0 && (
                 <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                  {eventsForDate.map((_, i) => (
-                    <span key={i} className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  {eventsForDate.slice(0, 5).map((event, i) => (
+                    <span 
+                      key={i} 
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        event.isRecurring ? 'bg-purple-500' : 'bg-blue-500'
+                      }`}
+                      title={event.title}
+                    ></span>
                   ))}
+                  {eventsForDate.length > 5 && (
+                    <span 
+                      className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                      title={`+${eventsForDate.length - 5} more events`}
+                    ></span>
+                  )}
                 </div>
               )}
             </div>
