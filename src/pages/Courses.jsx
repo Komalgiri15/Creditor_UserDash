@@ -97,7 +97,6 @@ export function Courses() {
       setLoading(true);
       try {
         const data = await fetchUserCourses();
-        console.log('Fetched user courses:', data);
         
         // Fetch modules for each course and add modulesCount and totalDuration
         const coursesWithModules = await Promise.all(
@@ -115,7 +114,6 @@ export function Courses() {
                 // Ensure image field is set from thumbnail
                 image: course.thumbnail || course.image || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"
               };
-              console.log('Processed course:', courseWithModules);
               return courseWithModules;
             } catch {
               const courseWithDefaults = { 
@@ -124,16 +122,13 @@ export function Courses() {
                 totalDurationSecs: 0,
                 image: course.thumbnail || course.image || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"
               };
-              console.log('Processed course (with defaults):', courseWithDefaults);
               return courseWithDefaults;
             }
           })
         );
-        console.log('Final courses array:', coursesWithModules);
         setCourses(coursesWithModules);
         setFilteredCourses(coursesWithModules);
       } catch (err) {
-        console.error('Error fetching courses:', err);
         setError("Failed to fetch courses");
       } finally {
         setLoading(false);
@@ -159,7 +154,6 @@ export function Courses() {
           [courseId]: modules
         }));
       } catch (err) {
-        console.error('Error fetching modules:', err);
         setCourseModules(prev => ({
           ...prev,
           [courseId]: []

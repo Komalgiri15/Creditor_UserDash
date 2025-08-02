@@ -40,6 +40,43 @@ const formatTimeInUserTimezone = (utcTime, userTimezone) => {
   });
 };
 
+// Helper function to process events and expand recurring events
+const processEvents = (events, userTimezone) => {
+  const processedEvents = [];
+  
+  events.forEach(event => {
+    if (event.isRecurring && Array.isArray(event.occurrences)) {
+      // Handle recurring events - check each occurrence
+      event.occurrences.forEach((occurrence, index) => {
+        // Check if this occurrence is today in user's timezone
+        if (isTodayInUserTimezone(occurrence.startTime, userTimezone)) {
+          // Create a new event object for this occurrence
+          const occurrenceEvent = {
+            ...event,
+            id: `${event.id}_occurrence_${index}`,
+            startTime: occurrence.startTime,
+            endTime: occurrence.endTime,
+            isRecurring: true,
+            originalEventId: event.id,
+            occurrenceIndex: index
+          };
+          processedEvents.push(occurrenceEvent);
+        }
+      });
+    } else if (event.startTime && event.endTime) {
+      // Handle regular events
+      if (isTodayInUserTimezone(event.startTime, userTimezone)) {
+        processedEvents.push({
+          ...event,
+          isRecurring: false
+        });
+      }
+    }
+  });
+  
+  return processedEvents;
+};
+
 export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -79,41 +116,31 @@ export function LiveClasses() {
         const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
         const params = new URLSearchParams({ startDate: start, endDate: end });
 
-        console.log('Fetching events with params:', { start, end });
-
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
           credentials: 'include',
         });
         const data = await response.json();
 
-        console.log('API Response:', data);
-
         if (data?.data?.length > 0) {
+          // Process events to handle recurring events properly
+          const processedEvents = processEvents(data.data, userTimezone);
+          
+          console.log('Processed events:', processedEvents);
           // Filter events for today in user's timezone
           const todayEvents = data.data.filter(event => {
             if (!event.startTime || !event.endTime) {
-              console.log('Event missing start/end time:', event);
               return false;
             }
 
             const isToday = isTodayInUserTimezone(event.startTime, userTimezone);
-            console.log('Event date check:', {
-              eventTitle: event.title,
-              startTime: event.startTime,
-              isToday,
-              userTimezone
-            });
 
             return isToday;
           });
 
-          console.log('Today events after filtering:', todayEvents);
-
           // Sort events by start time
-          todayEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-          setTodayEvents(todayEvents);
+          processedEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+          setTodayEvents(processedEvents);
         } else {
-          console.log('No events found in API response');
           setTodayEvents([]);
         }
       } catch (err) {
@@ -139,7 +166,6 @@ export function LiveClasses() {
           
           // Remove ended events
           if (isEnded) {
-            console.log('Removing ended event:', event.title);
             return false;
           }
           
@@ -191,13 +217,6 @@ export function LiveClasses() {
     const end = new Date(event.endTime);
     return now >= start && now <= end;
   }).length;
-
-  console.log('Render state:', {
-    loading,
-    todayEventsCount: todayEvents.length,
-    liveEventsCount,
-    userTimezone
-  });
 
   return (
     <div className="space-y-6">
@@ -272,6 +291,11 @@ export function LiveClasses() {
                             }`}>
                               {eventStatus.text}
                             </span>
+                            {event.isRecurring && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-600">
+                                Recurring
+                              </span>
+                            )}
                           </div>
                           {/* Show course name if available */}
                           {(event.courseName || event.courseId || event.course_id) && (

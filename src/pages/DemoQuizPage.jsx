@@ -417,7 +417,6 @@ function DemoQuizPage() {
   };
 
   const handleHotspotClick = (hotspot) => {
-    console.log(`Clicked on: ${hotspot.label}`);
     handleAnswer(hotspot.label);
     toast({
       title: "Hotspot Selected",

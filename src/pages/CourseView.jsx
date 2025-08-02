@@ -28,9 +28,6 @@ export function CourseView() {
           fetchCourseModules(courseId)
         ]);
         
-        console.log('Fetched course details:', courseData);
-        console.log('Fetched modules:', modulesData);
-        
         setCourseDetails(courseData);
         setModules(modulesData);
         setFilteredModules(modulesData);
@@ -42,7 +39,6 @@ export function CourseView() {
         }, 0);
         setTotalDuration(total);
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError("Failed to load course data");
       } finally {
         setIsLoading(false);
@@ -213,7 +209,6 @@ export function CourseView() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredModules.map((module) => {
-                // console.log('Rendering module:', module.title);
                 return (
                   <div key={module.id} className="module-card h-full">
                     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full">

@@ -39,7 +39,6 @@ export function AssignmentSubmit() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // In a real app, you would submit to your API here
-    console.log("Submitting:", { submissionText, files: selectedFiles });
     toast.success("Assignment submitted successfully!");
     navigate(`/assignments/${assignmentId}/confirmation`);
   };

@@ -675,18 +675,12 @@ const AddEvent = () => {
       isRecurring,
       calendarType: "GROUP",
       visibility: "PRIVATE",
-      courseName: selectedCourse ? selectedCourse.title : "",
-      timeZone: "America/Los_Angeles"
+      course_id: selectedCourse ? selectedCourse.id : form.courseId
     };
     
     // Add recurrence rule if it's a recurring event
     if (isRecurring && recurrenceRule) {
       payload.recurrenceRule = recurrenceRule;
-      // Remove userRole if present (for recurring events)
-      // (userRole is not added above, so nothing to remove)
-    } else {
-      // For normal events, add userRole as before if needed
-      payload.userRole = currentRole;
     }
 
 
