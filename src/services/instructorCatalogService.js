@@ -66,8 +66,6 @@ export async function fetchAllCatalogs() {
           course.published === true
         );
         
-        console.log(`Catalog fallback: Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
-        
         // Group published courses by category to create catalog-like structure
         const catalogGroups = {};
         publishedCourses.forEach(course => {
@@ -200,9 +198,6 @@ export async function createCatalog(catalogData) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('Backend catalog creation response:', data);
-      console.log('Backend response type:', typeof data);
-      console.log('Backend response keys:', Object.keys(data || {}));
       
       // Ensure consistent response structure
       return {
@@ -263,7 +258,6 @@ export async function createCatalog(catalogData) {
 // Update a catalog
 export async function updateCatalog(catalogId, catalogData) {
   try {
-    console.log('updateCatalog called with:', catalogId, catalogData);
     
     // Validate catalogData
     if (!catalogData || typeof catalogData !== 'object') {
@@ -280,8 +274,6 @@ export async function updateCatalog(catalogId, catalogData) {
       description: catalogData.description.trim(),
       ...(catalogData.thumbnail && { thumbnail: catalogData.thumbnail.trim() })
     };
-    
-    console.log('Sanitized catalog data:', sanitizedData);
     
     // Check if it's a local catalog
     if (catalogId.startsWith('local-')) {
@@ -379,7 +371,6 @@ export async function updateCatalog(catalogId, catalogData) {
         console.error('Server error details:', errorData);
         
         // Fallback to local storage for 500 errors
-        console.log('Server error, updating locally instead');
         const localCatalogs = JSON.parse(localStorage.getItem('localCatalogs') || '[]');
         const catalogIndex = localCatalogs.findIndex(cat => cat.id === catalogId);
         
@@ -502,7 +493,6 @@ export async function deleteCatalog(catalogId) {
 // Add courses to a catalog
 export async function addCoursesToCatalog(catalogId, courseIds) {
   try {
-    console.log('addCoursesToCatalog called with:', { catalogId, courseIds });
     
     // Validate inputs
     if (!catalogId) {
@@ -517,7 +507,6 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
     
     // Check if it's a local catalog
     if (catalogId.startsWith('local-')) {
-      console.log('Adding courses to local catalog:', catalogId);
       const localCatalogs = JSON.parse(localStorage.getItem('localCatalogs') || '[]');
       const catalogIndex = localCatalogs.findIndex(cat => cat.id === catalogId);
       
@@ -529,7 +518,6 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
         ];
         localStorage.setItem('localCatalogs', JSON.stringify(localCatalogs));
         
-        console.log('Courses added to local catalog successfully');
         return {
           success: true,
           message: 'Courses added to local catalog successfully'
@@ -541,10 +529,6 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
     }
 
     // Try backend addition
-    console.log('Adding courses to backend catalog:', catalogId);
-    console.log('Request payload:', { courseIds });
-    console.log('Request URL:', `${import.meta.env.VITE_API_BASE_URL}/api/catalog/${catalogId}/addcourses`);
-    
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/catalog/${catalogId}/addcourses`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -552,16 +536,11 @@ export async function addCoursesToCatalog(catalogId, courseIds) {
       body: JSON.stringify({ courseIds }),
     });
 
-    console.log('Backend response status:', response.status);
-
     if (response.ok) {
       const data = await response.json();
-      console.log('Backend course addition successful:', data);
       return data;
     } else {
-      console.log('Backend course addition failed with status:', response.status);
       const responseText = await response.text();
-      console.log('Backend response body:', responseText);
     }
 
     // If backend fails, handle locally
@@ -720,8 +699,6 @@ export async function getCatalogCourses(catalogId) {
               course.published === true
             );
             
-            console.log(`getCatalogCourses: Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
-            
             // Find matching courses from published courses only
             const fullCourses = courseIds.map(courseId => {
               const foundCourse = publishedCourses.find(c => c.id === courseId);
@@ -751,7 +728,6 @@ export async function getCatalogCourses(catalogId) {
           course.published === true
         );
         
-        console.log(`getCatalogCourses: Direct filtering - ${publishedCourses.length} published courses out of ${courses.length} total courses`);
         return publishedCourses;
       }
     }
@@ -787,9 +763,6 @@ export async function fetchAvailableCourses() {
       course.status === 'PUBLISHED' ||
       course.published === true
     );
-    
-    console.log(`Filtered ${publishedCourses.length} published courses out of ${allCourses.length} total courses`);
-    console.log('Published courses:', publishedCourses.map(c => ({ id: c.id, title: c.title || c.name, status: c.course_status || c.status })));
     
     return publishedCourses;
   } catch (error) {

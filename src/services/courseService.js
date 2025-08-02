@@ -114,8 +114,6 @@ return data.data || data; // Handle different response structures
 }
 
 export async function createModule(courseId, moduleData) {
-console.log('Creating module for courseId:', courseId);
-console.log('Module data being sent:', moduleData);
 
 const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${courseId}/modules/create`, {
   method: 'POST',
@@ -126,16 +124,13 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${
   body: JSON.stringify(moduleData),
 });
 
-console.log('Response status:', response.status);
 
 if (!response.ok) {
   const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-  console.error('Error response:', errorData);
   throw new Error(errorData.message || `Failed to create module (${response.status})`);
 }
 
 const data = await response.json();
-console.log('Success response:', data);
 return data.data || data;
 }
 
@@ -174,7 +169,6 @@ export async function deleteModule(courseId, moduleId, moduleData) {
 }
 
 export async function deleteCourse(courseId) {
-  console.log('Deleting course:', courseId);
   
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${courseId}/delete`, {
     method: 'DELETE',
@@ -184,16 +178,12 @@ export async function deleteCourse(courseId) {
     credentials: 'include',
   });
   
-  console.log('Delete course response status:', response.status);
-  
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-    console.error('Error response:', errorData);
     throw new Error(errorData.message || `Failed to delete course (${response.status})`);
   }
   
   const data = await response.json();
-  console.log('Success response:', data);
   return data.data || data;
 }
 

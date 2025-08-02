@@ -183,8 +183,6 @@ const ScormPage = () => {
           : course
       ));
 
-      // Show success message (you can add a toast notification here)
-      console.log('SCORM content deleted successfully');
     } catch (error) {
       console.error('Error deleting SCORM:', error);
       alert('Failed to delete SCORM content. Please try again.');

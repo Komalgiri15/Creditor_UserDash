@@ -22,6 +22,7 @@ function Profile() {
   const { userProfile, updateUserProfile: updateGlobalProfile } = useUser();
   const [userRole, setUserRole] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm({
     defaultValues: {
@@ -38,7 +39,7 @@ function Profile() {
   // Use global user profile data and update form when it changes
   useEffect(() => {
     if (userProfile) {
-      console.log("✅ Using global user profile data:", userProfile);
+      setIsLoading(false);
       
       // Set single role (highest priority: admin > instructor > user)
       if (Array.isArray(userProfile.user_roles) && userProfile.user_roles.length > 0) {
@@ -68,7 +69,7 @@ function Profile() {
       
       const formData = {
         fullName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
-        email: userProfile.email || 'Not Provided',
+        email: userProfile.email || 'Loading...',
         bio: userProfile.bio || '',
         title: userProfile.title || '',
         phone: userProfile.phone || '',
@@ -76,15 +77,8 @@ function Profile() {
         timezone: userTimezone,
       };
       
-      console.log("📝 Setting form data with timezone:", formData);
       form.reset(formData);
       
-      console.log("📝 Form populated with user data:", {
-        fullName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
-        email: userProfile.email,
-        timezone: userTimezone,
-        user_roles: userProfile.user_roles
-      });
     }
   }, [userProfile, form]);
 
@@ -106,25 +100,12 @@ function Profile() {
         timezone: values.timezone,
       };
       
-      console.log("📤 POST /api/user/updateUserProfile - Request Data:", updateData);
-      console.log("🕐 Timezone being sent:", values.timezone);
-      
       const response = await updateUserProfile(updateData);
-      console.log("✅ POST /api/user/updateUserProfile - Response:", response);
-      
-      // Check if the response contains the updated timezone
-      if (response.data && response.data.timezone) {
-        console.log("✅ Timezone updated in response:", response.data.timezone);
-      } else {
-        console.warn("⚠️ No timezone found in response data:", response);
-      }
       
       // Update timezone in localStorage after successful profile update
       localStorage.setItem('userTimezone', values.timezone);
-      console.log("💾 Timezone saved to localStorage:", values.timezone);
       
       // Update the global user profile context with the updated data
-      console.log("🔄 Updating global user profile context...");
       const updatedProfile = {
         ...userProfile,
         first_name,
@@ -138,7 +119,6 @@ function Profile() {
       
       // Update the global user profile context
       updateGlobalProfile(updatedProfile);
-      console.log("✅ Global user profile updated:", updatedProfile);
       
       // Update localStorage with the confirmed timezone
       localStorage.setItem('userTimezone', values.timezone);
@@ -177,6 +157,34 @@ function Profile() {
     };
   }, []);
 
+  // Show loading state while user profile is being loaded
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-6 space-y-8 animate-fade-in">
+        <div className="flex items-center gap-6">
+          <div className="relative group">
+            <Avatar className="w-24 h-24 border-4 border-primary/20">
+              <AvatarImage src="/default-avatar.png" alt="Profile avatar" />
+              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-400 text-white">AJ</AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="flex flex-col gap-1 sm:gap-2">
+            <div className="flex flex-row items-center gap-2 sm:gap-4">
+              <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">Profile Settings</h1>
+              <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+                Loading...
+              </span>
+            </div>
+            <p className="text-muted-foreground mt-2">Loading your profile...</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container max-w-4xl py-6 space-y-8 animate-fade-in">
       <div className="flex items-center gap-6">
@@ -210,40 +218,43 @@ function Profile() {
         </div>
       </div>
 
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="mb-6 grid grid-cols-3 w-full">
-          <TabsTrigger value="personal" className="flex items-center gap-2">
+      {/* <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="mb-8 grid w-full max-w-md mx-auto bg-gray-50/50 p-1 rounded-xl">
+          <TabsTrigger value="personal" className="flex items-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg transition-all duration-200">
             <User size={16} />
-            <span className="hidden sm:inline">Personal</span>
+            <span className="font-medium">Personal</span>
           </TabsTrigger>
-          {/* <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell size={16} />
             <span className="hidden sm:inline">Notifications</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
             <Shield size={16} />
             <span className="hidden sm:inline">Security</span>
-          </TabsTrigger> */}
-        </TabsList>
+          </TabsTrigger>
+        </TabsList> */}
 
-        <TabsContent value="personal" className="space-y-6">
-          <Card className="w-full transition-all duration-300 hover:shadow-md">
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              {/* Removed user role display from here */}
+        <div className="space-y-6">
+          <Card className="w-full transition-all duration-300 hover:shadow-lg border-0 shadow-sm bg-gradient-to-br from-white to-gray-50/30">
+            <CardHeader className="pb-6">
+              <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <div className="w-2 h-2 bg-gradient-to-r from-primary to-purple-400 rounded-full"></div>
+                Personal Information
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">Update your account details and preferences</p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-full">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                     <FormField
                       control={form.control}
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel className="text-sm font-medium text-gray-700 mb-2">Full Name</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} readOnly disabled className="bg-gray-50/50 border-gray-200 cursor-not-allowed h-11 rounded-lg" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -254,9 +265,9 @@ function Profile() {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-sm font-medium text-gray-700 mb-2">Email</FormLabel>
                           <FormControl>
-                            <Input {...field} type="email" readOnly disabled className="bg-gray-100 cursor-not-allowed" />
+                            <Input {...field} type="email" readOnly disabled className="bg-gray-50/50 border-gray-200 cursor-not-allowed h-11 rounded-lg" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -326,53 +337,55 @@ function Profile() {
                     name="timezone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Timezone</FormLabel>
+                        <FormLabel className="text-sm font-medium text-gray-700 mb-2">Timezone</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={(value) => {
-                            console.log("🕐 Timezone field changed to:", value);
                             field.onChange(value);
                           }}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11 rounded-lg border-gray-200">
                               <SelectValue placeholder="Select timezone" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="America/Los_Angeles">PST (Pacific Time US & Canada)</SelectItem>
+                              <SelectItem value="America/Los_Angeles">PST/PDT (Pacific Time US & Canada)</SelectItem>
                               <SelectItem value="America/Denver">MST (Mountain Time US & Canada)</SelectItem>
                               <SelectItem value="America/New_York">EST (Eastern Time US & Canada)</SelectItem>
-                              <SelectItem value="Europe/London">GMT (Greenwich Mean Time)</SelectItem>
+                              <SelectItem value="Europe/London">GMT/BST (Greenwich Mean Time)</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
                         <FormMessage />
                         {/* Debug info */}
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
                           Current value: {field.value || 'Not set'}
                         </div>
                       </FormItem>
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
-                    className="bg-gradient-to-r from-primary to-purple-400 transition-all duration-300 hover:opacity-90"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? "Updating..." : "Save Changes"}
-                  </Button>
+                  <div className="pt-4 border-t border-gray-100">
+                    <Button 
+                      type="submit" 
+                      className="bg-gradient-to-r from-primary to-purple-400 transition-all duration-300 hover:opacity-90 h-11 px-8 rounded-lg font-medium"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? "Updating..." : "Save Changes"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
 
-        <TabsContent value="notifications" className="space-y-4">
+        {/* <TabsContent value="notifications" className="space-y-4">
           <NotificationPreferences />
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">
           <ProfileSecurity />
-        </TabsContent>
-      </Tabs>
+        </TabsContent> */}
+      {/* </Tabs> */}
     </div>
   );
 }

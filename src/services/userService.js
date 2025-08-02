@@ -65,8 +65,6 @@ export function setSingleRole(role) {
   localStorage.setItem('userRole', role);
   localStorage.setItem('userRoles', JSON.stringify([role]));
   
-  console.log(`setSingleRole: User role set to "${role}" (replaced all existing roles)`);
-  
   // Dispatch custom event to notify other components
   window.dispatchEvent(new Event('userRoleChanged'));
 }
@@ -81,7 +79,6 @@ export function clearUserData() {
 
 export async function fetchUserProfile() {
   try {
-    console.log("🔍 userService: Fetching profile from:", `${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`);
     
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`, {
       method: 'GET',
@@ -91,7 +88,6 @@ export async function fetchUserProfile() {
       credentials: 'include',
     });
     
-    console.log("🔍 userService: Response status:", response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -100,7 +96,6 @@ export async function fetchUserProfile() {
     }
     
     const result = await response.json();
-    console.log("✅ userService: Fetch profile success:", result);
     return result.data; // Return only the user object
   } catch (error) {
     console.error("❌ userService: Fetch profile error:", error);
@@ -110,8 +105,6 @@ export async function fetchUserProfile() {
 
 export async function updateUserProfile(profileData) {
   try {
-    console.log("📤 userService: Updating profile to:", `${import.meta.env.VITE_API_BASE_URL}/api/user/updateUserProfile`);
-    console.log("📤 userService: Update data:", profileData);
     
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/updateUserProfile`, {
       method: 'PUT',
@@ -122,7 +115,6 @@ export async function updateUserProfile(profileData) {
       body: JSON.stringify(profileData),
     });
     
-    console.log("🔍 userService: Update response status:", response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -131,7 +123,6 @@ export async function updateUserProfile(profileData) {
     }
     
     const result = await response.json();
-    console.log("✅ userService: Update profile success:", result);
     return result;
   } catch (error) {
     console.error("❌ userService: Update profile error:", error);
