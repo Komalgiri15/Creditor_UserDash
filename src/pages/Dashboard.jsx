@@ -56,7 +56,7 @@ export function Dashboard() {
   const [coursesError, setCoursesError] = useState(null);
   const [userCoursesMap, setUserCoursesMap] = useState({});
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-gvtd.onrender.com";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-1-iijy.onrender.com";
   // Get userId from localStorage or cookies, or fetch from profile
   const [userId, setUserId] = useState(localStorage.getItem('userId') || Cookies.get('userId'));
 
