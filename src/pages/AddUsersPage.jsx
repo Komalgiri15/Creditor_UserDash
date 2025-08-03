@@ -594,7 +594,7 @@ const AddUsersForm = () => {
          {/* Show failed users if any */}
          {failedUsers.length > 0 && (
            <div className="mb-6 bg-red-50 rounded-lg p-4">
-             <h3 className="text-lg font-semibold text-red-800 mb-3">❌ Users That Were NOT Added ({failedUsers.length})</h3>
+                           <h3 className="text-lg font-semibold text-red-800 mb-3">⚠️ Users That Were NOT Added ({failedUsers.length})</h3>
              <div className="overflow-x-auto">
                <table className="min-w-full divide-y divide-red-200">
                  <thead className="bg-red-100">
