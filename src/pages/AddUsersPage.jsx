@@ -241,8 +241,8 @@ const AddUsersForm = () => {
       let response;
       const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
 
-      // Always send as JSON array, whether from Excel or manual entry
-      const payload = validUsers;
+                    // Always send as JSON array, whether from Excel or manual entry
+        const payload = validUsers;
       
       response = await axios.post(
         `${API_BASE}/api/auth/admin/create-users`,
@@ -255,16 +255,7 @@ const AddUsersForm = () => {
         }
       );
 
-      // Log the response to understand the structure
-      console.log('✅ Backend response:', response.data);
-      console.log('✅ Backend response structure:', {
-        success: response.data.success,
-        data: response.data.data,
-        failed: response.data.failed,
-        existingUsers: response.data.existingUsers,
-        existing: response.data.existing,
-        message: response.data.message
-      });
+             // Process the backend response
 
       if (response.data && (response.data.success || response.data.message)) {
         // Handle both full success and partial success
@@ -315,23 +306,30 @@ const AddUsersForm = () => {
           return;
         }
         
-        // Track both added and failed users
-        console.log('📊 Processing results:', {
-          addedUsers: addedUsers.length,
-          existingUsers: existingUsers.length,
-          addedUsersData: addedUsers,
-          existingUsersData: existingUsers
+                 // Track both added and failed users
+        
+        // Try to match failed users with original user data to get names
+        const enhancedFailedUsers = existingUsers.map(failedUser => {
+          // Try to find the original user data by email
+          const originalUser = validUsers.find(user => 
+            user.email.toLowerCase() === failedUser.email.toLowerCase()
+          );
+          
+          if (originalUser) {
+            return {
+              ...failedUser,
+              first_name: originalUser.first_name,
+              last_name: originalUser.last_name
+            };
+          }
+          
+          return failedUser;
         });
-        console.log('🔍 Failed users structure:', existingUsers.map(user => ({
-          email: user.email,
-          first_name: user.first_name,
-          firstName: user.firstName,
-          last_name: user.last_name,
-          lastName: user.lastName,
-          fullObject: user
-        })));
+        
+        
+        
         setRecentlyAddedUsers(addedUsers); // Track recently added users
-        setFailedUsers(existingUsers); // Track failed users
+        setFailedUsers(enhancedFailedUsers); // Track failed users with enhanced data
         
         setAddedUsers(prev => {
           // Filter out users that already exist in the current list to prevent duplicates
@@ -346,12 +344,7 @@ const AddUsersForm = () => {
           return updated;
         });
         
-        // Show success message with details about existing users if any
-        console.log('📝 Setting success message:', {
-          addedUsersLength: addedUsers.length,
-          existingUsersLength: existingUsers.length,
-          existingUsers: existingUsers
-        });
+                 // Show success message with details about existing users if any
         if (existingUsers.length > 0) {
           let message = `Successfully added ${addedUsers.length} user(s). ${existingUsers.length} user(s) already exist in the database and were skipped.\n\n`;
           message += `Users that were NOT added (already exist):\n`;
@@ -374,20 +367,12 @@ const AddUsersForm = () => {
       } else {
         setError(response.data.message || "Failed to add users.");
       }
-    } catch (err) {
-      console.error('❌ Error adding users:', err);
-      console.error('❌ Error details:', {
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        message: err.message
-      });
+         } catch (err) {
       
       // Handle specific error cases
       if (err.response?.status === 409) {
-        // Conflict - duplicate emails
-        const errorData = err.response.data;
-        console.log('❌ 409 Error data:', errorData);
+                 // Conflict - duplicate emails
+         const errorData = err.response.data;
         
         // Check if this is a partial success (some users added, some failed)
         if (errorData.success && errorData.addedUsers) {
@@ -417,22 +402,29 @@ const AddUsersForm = () => {
           }
           
                      // Track both added and failed users
-           console.log('📊 Processing error results:', {
-             addedUsers: addedUsers.length,
-             existingUsers: existingUsers.length,
-             addedUsersData: addedUsers,
-             existingUsersData: existingUsers
+           
+           // Try to match failed users with original user data to get names
+           const enhancedFailedUsers = existingUsers.map(failedUser => {
+             // Try to find the original user data by email
+             const originalUser = validUsers.find(user => 
+               user.email.toLowerCase() === failedUser.email.toLowerCase()
+             );
+             
+             if (originalUser) {
+               return {
+                 ...failedUser,
+                 first_name: originalUser.first_name,
+                 last_name: originalUser.last_name
+               };
+             }
+             
+             return failedUser;
            });
-           console.log('🔍 Error failed users structure:', existingUsers.map(user => ({
-             email: user.email,
-             first_name: user.first_name,
-             firstName: user.firstName,
-             last_name: user.last_name,
-             lastName: user.lastName,
-             fullObject: user
-           })));
+           
+
+           
            setRecentlyAddedUsers(addedUsers);
-           setFailedUsers(existingUsers); // Track failed users
+           setFailedUsers(enhancedFailedUsers); // Track failed users with enhanced data
            
            setAddedUsers(prev => {
              // Filter out users that already exist in the current list to prevent duplicates
@@ -447,11 +439,6 @@ const AddUsersForm = () => {
            });
            
            // Show success message with details about existing users
-           console.log('📝 Setting error success message:', {
-             addedUsersLength: addedUsers.length,
-             existingUsersLength: existingUsers.length,
-             existingUsers: existingUsers
-           });
            if (existingUsers.length > 0) {
              let message = `Successfully added ${addedUsers.length} user(s). ${existingUsers.length} user(s) already exist in the database and were skipped.\n\n`;
              message += `Users that were NOT added (already exist):\n`;
