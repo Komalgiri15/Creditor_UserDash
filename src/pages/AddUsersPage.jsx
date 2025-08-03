@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-1-iijy.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
 const LOCAL_STORAGE_KEY = "addedUsersList";
 

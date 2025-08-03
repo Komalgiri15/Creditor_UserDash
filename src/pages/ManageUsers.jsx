@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-1-iijy.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
 const ManageUsers = () => {
   const { userRole, hasRole } = useAuth();
