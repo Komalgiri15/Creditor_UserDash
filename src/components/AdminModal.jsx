@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { useAuth } from "@/contexts/AuthContext";
-import { clearUserData } from "@/services/userService";
 
 // ✅ Admin Modal Component
 const AdminModal = ({ isOpen, onClose }) => {
@@ -17,27 +15,13 @@ const AdminModal = ({ isOpen, onClose }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
   
-  const { logout: logoutAuth } = useAuth();
-  
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setError("");
   };
 
   const handleLogout = () => {
-    // Clear user data
-    clearUserData();
-    logoutAuth();
-    
-    // Clear additional data
     localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    Cookies.remove("token");
-    Cookies.remove("userId");
-    
-    // Dispatch event to trigger UserContext refresh
-    window.dispatchEvent(new Event('userRoleChanged'));
-    
     setIsLoggedIn(false);
     onClose && onClose();
     window.location.href = "/";

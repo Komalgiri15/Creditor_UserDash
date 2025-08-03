@@ -15,7 +15,6 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ email: false, password: false });
   const [animateCard, setAnimateCard] = useState(false);
@@ -23,42 +22,24 @@ export function Login() {
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = Cookies.get("token") || localStorage.getItem("token");
-    if (token) {
-      // User is already logged in, redirect to dashboard
-      navigate("/dashboard");
-      return;
-    }
-    
-    // User is not logged in, show login form
-    setIsCheckingAuth(false);
+    // Trigger card animation on mount
     setAnimateCard(true);
-  }, [navigate]);
-
-  // Show loading spinner while checking authentication
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      console.log("Attempting login with:", { email, API_BASE });
       const response = await axios.post(`${API_BASE}/api/auth/login`, {
         email,
         password,
       }, {
         withCredentials: true
       });
+
+      console.log('Login response from backend:', response.data);
 
       if (response.data.success && response.data.token) {
         // Store token in cookies for 7 days
@@ -74,6 +55,7 @@ export function Login() {
         // Fetch user profile and set single user role in localStorage
         try {
           const profile = await fetchUserProfile();
+          console.log('Fetched user profile after login:', profile);
           if (profile && Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
             // Extract role names and use the highest priority role (admin > instructor > user)
             const roles = profile.user_roles.map(roleObj => roleObj.role);
@@ -82,34 +64,34 @@ export function Login() {
             
             // Set single role (enforces single role system)
             setUserRoles([highestRole]);
+            console.log('Set user single role to:', highestRole);
           } else {
             // If no roles found, set default user role
             setUserRoles(['user']);
           }
-          
-          // Dispatch event to trigger UserContext refresh
-          window.dispatchEvent(new Event('userRoleChanged'));
         } catch (profileErr) {
           console.warn("Could not fetch user profile:", profileErr);
           // Keep default 'user' role
           setUserRoles(['user']);
-          
-          // Still dispatch event to trigger UserContext refresh
-          window.dispatchEvent(new Event('userRoleChanged'));
         }
         
+        toast.success("Login successful!");
         navigate("/dashboard");
       } else {
         toast.error(response.data.message || "Login failed");
       }
     } catch (err) {
+      console.error("Login error:", err);
       if (err.response) {
         const errorMessage = err.response.data?.message || "Login failed";
         toast.error(errorMessage);
+        console.error("Server error details:", err.response.data);
       } else if (err.request) {
         toast.error("Network error. Please check your connection.");
+        console.error("Network error details:", err.request);
       } else {
         toast.error("An unexpected error occurred.");
+        console.error("Other error details:", err.message);
       }
     } finally {
       setIsLoading(false);
