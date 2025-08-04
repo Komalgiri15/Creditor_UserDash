@@ -34,12 +34,6 @@ export function CourseCard({
             style={{height: '110px'}}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0"></div>
-          <Badge 
-            variant="secondary" 
-            className="absolute top-1 right-1 text-xs px-2 py-0.5"
-          >
-            {category}
-          </Badge>
         </div>
         <div className="flex flex-col flex-1 p-3 relative">
           <h3 className="font-semibold text-base line-clamp-1">{title}</h3>

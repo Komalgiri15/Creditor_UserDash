@@ -229,9 +229,21 @@ export function Dashboard() {
               const modulesCount = modules.length;
               const totalDurationMins = modules.reduce((sum, m) => sum + (parseInt(m.estimated_duration, 10) || 0), 0);
               const totalDurationSecs = totalDurationMins * 60;
-              return { ...course, modulesCount, totalDurationSecs };
+              return { 
+                ...course, 
+                modulesCount, 
+                totalDurationSecs,
+                // Ensure image field is set from thumbnail with proper fallbacks
+                image: course.thumbnail || course.image || course.coverImage || course.course_image || course.thumbnail_url || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"
+              };
             } catch {
-              return { ...course, modulesCount: 0, totalDurationSecs: 0 };
+              return { 
+                ...course, 
+                modulesCount: 0, 
+                totalDurationSecs: 0,
+                // Ensure image field is set from thumbnail with proper fallbacks
+                image: course.thumbnail || course.image || course.coverImage || course.course_image || course.thumbnail_url || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"
+              };
             }
           })
         );
@@ -386,7 +398,7 @@ export function Dashboard() {
   const courseScrollRef = useRef(null);
   const [scrollIndex, setScrollIndex] = useState(0);
   const visibleCards = 2;
-  const totalCards = inProgressCourses.length;
+  const totalCards = userCourses.length;
 
   const handleScroll = (direction) => {
     let newIndex = scrollIndex + direction;
@@ -395,8 +407,9 @@ export function Dashboard() {
     setScrollIndex(newIndex);
     if (courseScrollRef.current) {
       const cardWidth = courseScrollRef.current.firstChild?.offsetWidth || 320;
+      const scrollAmount = newIndex * (cardWidth + 24); // 24px gap
       courseScrollRef.current.scrollTo({
-        left: newIndex * (cardWidth + 24), // 24px gap
+        left: scrollAmount,
         behavior: 'smooth',
       });
     }
@@ -529,7 +542,7 @@ export function Dashboard() {
                     {/* Cards Row */}
                     <div
                       ref={courseScrollRef}
-                      className="flex gap-6 overflow-x-hidden scroll-smooth"
+                      className="flex gap-6 overflow-x-hidden scroll-smooth px-1"
                       style={{ scrollBehavior: 'smooth' }}
                     >
                       {userCourses.map((course) => (
@@ -542,7 +555,7 @@ export function Dashboard() {
                       ))}
                     </div>
                     {/* Right Arrow */}
-                    {scrollIndex < userCourses.length - visibleCards && (
+                    {scrollIndex < userCourses.length - visibleCards && userCourses.length > visibleCards && (
                       <button
                         onClick={() => handleScroll(1)}
                         className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full shadow-md p-2 hover:bg-blue-50 transition disabled:opacity-40"
