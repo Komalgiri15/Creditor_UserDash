@@ -9,15 +9,12 @@ export function ModuleView() {
   const [module, setModule] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [iframeError, setIframeError] = useState(false);
-  const [iframeLoading, setIframeLoading] = useState(true);
+
 
   useEffect(() => {
     const fetchModule = async () => {
       setIsLoading(true);
       setError("");
-      setIframeError(false);
-      setIframeLoading(true);
       try {
         const modules = await fetchCourseModules(courseId);
         const foundModule = modules.find(m => m.id === moduleId);
@@ -37,20 +34,6 @@ export function ModuleView() {
       fetchModule();
     }
   }, [courseId, moduleId]);
-
-  // Add timeout for iframe loading
-  useEffect(() => {
-    if (module && module.resource_url) {
-      const timeout = setTimeout(() => {
-        if (iframeLoading) {
-          setIframeLoading(false);
-          setIframeError(true);
-        }
-      }, 30000); // 30 second timeout
-
-      return () => clearTimeout(timeout);
-    }
-  }, [module, iframeLoading]);
 
   if (isLoading) {
     return (
@@ -153,65 +136,86 @@ export function ModuleView() {
                   <p className="text-sm text-muted-foreground">{module.description}</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href={fullUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink size={16} className="mr-2" />
-                  Open in New Tab
-                </a>
-              </Button>
+
             </div>
           </div>
 
-          {/* Iframe Container */}
-          <div className="flex-1 relative bg-white">
-            {iframeLoading && !iframeError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Your content is loading...</p>
-                </div>
-              </div>
-            )}
-                        {!iframeError ? (
-              <iframe
-                key={fullUrl} // Force re-render when URL changes
-                src={fullUrl}
-                className="w-full h-full border-0 min-h-[600px]"
-                title={module.title}
-                allowFullScreen
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
-                scrolling="auto"
-                frameBorder="0"
-                onLoad={() => {
-                  setIframeError(false);
-                  setIframeLoading(false);
-                }}
-                onError={() => {
-                  setIframeError(true);
-                  setIframeLoading(false);
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full bg-gray-50">
-                <div className="text-center">
-                  <div className="text-red-500 mb-4">
-                    <span className="text-4xl">⚠️</span>
+          {/* Content Area */}
+          <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <div className="flex items-center justify-center h-full p-8">
+              <div className="max-w-2xl mx-auto text-center">
+                {/* Icon */}
+                <div className="mb-8">
+                  <div className="w-24 h-24 mx-auto bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
-                  <h3 className="text-lg font-medium mb-2">Unable to Load Content</h3>
-                  <p className="text-muted-foreground mb-4">
-                    There was an issue loading this module. You can try opening it in a new tab instead.
-                  </p>
-                  <Button asChild>
+                </div>
+
+                {/* Title */}
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  Ready to Learn?
+                </h2>
+
+                {/* Description */}
+                <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                  This interactive module is designed to work best in a new tab for the optimal learning experience. 
+                  Click the button below to open your content in a new window.
+                </p>
+
+                {/* Features */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="w-8 h-8 mx-auto mb-3 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Full Functionality</h3>
+                    <p className="text-sm text-gray-600">All interactive features work perfectly</p>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="w-8 h-8 mx-auto mb-3 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Better Performance</h3>
+                    <p className="text-sm text-gray-600">Optimized for smooth learning experience</p>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="w-8 h-8 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Secure Access</h3>
+                    <p className="text-sm text-gray-600">Safe and secure learning environment</p>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <div className="space-y-4">
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    asChild
+                  >
                     <a href={fullUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink size={16} className="mr-2" />
-                      Open in New Tab
+                      <ExternalLink size={20} className="mr-3" />
+                      Open Module in New Tab
                     </a>
                   </Button>
+                  
+                  <p className="text-sm text-gray-500">
+                    The module will open in a new browser tab
+                  </p>
                 </div>
               </div>
-            )}
-
+            </div>
           </div>
         </div>
       </main>
