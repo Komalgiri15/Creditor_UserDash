@@ -190,4 +190,67 @@
       transform: translate(0px, 0px) scale(1);
     }
   }
+  
+  /* Iframe container utilities */
+  .iframe-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  
+  .iframe-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  .iframe-responsive {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  }
+  
+  .iframe-responsive iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+  
+  /* Course module iframe specific styles */
+  .course-iframe-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 100vh;
+  }
+  
+  .course-iframe-header {
+    flex-shrink: 0;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 1.5rem;
+  }
+  
+  .course-iframe-content {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+  }
+  
+  .course-iframe-content iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    min-height: calc(100vh - 120px);
+  }
 }

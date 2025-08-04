@@ -477,7 +477,7 @@ const ScormPage = () => {
       {showPreviewDialog && previewModule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b">
+            <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
               <div>
                 <h2 className="text-xl font-semibold">{previewModule.title}</h2>
                 <p className="text-sm text-gray-600">{previewModule.description}</p>
@@ -489,12 +489,13 @@ const ScormPage = () => {
                 Close
               </Button>
             </div>
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-6 relative min-h-0">
               <iframe
                 src={`${import.meta.env.VITE_API_BASE_URL}${previewModule.resource_url}`}
                 className="w-full h-full border border-gray-300 rounded-md"
                 title={previewModule.title}
                 allowFullScreen
+                style={{ minHeight: '400px' }}
               />
             </div>
           </div>

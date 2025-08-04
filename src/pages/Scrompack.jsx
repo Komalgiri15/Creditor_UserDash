@@ -32,19 +32,21 @@ const Scrompack = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ChevronLeft className="h-5 w-5" />
+    <div className="course-iframe-container bg-background">
+      <div className="course-iframe-header">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={handleBack}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">{moduleData.title}</h1>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleFullscreen}>
+            {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
           </Button>
-          <h1 className="text-lg font-semibold">{moduleData.title}</h1>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleFullscreen}>
-          {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-        </Button>
       </div>
-      <div className="flex-1">
+      <div className="course-iframe-content">
         <iframe
           id="scorm-iframe"
           title={moduleData.title}

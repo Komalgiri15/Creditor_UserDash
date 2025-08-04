@@ -104,11 +104,11 @@ export function ModuleView() {
   const fullUrl = `${import.meta.env.VITE_API_BASE_URL}${module.resource_url}`;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-1">
+    <div className="course-iframe-container">
+      <main className="flex-1 flex flex-col">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="course-iframe-header">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" asChild>
@@ -132,7 +132,7 @@ export function ModuleView() {
           </div>
 
           {/* Iframe Container */}
-          <div className="flex-1 relative">
+          <div className="course-iframe-content">
             <iframe
               src={fullUrl}
               className="w-full h-full border-0"
