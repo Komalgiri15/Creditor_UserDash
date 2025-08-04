@@ -149,7 +149,7 @@ const InstructorPage = () => {
                     onClick={() => setUserManagementView("add")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       userManagementView === "add"
-                        ? "bg-indigo-500 text-white shadow-sm"
+                        ? "bg-blue-600 text-white shadow-sm"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                     }`}
                   >
@@ -159,7 +159,7 @@ const InstructorPage = () => {
                     onClick={() => setUserManagementView("manage")}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       userManagementView === "manage"
-                        ? "bg-indigo-500 text-white shadow-sm"
+                        ? "bg-blue-600 text-white shadow-sm"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                     }`}
                   >
