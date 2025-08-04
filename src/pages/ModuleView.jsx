@@ -9,11 +9,15 @@ export function ModuleView() {
   const [module, setModule] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [iframeError, setIframeError] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
     const fetchModule = async () => {
       setIsLoading(true);
       setError("");
+      setIframeError(false);
+      setIframeLoading(true);
       try {
         const modules = await fetchCourseModules(courseId);
         const foundModule = modules.find(m => m.id === moduleId);
@@ -33,6 +37,20 @@ export function ModuleView() {
       fetchModule();
     }
   }, [courseId, moduleId]);
+
+  // Add timeout for iframe loading
+  useEffect(() => {
+    if (module && module.resource_url) {
+             const timeout = setTimeout(() => {
+         if (iframeLoading) {
+           setIframeLoading(false);
+           setIframeError(true);
+         }
+       }, 30000); // 30 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [module, iframeLoading]);
 
   if (isLoading) {
     return (
@@ -101,7 +119,20 @@ export function ModuleView() {
     );
   }
 
-  const fullUrl = `${import.meta.env.VITE_API_BASE_URL}${module.resource_url}`;
+  // Use the resource_url directly if it's already a full URL, otherwise prepend the API base URL
+  let fullUrl = module.resource_url;
+  
+  // If it's not already a full URL, prepend the API base URL
+  if (!module.resource_url.startsWith('http')) {
+    fullUrl = `${import.meta.env.VITE_API_BASE_URL}${module.resource_url}`;
+  }
+  
+  // For S3 URLs, ensure they have the correct protocol
+  if (fullUrl.includes('s3.amazonaws.com') && !fullUrl.startsWith('https://')) {
+    fullUrl = fullUrl.replace('http://', 'https://');
+  }
+  
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -131,14 +162,56 @@ export function ModuleView() {
             </div>
           </div>
 
-          {/* Iframe Container */}
-          <div className="flex-1 relative">
-            <iframe
-              src={fullUrl}
-              className="w-full h-full border-0"
-              title={module.title}
-              allowFullScreen
-            />
+                     {/* Iframe Container */}
+           <div className="flex-1 relative min-h-[600px]">
+                         {iframeLoading && !iframeError && (
+               <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                 <div className="text-center">
+                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                   <p className="text-muted-foreground">Your content is loading.</p>
+                 </div>
+               </div>
+             )}
+                        {!iframeError ? (
+                             <iframe
+                 key={fullUrl} // Force re-render when URL changes
+                 src={fullUrl}
+                 className="w-full h-full border-0"
+                 title={module.title}
+                 allowFullScreen
+                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                 sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+                 scrolling="auto"
+                 frameBorder="0"
+                 onLoad={() => {
+                   setIframeError(false);
+                   setIframeLoading(false);
+                 }}
+                 onError={() => {
+                   setIframeError(true);
+                   setIframeLoading(false);
+                 }}
+               />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gray-50">
+                <div className="text-center">
+                  <div className="text-red-500 mb-4">
+                    <span className="text-4xl">⚠️</span>
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Content Failed to Load</h3>
+                  <p className="text-muted-foreground mb-4">
+                    The module content could not be loaded. Please try opening it in a new tab.
+                  </p>
+                  <Button asChild>
+                    <a href={fullUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink size={16} className="mr-2" />
+                      Open in New Tab
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            )}
+            
           </div>
         </div>
       </main>
