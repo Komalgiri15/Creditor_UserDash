@@ -154,25 +154,61 @@ class ScormService {
     }
   }
 
-  static async uploadScorm({ moduleId, file, uploadedBy, description }) {
+  static async uploadScorm({ moduleId, file, uploadedBy, description, onProgress, onCancel }) {
     const formData = new FormData();
     formData.append('scorm_package', file);
     formData.append('module_id', moduleId);
     formData.append('uploaded_by', uploadedBy);
     formData.append('description', description);
 
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/upload_scorm`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    });
+    const xhr = new XMLHttpRequest();
+    
+    return new Promise((resolve, reject) => {
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable && onProgress) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(errorData.message || `Failed to upload SCORM (${response.status})`);
-    }
-    const data = await response.json();
-    return data;
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            console.log('SCORM upload response:', data);
+            resolve(data);
+          } catch (error) {
+            reject(new Error('Invalid JSON response'));
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            reject(new Error(errorData.message || `Failed to upload SCORM (${xhr.status})`));
+          } catch {
+            reject(new Error(`Failed to upload SCORM (${xhr.status})`));
+          }
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      // Store the xhr object so it can be cancelled
+      if (onCancel) {
+        onCancel(() => {
+          xhr.abort();
+        });
+      }
+
+      xhr.open('POST', `${import.meta.env.VITE_API_BASE_URL}/api/scorm/upload_scorm`);
+      xhr.withCredentials = true;
+      xhr.send(formData);
+    });
   }
 
   static async deleteScorm(resourceId) {

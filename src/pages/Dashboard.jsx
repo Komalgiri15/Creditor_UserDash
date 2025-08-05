@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import ProgressStats from "@/components/dashboard/ProgressStats";
 import CourseCard from "@/components/dashboard/CourseCard";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ChevronRight, GraduationCap, Target, Clock, ChevronLeft, CheckCircle, Search, MonitorPlay, Award } from "lucide-react";
+import { BookOpen, ChevronRight, GraduationCap, Target, Clock, ChevronLeft, CheckCircle, Search, MonitorPlay, Award, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 import DashboardCarousel from "@/components/dashboard/DashboardCarousel";
 import DashboardCalendar from "@/components/dashboard/DashboardCalendar";
@@ -375,7 +375,7 @@ export function Dashboard() {
     {
       id: "4",
       title: "Road Map Series",
-      description: "guides you through the essentials of private living, from sovereignty to business credit, with tools and expert support.",
+      description: "Guides you through the essentials of private living, from sovereignty to business credit, with tools and expert support.",
       image: "https://static.vecteezy.com/system/resources/previews/036/115/246/non_2x/ai-generated-handsome-businessman-working-with-laptop-in-cafe-businessman-working-on-laptop-in-cafe-business-professional-working-on-laptop-in-office-lobby-ai-generated-free-photo.jpg",
       progress: 0,
       lessonsCount: 38,
@@ -635,7 +635,15 @@ export function Dashboard() {
             </div>
             <DashboardCarousel />
           </div>
-
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <MonitorPlay className="h-6 w-6 text-purple-500" />
+                <h2 className="text-2xl font-bold text-gray-800">Learning Sessions</h2>
+              </div>
+              <LiveClasses />
+            </div>
+          </div>
           {/* How It Works Section */}
           <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 md:p-8 mb-8">
             <div className="text-center mb-8 sm:mb-10">
@@ -700,12 +708,7 @@ export function Dashboard() {
           </div>
 
           {/* Live Classes Section */}
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Live Classes Today</h2>
-              <LiveClasses />
-            </div>
-          </div>
+          
           
           {/* Upcoming Courses */}
           <div className="mb-8">
