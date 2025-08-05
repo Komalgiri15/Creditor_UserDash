@@ -405,9 +405,6 @@ const CatelogCourses = () => {
                         <Badge key={`${course.id}-level`} variant="secondary" className="bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm">
                           {formatCourseLevel(course.course_level || course.level || course.difficulty)}
                         </Badge>
-                        <Badge key={`${course.id}-price`} variant="secondary" className="bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm">
-                          ${course.price || course.cost || 0}
-                        </Badge>
                       </div>
                       
                       {/* Category Badge */}
@@ -512,11 +509,11 @@ const CatelogCourses = () => {
                             )}
                             
                             {/* Max Students */}
-                            {course.max_students && (
+                            {/* {course.max_students && (
                               <div className="text-xs text-gray-500 mb-2">
                                 <span className="font-medium">Max Students:</span> {course.max_students}
                               </div>
-                            )}
+                            )} */}
                         
                         {/* Language */}
                         {course.language && (
