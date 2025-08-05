@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import ProgressStats from "@/components/dashboard/ProgressStats";
 import CourseCard from "@/components/dashboard/CourseCard";
 import { Button } from "@/components/ui/button";
-import { BookOpen, ChevronRight, GraduationCap, Target, Clock, ChevronLeft, CheckCircle, Search, MonitorPlay, Award } from "lucide-react";
+import { BookOpen, ChevronRight, GraduationCap, Target, Clock, ChevronLeft, CheckCircle, Search, MonitorPlay, Award, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 import DashboardCarousel from "@/components/dashboard/DashboardCarousel";
 import DashboardCalendar from "@/components/dashboard/DashboardCalendar";
@@ -374,24 +374,24 @@ export function Dashboard() {
   const recommendedCourses = [
     {
       id: "4",
-      title: "Contract Law and Drafting",
-      description: "Learn to analyze, interpret, and draft legally binding contracts under US law.",
-      image: "https://images.unsplash.com/photo-1589391886645-d51941baf7fb?q=80&w=1000",
+      title: "Road Map Series",
+      description: "Guides you through the essentials of private living, from sovereignty to business credit, with tools and expert support.",
+      image: "https://static.vecteezy.com/system/resources/previews/036/115/246/non_2x/ai-generated-handsome-businessman-working-with-laptop-in-cafe-businessman-working-on-laptop-in-cafe-business-professional-working-on-laptop-in-office-lobby-ai-generated-free-photo.jpg",
       progress: 0,
       lessonsCount: 38,
       category: "Business Law",
       duration: "28 hours"
     },
-    {
-      id: "5",
-      title: "Legal Research and Writing",
-      description: "Develop essential skills for conducting legal research and preparing legal documents.",
-      image: "https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=1000",
-      progress: 0,
-      lessonsCount: 32,
-      category: "Legal Skills",
-      duration: "20 hours"
-    }
+    // {
+    //   id: "5",
+    //   title: "Legal Research and Writing",
+    //   description: "Develop essential skills for conducting legal research and preparing legal documents.",
+    //   image: "https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=1000",
+    //   progress: 0,
+    //   lessonsCount: 32,
+    //   category: "Legal Skills",
+    //   duration: "20 hours"
+    // }
   ];
 
   // Carousel state for My Courses
@@ -435,7 +435,7 @@ export function Dashboard() {
                       <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                         {`Welcome back${userName ? `, ${userName}` : ''}!`}
                       </h2>
-                      <p className="text-gray-600 text-base">Continue your legal education journey and achieve your learning goals.</p>
+                      <p className="text-gray-600 text-base">Continue your private education journey and achieve your learning goals.</p>
                     </div>
                   </div>
                   
@@ -635,7 +635,15 @@ export function Dashboard() {
             </div>
             <DashboardCarousel />
           </div>
-
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <MonitorPlay className="h-6 w-6 text-purple-500" />
+                <h2 className="text-2xl font-bold text-gray-800">Learning Sessions</h2>
+              </div>
+              <LiveClasses />
+            </div>
+          </div>
           {/* How It Works Section */}
           <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6 md:p-8 mb-8">
             <div className="text-center mb-8 sm:mb-10">
@@ -657,7 +665,7 @@ export function Dashboard() {
                   </div>
                   <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 sm:mb-2">Choose a Course</h3>
                   <p className="text-gray-600 text-sm sm:text-base">
-                    Browse our extensive catalog of legal courses and select the one that matches your career goals.
+                    Browse our extensive catalog of private courses and select the one that matches your career goals.
                   </p>
                 </div>
               </div>
@@ -700,12 +708,7 @@ export function Dashboard() {
           </div>
 
           {/* Live Classes Section */}
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Live Classes Today</h2>
-              <LiveClasses />
-            </div>
-          </div>
+          
           
           {/* Upcoming Courses */}
           <div className="mb-8">
@@ -725,7 +728,7 @@ export function Dashboard() {
                   <BookOpen size={28} className="text-white" />
                 </div>
                 <h3 className="font-bold text-lg mb-2 text-gray-800">Explore More Courses</h3>
-                <p className="text-gray-600 text-sm mb-6">Discover courses tailored to your legal education goals and career aspirations.</p>
+                <p className="text-gray-600 text-sm mb-6">Discover courses tailored to your private education goals and career aspirations.</p>
                 <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
                   <Link to="/dashboard/catalog">
                     Browse Catalog
