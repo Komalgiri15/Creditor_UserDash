@@ -9,6 +9,7 @@ export function ModuleView() {
   const [module, setModule] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [iframeLoading, setIframeLoading] = useState(true);
 
   useEffect(() => {
     const fetchModule = async () => {
@@ -28,7 +29,7 @@ export function ModuleView() {
         setIsLoading(false);
       }
     };
-    
+
     if (courseId && moduleId) {
       fetchModule();
     }
@@ -101,7 +102,13 @@ export function ModuleView() {
     );
   }
 
-  const fullUrl = `${import.meta.env.VITE_API_BASE_URL}${module.resource_url}`;
+  let fullUrl = module.resource_url;
+  if (!module.resource_url.startsWith('http')) {
+    fullUrl = `${import.meta.env.VITE_API_BASE_URL}${module.resource_url}`;
+  }
+  if (fullUrl.includes('s3.amazonaws.com') && !fullUrl.startsWith('https://')) {
+    fullUrl = fullUrl.replace('http://', 'https://');
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -122,28 +129,48 @@ export function ModuleView() {
                   <p className="text-sm text-muted-foreground">{module.description}</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href={fullUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink size={16} className="mr-2" />
-                  Open in New Tab
-                </a>
-              </Button>
+              <div>
+                <Button asChild variant="outline">
+                  <a
+                    href={fullUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center"
+                  >
+                    Open in New Tab
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Iframe Container */}
-          <div className="flex-1 relative">
-            <iframe
-              src={fullUrl}
-              className="w-full h-full border-0"
-              title={module.title}
-              allowFullScreen
-            />
+          {/* Content Area with iframe */}
+          <div className="flex-1 bg-gray-50 relative">
+            {iframeLoading && (
+              <div className="absolute inset-0 bg-white flex items-center justify-center z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-lg font-medium text-gray-700 mb-2">Loading Module Content</p>
+                  <p className="text-sm text-gray-500">Please wait while the content loads...</p>
+                </div>
+              </div>
+            )}
+
+            <div className="h-screen w-full">
+              <iframe
+                src={fullUrl}
+                className="w-full h-full border-0"
+                title={module.title}
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                onLoad={() => setIframeLoading(false)}
+                onError={() => setIframeLoading(false)}
+              />
+            </div>
           </div>
         </div>
       </main>
     </div>
   );
 }
-
-export default ModuleView; 
