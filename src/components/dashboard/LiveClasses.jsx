@@ -504,66 +504,6 @@ export function LiveClasses() {
     </CardContent>
   </Card>
 )}
-<Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-primary" />
-              Class Recordings
-            </CardTitle>
-            {/* <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewAllRecordings}
-              className="flex items-center gap-1"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View All
-            </Button> */}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recordedSessions.length === 0 ? (
-              <div className="text-center py-8">
-                <FileVideo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-600">No class recordings available yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Check back later for available recordings.</p>
-              </div>
-            ) : (
-              recordedSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-all cursor-pointer group"
-                  onClick={() => window.open(session.driveLink, "_blank")}
-                >
-                  <div className="relative w-16 h-12 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={session.thumbnail}
-                      alt={session.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                      <ExternalLink className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                      {session.title}
-                    </h4>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span>{new Date(session.date).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>{session.duration}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       <AttendanceViewerModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
