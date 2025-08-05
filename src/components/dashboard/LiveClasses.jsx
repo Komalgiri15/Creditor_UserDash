@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Play, Video, Clock, Calendar, Users, FileVideo } from "lucide-react";
 import { AttendanceViewerModal } from "./AttendanceViewerModal";
+import ClassRecording from "./ClassRecording";
 
 // Empty array - no recordings exist yet
 const recordedSessions = [];
@@ -502,12 +503,15 @@ export function LiveClasses() {
         ))}
       </div>
     </CardContent>
+    
   </Card>
 )}
+<ClassRecording/>
       <AttendanceViewerModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
       />
+      
     </div>
   );
 }
