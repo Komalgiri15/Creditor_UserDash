@@ -88,10 +88,9 @@ const AddEvent = () => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        console.log("Decoded JWT token:", decoded);
         return decoded;
       } catch (error) {
-        console.error("Failed to decode token:", error);
+       
         return null;
       }
     }
@@ -101,13 +100,11 @@ const AddEvent = () => {
   // Try to refresh the token to get one with role information
   const refreshToken = async () => {
     try {
-      console.log("Attempting to refresh token...");
       // This would require the user's credentials, which we don't have stored
       // For now, let's just log that we need a token with role information
-      console.log("Current token doesn't contain role information. Need to contact backend team to include role in JWT token.");
       return false;
     } catch (error) {
-      console.error("Failed to refresh token:", error);
+     
       return false;
     }
   };
@@ -140,7 +137,7 @@ const AddEvent = () => {
         timeZone: tz
       })}`;
     } catch (error) {
-      console.error('Error formatting timezone:', error);
+      
       return `${label}: Error`;
     }
   };
@@ -169,6 +166,32 @@ const AddEvent = () => {
     }
     
     return errors;
+  };
+
+  // Convert UTC ISO string to local datetime-local format
+  const convertUtcToLocal = (utcIsoString) => {
+    if (!utcIsoString) return '';
+    try {
+      // Parse the UTC ISO string
+      const utcDate = new Date(utcIsoString);
+      
+      // Check if the date is valid
+      if (isNaN(utcDate.getTime())) {
+        return '';
+      }
+      
+      // Convert to local time and format as YYYY-MM-DDTHH:MM
+      const year = utcDate.getFullYear();
+      const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getDate()).padStart(2, '0');
+      const hours = String(utcDate.getHours()).padStart(2, '0');
+      const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      
+      return '';
+    }
   };
 
   // Debug function to test recurring event creation
@@ -200,9 +223,6 @@ const AddEvent = () => {
       }
     };
     
-    console.log("=== TESTING RECURRING EVENT CREATION ===");
-    console.log("Test payload:", testPayload);
-    
     // Test the API call
     const token = getAuthToken();
     fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
@@ -216,20 +236,17 @@ const AddEvent = () => {
       credentials: "include"
     })
     .then(response => {
-      console.log("Test API response status:", response.status);
       return response.text();
     })
     .then(text => {
-      console.log("Test API response text:", text);
       try {
         const data = JSON.parse(text);
-        console.log("Test API response parsed:", data);
       } catch (e) {
-        console.log("Test API response is not JSON");
+        // Response is not JSON
       }
     })
     .catch(error => {
-      console.error("Test API error:", error);
+      
     });
   };
 
@@ -247,7 +264,7 @@ const AddEvent = () => {
         const role = getUserRole();
         setUserRole(role);
       } catch (err) {
-        console.error("Failed to fetch user profile:", err);
+        
       }
     };
     fetchUserProfileData();
@@ -276,7 +293,7 @@ const AddEvent = () => {
           }
         }
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        
       }
     };
     fetchCourses();
@@ -287,9 +304,8 @@ const AddEvent = () => {
       try {
         const data = await getAllEvents();
         setEvents(data);
-        console.log('Loaded events:', data.map(e => e.id));
       } catch (err) {
-        console.error("Failed to fetch events", err);
+        
       }
     };
     fetchEvents();
@@ -317,25 +333,16 @@ const AddEvent = () => {
 
     setSelectedDate(date);
     
-    console.log('=== DATE CLICK DEBUG ===');
-    console.log('Clicked date:', date.toDateString());
-    console.log('Total events available:', events.length);
-    
     // Check if there are existing events for this date
     const eventsForDate = getEventsForDate(date);
     
-    console.log('Events found for this date:', eventsForDate.length);
-    console.log('Events for date:', eventsForDate);
-    
     if (eventsForDate.length > 0) {
       // Show existing events for this date
-      console.log('Showing existing events modal');
       setSelectedDateEvents(eventsForDate);
       setSelectedDateForEvents(date);
       setShowDateEvents(true);
     } else {
       // No events exist, open the modal directly
-      console.log('No events found, opening new event modal');
       openEventModal(date);
     }
   };
@@ -370,6 +377,7 @@ const AddEvent = () => {
       zoomLink: "",
       courseId: courses.length > 0 ? courses[0].id : ""
     });
+    setEditIndex(null); // Reset edit index for new events
     setShowModal(true);
   };
 
@@ -395,10 +403,9 @@ const AddEvent = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      console.log('GET /calendar/events/:eventId response:', data);
       return data.data || null;
     } catch (err) {
-      console.error('Failed to fetch event details', err);
+      
       return null;
     }
   };
@@ -417,30 +424,27 @@ const AddEvent = () => {
         credentials: 'include',
       });
       const data = await res.json();
-      console.log('API /recurrence-exception GET response:', data);
       // Return array of deleted occurrence objects
       return (data.data || []);
     } catch (err) {
-      console.error('Failed to fetch deleted occurrences', err);
-      return [];
+      
     }
   };
 
   // Edit handler: fetch event details and populate modal
   const handleEdit = async (index) => {
-    console.log('Edit clicked for index:', index, 'event:', events[index]);
     const event = events[index];
     // Fetch latest event details from backend
     const backendEvent = await fetchEventDetails(event.id);
-    console.log('Fetched backend event:', backendEvent);
     const e = backendEvent || event;
     setSelectedDate(e.date ? new Date(e.date) : (e.startTime ? new Date(e.startTime) : null));
+    
     setForm({
       id: e.id,
       title: e.title || '',
       description: e.description || '',
-      startTime: e.startTime ? e.startTime.slice(0, 16) : '',
-      endTime: e.endTime ? e.endTime.slice(0, 16) : '',
+      startTime: convertUtcToLocal(e.startTime),
+      endTime: convertUtcToLocal(e.endTime),
       timeZone: e.timeZone || userTimezone,
       location: e.location || '',
       isRecurring: e.isRecurring || false,
@@ -450,7 +454,6 @@ const AddEvent = () => {
     });
     setEditIndex(index);
     setShowModal(true);
-    console.log('setShowModal(true) called, modal should now be open');
     // If recurring, fetch deleted occurrences
     let deletedOccurrences = [];
     if ((e.isRecurring || e.recurrence !== 'none') && e.id) {
@@ -504,7 +507,7 @@ const AddEvent = () => {
       }));
       setEvents(normalizedEvents);
     } catch (err) {
-      console.error("Failed to delete event", err);
+      
     } finally {
       setShowDeleteConfirmModal(false);
       setDeleteIndex(null);
@@ -516,7 +519,6 @@ const AddEvent = () => {
     setDeletingOccurrenceKey(occurrenceStartTime);
     try {
       const token = getAuthToken();
-      console.log('Deleting occurrence:', { eventId, occurrenceDate: occurrenceStartTime });
       // DELETE a single occurrence in a recurring event (POST)
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`, {
         method: "POST",
@@ -534,7 +536,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event deleted");
     } catch (err) {
-      console.error("Failed to delete occurrence", err);
+      
     } finally {
       setDeletingOccurrenceKey(null);
     }
@@ -560,7 +562,7 @@ const AddEvent = () => {
       setEvents(data);
       setShowRecurringDeleteModal(false);
     } catch (err) {
-      console.error("Failed to delete all occurrences", err);
+      
     } finally {
       setDeletingAll(false);
     }
@@ -571,7 +573,6 @@ const AddEvent = () => {
     setDeletingOccurrenceKey(occurrenceDate);
     try {
       const token = getAuthToken();
-      console.log('Restoring occurrence:', { eventId, occurrenceDate });
       // RESTORE a single occurrence in a recurring event (DELETE)
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`,
@@ -595,7 +596,7 @@ const AddEvent = () => {
       setShowRecurringDeleteModal(false);
       setModalMessage("Event restored successfully");
     } catch (err) {
-      console.error("Failed to restore occurrence", err);
+     
       setModalMessage("Failed to restore event occurrence");
     } finally {
       setDeletingOccurrenceKey(null);
@@ -608,14 +609,13 @@ const AddEvent = () => {
     // Check if user has permission to create events
     const currentRole = getUserRole();
     if (!currentRole || (currentRole !== 'admin' && currentRole !== 'instructor')) {
-      console.error("User does not have permission to create events. Required role: admin or instructor. Current role:", currentRole);
+     
       alert("You don't have permission to create events. Only administrators and instructors can create events.");
       return;
     }
     
     // Decode and log the JWT token to see what's in it
     const decodedToken = decodeToken();
-    console.log("Token contents:", decodedToken);
 
     // Validate recurring event data
     const validationErrors = validateRecurringEvent(form);
@@ -638,7 +638,7 @@ const AddEvent = () => {
         // Convert to UTC directly - simpler and more reliable
         return localDate.toISOString();
       } catch (error) {
-        console.error('Error converting date to UTC:', error);
+        
         return "";
       }
     };
@@ -675,37 +675,27 @@ const AddEvent = () => {
       isRecurring,
       calendarType: "GROUP",
       visibility: "PRIVATE",
-      courseName: selectedCourse ? selectedCourse.title : "",
-      timeZone: "America/Los_Angeles"
+      course_id: selectedCourse ? selectedCourse.id : form.courseId
     };
     
     // Add recurrence rule if it's a recurring event
     if (isRecurring && recurrenceRule) {
       payload.recurrenceRule = recurrenceRule;
-      // Remove userRole if present (for recurring events)
-      // (userRole is not added above, so nothing to remove)
-    } else {
-      // For normal events, add userRole as before if needed
-      payload.userRole = currentRole;
     }
 
-    console.log("=== EVENT CREATION DEBUG INFO ===");
-    console.log("Form startTime:", form.startTime);
-    console.log("Form endTime:", form.endTime);
-    console.log("Is Recurring:", isRecurring);
-    console.log("Recurrence Type:", form.recurrence);
-    console.log("Recurrence Rule:", recurrenceRule);
-    console.log("Payload being sent:", payload);
-    console.log("User role:", currentRole);
-    console.log("JWT token role (if any):", decodedToken?.role || decodedToken?.userRole || "No role in token");
-    console.log("=== END DEBUG INFO ===");
+
 
     if (editIndex !== null) {
       // Update event in backend
       try {
         const token = getAuthToken();
-        console.log('Updating event with ID:', form.id);
-        const patchRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`, {
+        
+        // Use different endpoint based on whether the event is recurring
+        const endpoint = form.isRecurring 
+          ? `${import.meta.env.VITE_API_BASE_URL}/calendar/events/recurring/${form.id}`
+          : `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${form.id}`;
+        
+        const patchRes = await fetch(endpoint, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
@@ -729,16 +719,13 @@ const AddEvent = () => {
         }
         
         const patchData = await patchRes.json();
-        console.log('PATCH /calendar/events/:eventId payload:', payload);
-        console.log('PATCH /calendar/events/:eventId response:', patchData);
         
         // Refetch events after updating
         const data = await getAllEvents();
-        console.log("Fetched events after update:", data);
         setEvents(data);
         alert("Event updated successfully!");
       } catch (err) {
-        console.error("Failed to update event", err);
+        
         alert(err.message || 'Failed to update event');
       }
       setEditIndex(null);
@@ -746,8 +733,6 @@ const AddEvent = () => {
       // Send to backend only on add
       try {
         const token = getAuthToken();
-        console.log('Creating new event with payload:', payload);
-        console.log('Payload JSON:', JSON.stringify(payload, null, 2));
         
         const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
           method: "POST",
@@ -761,9 +746,7 @@ const AddEvent = () => {
         });
         
         // Log the response status and body for debugging
-        console.log('POST /calendar/events status:', postRes.status);
         const responseText = await postRes.text();
-        console.log('POST /calendar/events response:', responseText);
         if (!postRes.ok) {
           let errorMessage = 'Failed to create event';
           try {
@@ -782,11 +765,9 @@ const AddEvent = () => {
         }
         
         const postData = JSON.parse(responseText);
-        console.log("POST response (parsed):", postData);
         
         // Refetch events after adding
         const data = await getAllEvents();
-        console.log("Fetched events after add:", data);
         // Normalize course_id to courseId for all events
         const normalizedEvents = data.map(ev => ({
             ...ev,
@@ -795,7 +776,6 @@ const AddEvent = () => {
         setEvents(normalizedEvents);
         alert("Event created successfully!");
       } catch (err) {
-        console.error("Failed to add event to backend", err);
         alert("Failed to create event: " + err.message);
       }
     }
@@ -829,40 +809,74 @@ const AddEvent = () => {
   const getEventsForDate = (date) => {
     if (!date) return [];
     
-    console.log('Getting events for date:', date.toDateString());
-    console.log('Available events:', events);
+    const eventsForDate = [];
     
-    return events.filter(ev => {
-      // Try different date fields that might exist
-      const eventDate = ev.date || ev.startTime || ev.createdAt;
-      
-      if (!eventDate) {
-        console.log('Event has no date field:', ev);
-        return false;
+    events.forEach(ev => {
+      // Handle recurring events with occurrences
+      if (ev.isRecurring && ev.occurrences && ev.occurrences.length > 0) {
+        // Check each occurrence of the recurring event
+        ev.occurrences.forEach(occurrence => {
+          const occurrenceDate = new Date(occurrence.startTime);
+          
+          if (!isNaN(occurrenceDate.getTime())) {
+            const isSameDate = (
+              occurrenceDate.getFullYear() === date.getFullYear() &&
+              occurrenceDate.getMonth() === date.getMonth() &&
+              occurrenceDate.getDate() === date.getDate()
+            );
+            
+            if (isSameDate) {
+              // Check if this occurrence is not deleted
+              const deletedOccurrences = ev.deletedOccurrences || [];
+              const isDeleted = deletedOccurrences.some(deleted => {
+                const deletedDate = typeof deleted === 'string' ? deleted : deleted.occurrence_date;
+                return new Date(deletedDate).toDateString() === occurrenceDate.toDateString();
+              });
+              
+              if (!isDeleted) {
+                // Create a copy of the event with the occurrence's time
+                const eventForDate = {
+                  ...ev,
+                  startTime: occurrence.startTime,
+                  endTime: occurrence.endTime,
+                  occurrenceDate: occurrenceDate
+                };
+                eventsForDate.push(eventForDate);
+              }
+            }
+          }
+        });
+      } else {
+        // Handle non-recurring events
+        const eventDate = ev.date || ev.startTime || ev.createdAt;
+        
+        if (!eventDate) {
+          
+          return;
+        }
+        
+        const evDate = new Date(eventDate);
+        
+        if (isNaN(evDate.getTime())) {
+          console.log('Invalid date for event:', ev);
+          return;
+        }
+        
+        const isSameDate = (
+          evDate.getFullYear() === date.getFullYear() &&
+          evDate.getMonth() === date.getMonth() &&
+          evDate.getDate() === date.getDate()
+        );
+        
+        if (isSameDate) {
+          eventsForDate.push(ev);
+        }
       }
-      
-      const evDate = new Date(eventDate);
-      
-      if (isNaN(evDate.getTime())) {
-        console.log('Invalid date for event:', ev);
-        return false;
-      }
-      
-      const isSameDate = (
-        evDate.getFullYear() === date.getFullYear() &&
-        evDate.getMonth() === date.getMonth() &&
-        evDate.getDate() === date.getDate()
-      );
-      
-      console.log('Event date check:', {
-        eventTitle: ev.title,
-        eventDate: evDate.toDateString(),
-        selectedDate: date.toDateString(),
-        isSameDate
-      });
-      
-      return isSameDate;
     });
+    
+    
+    
+    return eventsForDate;
   };
 
   return (
@@ -883,16 +897,7 @@ const AddEvent = () => {
               Read-only access
             </span>
           )}
-          {/* Debug button for testing recurring events */}
-          {(userRole === 'admin' || userRole === 'instructor') && (
-            <button
-              onClick={debugRecurringEvent}
-              className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs rounded-lg"
-              title="Test recurring event creation"
-            >
-              Debug Recurring
-            </button>
-          )}
+
         </div>
       </div>
       
@@ -986,9 +991,21 @@ const AddEvent = () => {
               </span>
               {eventsForDate.length > 0 && (
                 <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                  {eventsForDate.map((_, i) => (
-                    <span key={i} className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                  {eventsForDate.slice(0, 5).map((event, i) => (
+                    <span 
+                      key={i} 
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        event.isRecurring ? 'bg-purple-500' : 'bg-blue-500'
+                      }`}
+                      title={event.title}
+                    ></span>
                   ))}
+                  {eventsForDate.length > 5 && (
+                    <span 
+                      className="w-1.5 h-1.5 rounded-full bg-gray-400"
+                      title={`+${eventsForDate.length - 5} more events`}
+                    ></span>
+                  )}
                 </div>
               )}
             </div>
@@ -1043,6 +1060,27 @@ const AddEvent = () => {
                     </div>
                   </div>
                   <div className="mt-3 flex items-center text-sm text-gray-500 space-x-4">
+                    <span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {(() => {
+                        try {
+                          const userTz = localStorage.getItem('userTimezone') || 'America/New_York';
+                          const startDate = new Date(event.startTime);
+                          return startDate.toLocaleDateString('en-US', { 
+                            weekday: 'short',
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric',
+                            timeZone: userTz 
+                          });
+                        } catch (error) {
+                          console.error('Error formatting event date:', error);
+                          return new Date(event.startTime).toLocaleDateString();
+                        }
+                      })()}
+                    </span>
                     <span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1115,17 +1153,22 @@ const AddEvent = () => {
       {/* Add Event Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity duration-300">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl relative transform transition-all duration-300 scale-100 opacity-100">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-5xl relative transform transition-all duration-300 scale-100 opacity-100">
             <button
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-              onClick={() => setShowModal(false)}
+              onClick={() => {
+                setShowModal(false);
+                setEditIndex(null);
+              }}
               aria-label="Close"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">Schedule New Event</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-3">
+              {editIndex !== null ? 'Edit Event' : 'Schedule New Event'}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Column */}
@@ -1157,7 +1200,7 @@ const AddEvent = () => {
                       <p className="text-xs text-red-500 mt-2">Please enter a valid URL (e.g., https://meet.google.com/...)</p>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Start Time*</label>
                       <input
@@ -1165,7 +1208,7 @@ const AddEvent = () => {
                         name="startTime"
                         value={form.startTime}
                         onChange={handleFormChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full min-w-[200px] px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
                     </div>
@@ -1176,7 +1219,7 @@ const AddEvent = () => {
                         name="endTime"
                         value={form.endTime}
                         onChange={handleFormChange}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full min-w-[200px] px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         required
                       />
                     </div>
@@ -1262,7 +1305,10 @@ const AddEvent = () => {
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditIndex(null);
+                  }}
                   className="px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
                   Cancel
@@ -1271,7 +1317,7 @@ const AddEvent = () => {
                   type="submit"
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                 >
-                  Schedule Event
+                  {editIndex !== null ? 'Update Event' : 'Schedule Event'}
                 </button>
               </div>
             </form>
@@ -1315,7 +1361,7 @@ const AddEvent = () => {
       {/* Recurring Delete Modal */}
       {showRecurringDeleteModal && recurringDeleteEvent && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
-    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl mx-4 relative">
+    <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-3xl mx-4 relative">
       <button
         className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 transition-colors duration-200 rounded-full p-1 hover:bg-gray-100"
         onClick={() => setShowRecurringDeleteModal(false)}
@@ -1326,14 +1372,14 @@ const AddEvent = () => {
         </svg>
       </button>
       
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-900">Manage Recurring Event</h2>
-          <p className="text-gray-600">This event repeats. Manage occurrences below:</p>
+          <h2 className="text-xl font-bold text-gray-900">Manage Recurring Event</h2>
+          <p className="text-sm text-gray-600">This event repeats. Manage occurrences below:</p>
         </div>
         
         {/* Dual column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Upcoming Occurrences Column */}
           <div className="border rounded-lg overflow-hidden shadow-sm">
             <div className="bg-blue-50 px-4 py-3 border-b">
@@ -1344,7 +1390,7 @@ const AddEvent = () => {
                 Upcoming Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.occurrences && recurringDeleteEvent.occurrences.map((occ, idx) => {
                 const deletedOccurrences = recurringDeleteEvent.deletedOccurrences || [];
                 const isDeleted = deletedOccurrences.includes(occ.startTime);
@@ -1406,7 +1452,7 @@ const AddEvent = () => {
                 Deleted Occurrences
               </h3>
             </div>
-            <ul className="divide-y divide-gray-200 max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
               {recurringDeleteEvent.deletedOccurrences && recurringDeleteEvent.deletedOccurrences.length > 0 ? (
                 recurringDeleteEvent.deletedOccurrences.map((deletedObj) => {
                   // Support both string and object for backward compatibility
@@ -1452,9 +1498,9 @@ const AddEvent = () => {
         </div>
 
         {/* Delete All Button */}
-        <div className="pt-4 border-t">
+        <div className="pt-3 border-t">
           <button
-            className={`w-full py-3 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+            className={`w-full py-2.5 px-4 rounded-lg text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 ${deletingAll ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
             disabled={deletingAll}
             onClick={() => handleDeleteAllOccurrences(recurringDeleteEvent.id)}
           >
@@ -1469,7 +1515,7 @@ const AddEvent = () => {
             ) : 'Delete entire series'}
           </button>
           <button
-            className="w-full mt-3 py-2.5 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
+            className="w-full mt-2 py-2 px-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border border-gray-300"
             onClick={() => setShowRecurringDeleteModal(false)}
           >
             Cancel

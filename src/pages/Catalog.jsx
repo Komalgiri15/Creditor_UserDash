@@ -28,9 +28,6 @@ export function CatalogPage() {
       try {
         setLoading(true);
         const data = await fetchAllCatalogs();
-        console.log('Fetched catalogs:', data);
-        console.log('Data type:', typeof data);
-        console.log('Is array:', Array.isArray(data));
         setCatalogs(data || []);
         // Fetch course counts for each catalog
         const counts = {};
@@ -42,7 +39,6 @@ export function CatalogPage() {
         );
         setCourseCounts(counts);
       } catch (err) {
-        console.error("Failed to fetch catalogs:", err);
         setError("Failed to load catalogs. Please try again later.");
       } finally {
         setLoading(false);
@@ -53,7 +49,6 @@ export function CatalogPage() {
     
     // Test API endpoints for debugging
     testCatalogAPI().then(result => {
-      console.log('Catalog API test result:', result);
     });
   }, []);
 

@@ -63,6 +63,8 @@ export const AuthProvider = ({ children }) => {
     clearUserData();
     setUserRoleState('user');
     setUserRolesState(['user']);
+    // Dispatch logout event for UserContext
+    window.dispatchEvent(new CustomEvent('userLoggedOut'));
   };
 
   const isInstructorOrAdmin = () => {

@@ -39,7 +39,6 @@ export function EssayAssessmentDialog({ open, onOpenChange }) {
 
   const handleSave = () => {
     // Handle save logic here
-    console.log("Saving essay assessment...");
     onOpenChange(false);
   };
 

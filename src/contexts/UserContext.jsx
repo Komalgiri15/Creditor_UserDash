@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchUserProfile } from '@/services/userService';
+import Cookies from 'js-cookie';
 
 const UserContext = createContext();
 
@@ -16,20 +17,65 @@ export const UserProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch user profile on mount
+  // Fetch user profile on mount and when authentication changes
   useEffect(() => {
     loadUserProfile();
+  }, []);
+
+  // Listen for authentication changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      // Check if there's a valid token
+      const token = Cookies.get("token") || localStorage.getItem("token");
+      if (token) {
+        // User is logged in, refresh profile
+        loadUserProfile();
+      } else {
+        // User is logged out, clear profile
+        setUserProfile(null);
+        setIsLoading(false);
+      }
+    };
+
+    // Listen for storage changes (when token is set/removed)
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' || e.key === null) {
+        handleAuthChange();
+      }
+    };
+
+    // Listen for custom events
+    window.addEventListener('userRoleChanged', handleAuthChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    // Initial check
+    handleAuthChange();
+
+    return () => {
+      window.removeEventListener('userRoleChanged', handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const loadUserProfile = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Check if user is authenticated
+      const token = Cookies.get("token") || localStorage.getItem("token");
+      if (!token) {
+        setUserProfile(null);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await fetchUserProfile();
       setUserProfile(data);
     } catch (err) {
       console.error('Failed to load user profile:', err);
       setError(err.message);
+      setUserProfile(null);
     } finally {
       setIsLoading(false);
     }

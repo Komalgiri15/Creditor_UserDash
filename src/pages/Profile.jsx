@@ -39,7 +39,6 @@ function Profile() {
   // Use global user profile data and update form when it changes
   useEffect(() => {
     if (userProfile) {
-      console.log("✅ Using global user profile data:", userProfile);
       setIsLoading(false);
       
       // Set single role (highest priority: admin > instructor > user)
@@ -78,15 +77,8 @@ function Profile() {
         timezone: userTimezone,
       };
       
-      console.log("📝 Setting form data with timezone:", formData);
       form.reset(formData);
       
-      console.log("📝 Form populated with user data:", {
-        fullName: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
-        email: userProfile.email,
-        timezone: userTimezone,
-        user_roles: userProfile.user_roles
-      });
     }
   }, [userProfile, form]);
 
@@ -108,25 +100,12 @@ function Profile() {
         timezone: values.timezone,
       };
       
-      console.log("📤 POST /api/user/updateUserProfile - Request Data:", updateData);
-      console.log("🕐 Timezone being sent:", values.timezone);
-      
       const response = await updateUserProfile(updateData);
-      console.log("✅ POST /api/user/updateUserProfile - Response:", response);
-      
-      // Check if the response contains the updated timezone
-      if (response.data && response.data.timezone) {
-        console.log("✅ Timezone updated in response:", response.data.timezone);
-      } else {
-        console.warn("⚠️ No timezone found in response data:", response);
-      }
       
       // Update timezone in localStorage after successful profile update
       localStorage.setItem('userTimezone', values.timezone);
-      console.log("💾 Timezone saved to localStorage:", values.timezone);
       
       // Update the global user profile context with the updated data
-      console.log("🔄 Updating global user profile context...");
       const updatedProfile = {
         ...userProfile,
         first_name,
@@ -140,7 +119,6 @@ function Profile() {
       
       // Update the global user profile context
       updateGlobalProfile(updatedProfile);
-      console.log("✅ Global user profile updated:", updatedProfile);
       
       // Update localStorage with the confirmed timezone
       localStorage.setItem('userTimezone', values.timezone);
@@ -362,7 +340,6 @@ function Profile() {
                         <FormLabel className="text-sm font-medium text-gray-700 mb-2">Timezone</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={(value) => {
-                            console.log("🕐 Timezone field changed to:", value);
                             field.onChange(value);
                           }}>
                             <SelectTrigger className="h-11 rounded-lg border-gray-200">
