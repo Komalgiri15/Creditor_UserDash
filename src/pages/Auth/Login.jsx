@@ -48,6 +48,8 @@ export function Login() {
           secure: true,
           sameSite: 'strict'
         });
+        // Also store token in localStorage for mobile compatibility
+        localStorage.setItem("token", response.data.token);
         
         // Set default role first
         setUserRole('user');
