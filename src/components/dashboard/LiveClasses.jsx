@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Play, Video, Clock, Calendar, Users, FileVideo } from "lucide-react";
 import { AttendanceViewerModal } from "./AttendanceViewerModal";
+import ClassRecording from "./ClassRecording";
 
 // Empty array - no recordings exist yet
 const recordedSessions = [];
@@ -40,13 +41,90 @@ const formatTimeInUserTimezone = (utcTime, userTimezone) => {
   });
 };
 
+// Helper function to process events and expand recurring events
+const processEvents = (events, userTimezone) => {
+  const processedEvents = [];
+  
+  events.forEach(event => {
+    if (event.isRecurring && Array.isArray(event.occurrences)) {
+      // Handle recurring events - check each occurrence
+      event.occurrences.forEach((occurrence, index) => {
+        // Check if this occurrence is today in user's timezone
+        if (isTodayInUserTimezone(occurrence.startTime, userTimezone)) {
+          // Create a new event object for this occurrence
+          const occurrenceEvent = {
+            ...event,
+            id: `${event.id}_occurrence_${index}`,
+            startTime: occurrence.startTime,
+            endTime: occurrence.endTime,
+            isRecurring: true,
+            originalEventId: event.id,
+            occurrenceIndex: index
+          };
+          processedEvents.push(occurrenceEvent);
+        }
+      });
+    } else if (event.startTime && event.endTime) {
+      // Handle regular events
+      if (isTodayInUserTimezone(event.startTime, userTimezone)) {
+        processedEvents.push({
+          ...event,
+          isRecurring: false
+        });
+      }
+    }
+  });
+  
+  return processedEvents;
+};
+
 export function LiveClasses() {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [todayEvents, setTodayEvents] = useState([]);
+  const [cancelledEvents, setCancelledEvents] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const userTimezone = localStorage.getItem('userTimezone') || 'America/Los_Angeles';
+
+  // Fetch cancelled events
+  const fetchCancelledEvents = async () => {
+    try {
+      // Get current time in UTC (API fetching time)
+      const startTime = new Date().toISOString();
+      
+      // Get user's timezone end-of-day time converted to UTC
+      const now = new Date();
+      const endOfDay = new Date(now);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Convert end-of-day to UTC
+      const endTime = endOfDay.toISOString();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/calendar/events/cancelledevents?startTime=${startTime}&endTime=${endTime}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cancelled events: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setCancelledEvents(data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch cancelled events", err);
+    }
+  };
 
   // Fetch courses to map course IDs to course names
   useEffect(() => {
@@ -79,41 +157,31 @@ export function LiveClasses() {
         const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
         const params = new URLSearchParams({ startDate: start, endDate: end });
 
-        console.log('Fetching events with params:', { start, end });
-
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
           credentials: 'include',
         });
         const data = await response.json();
 
-        console.log('API Response:', data);
-
         if (data?.data?.length > 0) {
+          // Process events to handle recurring events properly
+          const processedEvents = processEvents(data.data, userTimezone);
+          
+          console.log('Processed events:', processedEvents);
           // Filter events for today in user's timezone
           const todayEvents = data.data.filter(event => {
             if (!event.startTime || !event.endTime) {
-              console.log('Event missing start/end time:', event);
               return false;
             }
 
             const isToday = isTodayInUserTimezone(event.startTime, userTimezone);
-            console.log('Event date check:', {
-              eventTitle: event.title,
-              startTime: event.startTime,
-              isToday,
-              userTimezone
-            });
 
             return isToday;
           });
 
-          console.log('Today events after filtering:', todayEvents);
-
           // Sort events by start time
-          todayEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-          setTodayEvents(todayEvents);
+          processedEvents.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+          setTodayEvents(processedEvents);
         } else {
-          console.log('No events found in API response');
           setTodayEvents([]);
         }
       } catch (err) {
@@ -125,13 +193,23 @@ export function LiveClasses() {
     };
 
     fetchLiveClass();
+    fetchCancelledEvents();
   }, [userTimezone]);
+
+  // Update current time every second for smooth countdown
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      // Update the live status of events and remove ended events every 30 seconds
+      // Update the live status of events and remove ended events every second for smoother countdown
       setTodayEvents(prevEvents => {
-        const now = new Date(); // Use current UTC time
+        const now = currentTime; // Use current time state
         
         return prevEvents.filter(event => {
           const endTime = new Date(event.endTime);
@@ -139,7 +217,6 @@ export function LiveClasses() {
           
           // Remove ended events
           if (isEnded) {
-            console.log('Removing ended event:', event.title);
             return false;
           }
           
@@ -155,10 +232,10 @@ export function LiveClasses() {
           };
         });
       });
-    }, 30 * 1000); // refresh every 30s
+    }, 1000); // refresh every 1 second for smoother countdown
 
     return () => clearInterval(interval);
-  }, []);
+  }, [currentTime]);
 
   const getEventStatus = (event) => {
     const now = new Date(); // Use current UTC time
@@ -191,13 +268,6 @@ export function LiveClasses() {
     const end = new Date(event.endTime);
     return now >= start && now <= end;
   }).length;
-
-  console.log('Render state:', {
-    loading,
-    todayEventsCount: todayEvents.length,
-    liveEventsCount,
-    userTimezone
-  });
 
   return (
     <div className="space-y-6">
@@ -272,6 +342,11 @@ export function LiveClasses() {
                             }`}>
                               {eventStatus.text}
                             </span>
+                            {event.isRecurring && (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-600">
+                                Recurring
+                              </span>
+                            )}
                           </div>
                           {/* Show course name if available */}
                           {(event.courseName || event.courseId || event.course_id) && (
@@ -316,7 +391,20 @@ export function LiveClasses() {
                           </Button>
                           {isUpcoming && (
                             <div className="text-xs text-blue-600 text-center">
-                              Starts in {Math.max(0, Math.floor((new Date(event.startTime).getTime() - new Date().getTime()) / (1000 * 60)))}m
+                              Starts in {(() => {
+                                const timeDiff = new Date(event.startTime).getTime() - currentTime.getTime();
+                                const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                                const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                                const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                                
+                                if (hours > 0) {
+                                  return `${hours}h ${minutes}m ${seconds}s`;
+                                } else if (minutes > 0) {
+                                  return `${minutes}m ${seconds}s`;
+                                } else {
+                                  return `${seconds}s`;
+                                }
+                              })()}
                             </div>
                           )}
                         </div>
@@ -329,70 +417,101 @@ export function LiveClasses() {
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5 text-primary" />
-              Class Recordings
-            </CardTitle>
-            {/* <Button
-              variant="outline"
-              size="sm"
-              onClick={handleViewAllRecordings}
-              className="flex items-center gap-1"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View All
-            </Button> */}
+      {/* Cancelled Events Section - Only show if there are cancelled events */}
+      {cancelledEvents && cancelledEvents.length > 0 && (
+  <Card className="border border-red-100 bg-white hover:shadow-md transition-all duration-300">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-3">
+        <div className="p-2 bg-red-50 rounded-lg text-red-600">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-12.728 12.728" />
+          </svg>
+        </div>
+        <div>
+          <span className="text-lg font-semibold text-gray-800">Cancelled Classes</span>
+          <div className="text-sm text-gray-500 font-medium">
+            {cancelledEvents.length} cancelled session{cancelledEvents.length !== 1 ? 's' : ''}
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {recordedSessions.length === 0 ? (
-              <div className="text-center py-8">
-                <FileVideo className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-600">No class recordings available yet</p>
-                <p className="text-sm text-muted-foreground mt-1">Check back later for available recordings.</p>
-              </div>
-            ) : (
-              recordedSessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-all cursor-pointer group"
-                  onClick={() => window.open(session.driveLink, "_blank")}
-                >
-                  <div className="relative w-16 h-12 rounded overflow-hidden flex-shrink-0">
-                    <img
-                      src={session.thumbnail}
-                      alt={session.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-colors">
-                      <ExternalLink className="h-4 w-4 text-white group-hover:scale-110 transition-transform" />
-                    </div>
+        </div>
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-3">
+        {cancelledEvents.map((cancelledEvent, i) => (
+          <div key={cancelledEvent.id || i} className="group relative border-l-4 border-red-300 rounded-r-lg p-4 bg-white hover:bg-gray-50 transition-all duration-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h4 className="font-medium text-gray-800">
+                    {cancelledEvent.event?.title || 'Untitled Event'}
+                  </h4>
+                  <span className="px-2 py-0.5 bg-red-50 text-red-700 text-xs font-medium rounded-md">
+                    Cancelled
+                  </span>
+                </div>
+                
+                {cancelledEvent.event?.course && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>{cancelledEvent.event.course.title}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                      {session.title}
-                    </h4>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      <span>{new Date(session.date).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>{session.duration}</span>
-                    </div>
+                )}
+                
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>
+                      {new Date(cancelledEvent.occurrence_date).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: userTimezone 
+                      })}
+                    </span>
                   </div>
                 </div>
-              ))
+              </div>
+              
+
+            </div>
+            
+            {cancelledEvent.reason && (
+              <div className="mt-3 p-3 bg-red-50 rounded-md text-sm text-red-700">
+                <div className="font-medium">Cancellation reason:</div>
+                <div>{cancelledEvent.reason}</div>
+              </div>
             )}
           </div>
-        </CardContent>
-      </Card>
-
+        ))}
+      </div>
+    </CardContent>
+    
+  </Card>
+)}
+<ClassRecording/>
       <AttendanceViewerModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
       />
+      
     </div>
   );
 }

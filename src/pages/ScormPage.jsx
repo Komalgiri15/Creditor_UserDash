@@ -109,7 +109,7 @@ const ScormPage = () => {
     if (file) {
       setScormUploadState(prev => ({
       ...prev,
-        [moduleId]: { ...prev[moduleId], file, uploading: false, uploaded: false, error: '' }
+        [moduleId]: { ...prev[moduleId], file, uploading: false, uploaded: false, error: '', progress: 0, cancelUpload: null }
       }));
     }
   };
@@ -120,7 +120,7 @@ const ScormPage = () => {
 
     setScormUploadState((prev) => ({
       ...prev,
-      [moduleId]: { ...prev[moduleId], uploading: true, error: '' }
+      [moduleId]: { ...prev[moduleId], uploading: true, error: '', progress: 0 }
     }));
 
     try {
@@ -130,6 +130,18 @@ const ScormPage = () => {
         file: uploadState.file,
         uploadedBy: currentUserId,
         description,
+        onProgress: (progress) => {
+          setScormUploadState((prev) => ({
+            ...prev,
+            [moduleId]: { ...prev[moduleId], progress }
+          }));
+        },
+        onCancel: (cancelFn) => {
+          setScormUploadState((prev) => ({
+            ...prev,
+            [moduleId]: { ...prev[moduleId], cancelUpload: cancelFn }
+          }));
+        }
       });
       
       const fullUrl = result.data.url;
@@ -140,9 +152,11 @@ const ScormPage = () => {
           ...prev[moduleId], 
           uploading: false,
           uploaded: true,
+          progress: 100,
           previewUrl: fullUrl,
           scormUrl: result.data.url,
-          error: ''
+          error: '',
+          cancelUpload: null
         }
       }));
     } catch (error) {
@@ -151,9 +165,18 @@ const ScormPage = () => {
         [moduleId]: {
           ...prev[moduleId],
           uploading: false,
-          error: 'Upload failed. Please try again.'
+          progress: 0,
+          error: error.message === 'Upload cancelled' ? 'Upload cancelled' : 'Upload failed. Please try again.',
+          cancelUpload: null
         }
       }));
+    }
+  };
+
+  const handleCancelUpload = (moduleId) => {
+    const uploadState = scormUploadState[moduleId];
+    if (uploadState?.cancelUpload && typeof uploadState.cancelUpload === 'function') {
+      uploadState.cancelUpload();
     }
   };
 
@@ -183,8 +206,6 @@ const ScormPage = () => {
           : course
       ));
 
-      // Show success message (you can add a toast notification here)
-      console.log('SCORM content deleted successfully');
     } catch (error) {
       console.error('Error deleting SCORM:', error);
       alert('Failed to delete SCORM content. Please try again.');
@@ -364,27 +385,52 @@ const ScormPage = () => {
                               </div>
 
                                   {uploadState.file && (
-                                    <div className="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200">
-                                      <Button
-                                        onClick={() => handleUpload(mod.id)}
-                                        disabled={uploadState.uploading}
-                                        className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                                      >
-                                        {uploadState.uploading ? (
-                                          <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                            Uploading...
-                                          </>
-                                        ) : (
-                                          'Upload'
-                                        )}
-                                      </Button>
-                                      <div className="flex-1">
-                                        <span className="text-sm font-medium text-gray-700">{uploadState.file.name}</span>
-                                        <span className="text-xs text-gray-500 ml-2">({(uploadState.file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                                      </div>
-                                </div>
-                              )}
+                                    <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
+                                                                             <div className="flex items-center gap-4">
+                                         {uploadState.uploading ? (
+                                           <>
+                                             <Button
+                                               onClick={() => handleCancelUpload(mod.id)}
+                                               className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                             >
+                                               Cancel Upload
+                                             </Button>
+                                             <div className="flex items-center gap-2">
+                                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+                                               <span className="text-sm text-emerald-600 font-medium">Uploading...</span>
+                                             </div>
+                                           </>
+                                         ) : (
+                                           <Button
+                                             onClick={() => handleUpload(mod.id)}
+                                             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                                           >
+                                             Upload
+                                           </Button>
+                                         )}
+                                         <div className="flex-1">
+                                           <span className="text-sm font-medium text-gray-700">{uploadState.file.name}</span>
+                                           <span className="text-xs text-gray-500 ml-2">({(uploadState.file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                         </div>
+                                       </div>
+                                      
+                                      {/* Progress Bar */}
+                                      {uploadState.uploading && (
+                                        <div className="space-y-2">
+                                          <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-700">Upload Progress</span>
+                                            <span className="text-sm text-gray-500">{uploadState.progress || 0}%</span>
+                                          </div>
+                                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div 
+                                              className="bg-emerald-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                                              style={{ width: `${uploadState.progress || 0}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {uploadState.error && (
                                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">

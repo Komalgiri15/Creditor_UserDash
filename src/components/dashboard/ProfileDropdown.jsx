@@ -17,10 +17,12 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import { fetchUserProfile, clearUserData } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function ProfileDropdown() {
   const [userAvatar, setUserAvatar] = useState(getUserAvatarUrl());
   const { userProfile } = useUser();
+  const { logout: logoutAuth } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -47,10 +49,14 @@ export function ProfileDropdown() {
   const handleLogout = () => {
     // Clear all user data
     clearUserData();
+    logoutAuth(); // Use AuthContext logout
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     Cookies.remove("token");
     Cookies.remove("userId");
+    
+    // Dispatch event to trigger UserContext refresh
+    window.dispatchEvent(new Event('userRoleChanged'));
     
     // Redirect to landing page
     window.location.href = "/";
@@ -77,10 +83,10 @@ export function ProfileDropdown() {
           </div>
           <div className="hidden md:block text-left group/text">
             <p className="text-sm font-semibold group-hover/text:text-primary transition-colors duration-300">
-              {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'Unknown' : 'Unknown'}
+              {userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || 'User' : 'User'}
             </p>
             <p className="text-xs text-muted-foreground group-hover/text:text-primary/70 transition-colors duration-300">
-              {userProfile?.email || 'Unknown'}
+              {userProfile?.email || 'Loading...'}
             </p>
           </div>
         </motion.button>

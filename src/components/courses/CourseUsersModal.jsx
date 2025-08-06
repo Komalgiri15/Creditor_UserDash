@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchCourseUsers, unenrollUser } from '../../services/courseService';
 import { X, Users, Search, UserCheck, UserX, Mail, Shield, Crown } from 'lucide-react';
+import ConfirmationDialog from '../ui/ConfirmationDialog';
 
 const CourseUsersModal = ({ isOpen, onClose, courseId }) => {
   const [courseUsers, setCourseUsers] = useState([]);
@@ -8,6 +9,8 @@ const CourseUsersModal = ({ isOpen, onClose, courseId }) => {
   const [error, setError] = useState("");
   const [unenrollLoading, setUnenrollLoading] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [showUnenrollConfirm, setShowUnenrollConfirm] = useState(false);
+  const [userToUnenroll, setUserToUnenroll] = useState(null);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -54,16 +57,20 @@ const CourseUsersModal = ({ isOpen, onClose, courseId }) => {
   };
 
   const handleUnenroll = async (userId) => {
-    if (!confirm('Are you sure you want to unenroll this user from the course?')) {
-      return;
-    }
+    const user = courseUsers.find(u => u.user_id === userId);
+    setUserToUnenroll(user);
+    setShowUnenrollConfirm(true);
+  };
 
-    setUnenrollLoading(prev => ({ ...prev, [userId]: true }));
+  const confirmUnenroll = async () => {
+    if (!userToUnenroll) return;
+    
+    setUnenrollLoading(prev => ({ ...prev, [userToUnenroll.user_id]: true }));
     try {
-      const response = await unenrollUser(courseId, userId);
+      const response = await unenrollUser(courseId, userToUnenroll.user_id);
       if (response.success) {
         // Remove the user from the list
-        setCourseUsers(prev => prev.filter(user => user.user_id !== userId));
+        setCourseUsers(prev => prev.filter(user => user.user_id !== userToUnenroll.user_id));
         // Show success message
         alert('User unenrolled successfully!');
       } else {
@@ -72,8 +79,15 @@ const CourseUsersModal = ({ isOpen, onClose, courseId }) => {
     } catch (err) {
       setError(err.message || "Failed to unenroll user");
     } finally {
-      setUnenrollLoading(prev => ({ ...prev, [userId]: false }));
+      setUnenrollLoading(prev => ({ ...prev, [userToUnenroll.user_id]: false }));
+      setShowUnenrollConfirm(false);
+      setUserToUnenroll(null);
     }
+  };
+
+  const cancelUnenroll = () => {
+    setShowUnenrollConfirm(false);
+    setUserToUnenroll(null);
   };
 
   // Filter users based on search term
@@ -288,6 +302,20 @@ const CourseUsersModal = ({ isOpen, onClose, courseId }) => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showUnenrollConfirm && (
+        <ConfirmationDialog
+          isOpen={showUnenrollConfirm}
+          onClose={cancelUnenroll}
+          onConfirm={confirmUnenroll}
+          title="Unenroll Student"
+          message={`Are you sure you want to unenroll ${userToUnenroll?.user?.first_name} ${userToUnenroll?.user?.last_name} from this course? This action cannot be undone and will remove their access to all course materials.`}
+          confirmText="Unenroll Student"
+          cancelText="Cancel"
+          type="danger"
+        />
+      )}
     </div>
   );
 };

@@ -28,9 +28,6 @@ export function CourseView() {
           fetchCourseModules(courseId)
         ]);
         
-        console.log('Fetched course details:', courseData);
-        console.log('Fetched modules:', modulesData);
-        
         setCourseDetails(courseData);
         setModules(modulesData);
         setFilteredModules(modulesData);
@@ -42,7 +39,6 @@ export function CourseView() {
         }, 0);
         setTotalDuration(total);
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError("Failed to load course data");
       } finally {
         setIsLoading(false);
@@ -144,16 +140,7 @@ export function CourseView() {
                   </div>
                 </div>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Enrolled Students</p>
-                        <p className="font-semibold">{courseDetails.enrolled_students || courseDetails.students_count || 0}</p>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-green-100 rounded-lg">
                         <BookOpen className="h-5 w-5 text-green-600" />
@@ -222,7 +209,6 @@ export function CourseView() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredModules.map((module) => {
-                // console.log('Rendering module:', module.title);
                 return (
                   <div key={module.id} className="module-card h-full">
                     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full">

@@ -16,7 +16,7 @@ export const UserProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch user profile on mount
+  // Fetch user profile on mount and when authentication changes
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -70,6 +70,7 @@ export const UserProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to load user profile:', err);
       setError(err.message);
+      setUserProfile(null);
     } finally {
       setIsLoading(false);
     }

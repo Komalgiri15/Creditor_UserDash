@@ -16,6 +16,7 @@ export function ModuleView() {
   const [contentLoaded, setContentLoaded] = useState(false);
   const iframeRef = useRef(null);
 
+
   useEffect(() => {
     const fetchModule = async () => {
       setIsLoading(true);

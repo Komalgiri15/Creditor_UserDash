@@ -108,8 +108,6 @@ function ImmersiveReader({
         fullTextRef.current = fullText;
         setTextContent(fullText);
         
-        console.log("Text prepared for speech, length:", fullText.length);
-        
         // Process content for highlighting with improved word mapping
         processContentForHighlighting(content, currentVersion);
       } catch (error) {
@@ -203,7 +201,6 @@ function ImmersiveReader({
       
       // Set the processed HTML content
       setProcessedContent(doc.body.innerHTML);
-      console.log(`Processed content for highlighting with ${wordIndex} indexed words`);
     } catch (error) {
       console.error("Error processing content for highlighting:", error);
       setProcessedContent(htmlContent); // Fallback to original content

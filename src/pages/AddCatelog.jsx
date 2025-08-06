@@ -10,6 +10,7 @@ import {
   fetchAvailableCourses,
   getCatalogCourses
 } from "@/services/instructorCatalogService";
+import ConfirmationDialog from "@/components/ui/ConfirmationDialog";
 
 
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000";
@@ -37,20 +38,18 @@ const AddCatelog = () => {
   const catalogsPerPage = 4;
   const [courseCounts, setCourseCounts] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [catalogToDelete, setCatalogToDelete] = useState(null);
 
   // Test function to debug course association
   const testCourseAssociation = async (catalogId, courseIds) => {
-    console.log('🧪 Testing course association...');
-    console.log('Catalog ID:', catalogId);
-    console.log('Course IDs:', courseIds);
-    
     try {
       const result = await addCoursesToCatalog(catalogId, courseIds);
-      console.log('Test result:', result);
       
       // Verify the courses were added
       const courses = await getCatalogCourses(catalogId);
-      console.log('Courses in catalog after test:', courses);
       
       return { success: true, courses };
     } catch (error) {
@@ -61,9 +60,6 @@ const AddCatelog = () => {
 
   // Test function to debug catalog ID extraction
   const testCatalogIdExtraction = (response) => {
-    console.log('🔍 Testing catalog ID extraction...');
-    console.log('Response:', response);
-    
     let catalogId = response.data?.data?.id || 
                    response.data?.data?._id ||
                    response.data?.id || 
@@ -73,7 +69,6 @@ const AddCatelog = () => {
                    response.catalogId ||
                    response.catalog_id;
     
-    console.log('Extracted catalog ID:', catalogId);
     return catalogId;
   };
 
@@ -81,7 +76,6 @@ const AddCatelog = () => {
   const refreshCatalogsAndCounts = async () => {
     try {
       setRefreshing(true);
-      console.log('🔄 Refreshing catalogs and course counts...');
       
       // Fetch catalogs and available courses
       const [catalogsData, coursesData] = await Promise.all([
@@ -102,7 +96,6 @@ const AddCatelog = () => {
           try {
             const courses = await getCatalogCourses(catalog.id);
             counts[catalog.id] = courses.length;
-            console.log(`Catalog "${catalog.name}" has ${courses.length} published courses`);
           } catch (error) {
             console.error(`Failed to fetch courses for catalog ${catalog.id}:`, error);
             counts[catalog.id] = 0;
@@ -111,7 +104,6 @@ const AddCatelog = () => {
       );
       setCourseCounts(counts);
       
-      console.log('✅ Catalogs and course counts refreshed successfully');
       // Show a brief success message for manual refresh
       if (!loading) {
         setFormSuccess("Data refreshed successfully!");
@@ -148,12 +140,10 @@ const AddCatelog = () => {
     
     if (name === "courses") {
       const courseId = value;
-      console.log(`Course selection change: ${courseId} - ${checked ? 'checked' : 'unchecked'}`);
       setForm(prev => {
         const newCourses = checked
           ? [...prev.courses, courseId]
           : prev.courses.filter(id => id !== courseId);
-        console.log('Updated courses array:', newCourses);
         return {
           ...prev,
           courses: newCourses
@@ -169,7 +159,6 @@ const AddCatelog = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Submit button clicked - current form state:', form);
     if (!form.name || !form.description) {
       setFormError("Name and description are required.");
       return;
@@ -180,9 +169,6 @@ const AddCatelog = () => {
     setFormSuccess("");
 
     try {
-      console.log('Form data before submission:', form);
-      console.log('Selected courses count:', form.courses.length);
-      console.log('Selected course IDs:', form.courses);
       
       const catalogData = {
         name: form.name,
@@ -209,10 +195,9 @@ const AddCatelog = () => {
           setFormSuccess("Catalog updated successfully!");
         }
       } else {
-        // Create new catalog
+                  // Create new catalog
         try {
           newCatalog = await createCatalog(catalogData);
-          console.log('Catalog creation response:', newCatalog);
           
           // Check if there's a warning about local storage
           if (newCatalog.warning) {
@@ -220,7 +205,6 @@ const AddCatelog = () => {
           } else {
             const courseMessage = form.courses.length > 0 ? ` with ${form.courses.length} course(s)` : '';
             setFormSuccess(`Catalog created successfully${courseMessage}!`);
-            console.log(`Catalog created with ${form.courses.length} courses selected`);
           }
         } catch (createError) {
           
@@ -243,16 +227,6 @@ const AddCatelog = () => {
       const extractedCatalogId = testCatalogIdExtraction(newCatalog);
 
       // Handle course associations for both create and update
-      console.log('Checking catalog ID for course association:', newCatalog);
-      console.log('newCatalog type:', typeof newCatalog);
-      console.log('newCatalog keys:', Object.keys(newCatalog || {}));
-      console.log('newCatalog.data:', newCatalog.data);
-      console.log('newCatalog.data type:', typeof newCatalog.data);
-      console.log('newCatalog.data keys:', Object.keys(newCatalog.data || {}));
-      console.log('newCatalog.data.data:', newCatalog.data?.data);
-      console.log('newCatalog.data.data type:', typeof newCatalog.data?.data);
-      console.log('newCatalog.data.data keys:', Object.keys(newCatalog.data?.data || {}));
-      console.log('Full response structure:', JSON.stringify(newCatalog, null, 2));
       
       // Try multiple possible locations for the catalog ID
       let catalogId = newCatalog.data?.data?.id || 
@@ -264,13 +238,9 @@ const AddCatelog = () => {
                      newCatalog.catalogId ||
                      newCatalog.catalog_id;
       
-      console.log('Initial extracted catalog ID:', catalogId);
-      
       // If we don't have a catalog ID, try to find it in the response
       if (!catalogId && newCatalog && typeof newCatalog === 'object') {
-        console.log('Searching for catalog ID in response object...');
         const allKeys = Object.keys(newCatalog);
-        console.log('All keys in newCatalog:', allKeys);
         
         // Deep search through nested objects
         const searchForId = (obj, path = '') => {
@@ -283,7 +253,6 @@ const AddCatelog = () => {
             if (value && typeof value === 'object') {
               if (value.id || value._id) {
                 const foundId = value.id || value._id;
-                console.log(`Found potential catalog ID in ${currentPath}:`, foundId);
                 if (!catalogId) {
                   catalogId = foundId;
                 }
@@ -298,15 +267,11 @@ const AddCatelog = () => {
         searchForId(newCatalog);
       }
       
-      console.log('Final extracted catalog ID:', catalogId);
-      
       // Store the selected courses for later use if we need fallback
       const selectedCourses = [...form.courses];
-      console.log('Stored selected courses for fallback:', selectedCourses);
       
       // Handle course associations for updates (existing catalogs)
       if (catalogId && editId) {
-        console.log('Handling course association for catalog update:', catalogId);
         try {
           // For updates, we need to get the current courses and sync them
           let currentCourses = [];
@@ -314,7 +279,7 @@ const AddCatelog = () => {
             const currentCoursesData = await getCatalogCourses(editId);
             currentCourses = Array.isArray(currentCoursesData) ? currentCoursesData : [];
           } catch (error) {
-            console.log('Could not fetch current courses, proceeding with form data');
+            // Could not fetch current courses, proceeding with form data
           }
           
           const currentCourseIds = currentCourses.map(course => course.id || course._id || course);
@@ -346,34 +311,23 @@ const AddCatelog = () => {
       
       // Always try to add courses, even if we don't have a catalog ID initially
       if (selectedCourses.length > 0) {
-        console.log('🎯 COURSE ASSOCIATION PROCESS STARTED');
-        console.log('Selected courses:', selectedCourses);
-        console.log('Catalog ID available:', !!catalogId);
-        console.log('Catalog ID value:', catalogId);
-        console.log('Is edit mode:', !!editId);
-        console.log('Attempting to add courses to catalog...');
         
                  if (catalogId) {
            // We have a catalog ID, add courses directly
-           console.log('Adding courses with known catalog ID:', catalogId);
            try {
              // Add a small delay to ensure the catalog is fully created
              await new Promise(resolve => setTimeout(resolve, 500));
              
              const addResult = await addCoursesToCatalog(catalogId, selectedCourses);
-             console.log('Course addition result:', addResult);
              
              if (addResult.success) {
-               console.log('Courses added successfully');
                
                // Verify the courses were actually added
                try {
                  await new Promise(resolve => setTimeout(resolve, 300));
                  const verifyCourses = await getCatalogCourses(catalogId);
-                 console.log('Verification - courses in catalog after addition:', verifyCourses);
                  
                  if (verifyCourses && verifyCourses.length > 0) {
-                   console.log(`✅ Successfully verified ${verifyCourses.length} courses in catalog`);
                    setFormSuccess(prev => prev + ` (${verifyCourses.length} courses added successfully)`);
                  } else {
                    console.warn('Courses not found in catalog after addition');
@@ -393,7 +347,6 @@ const AddCatelog = () => {
            }
                   } else {
            // No catalog ID, try to find it in the updated list
-           console.log('No catalog ID found, trying fallback approach...');
            // Add delay to ensure catalog is fully created in backend
            await new Promise(resolve => setTimeout(resolve, 2000));
            await refreshCatalogsAndCounts();
@@ -407,26 +360,18 @@ const AddCatelog = () => {
               cat.name === newCatalog.data?.name
             );
             
-            console.log('Looking for catalog with name:', form.name);
-            console.log('Available catalog names:', catalogs.map(cat => cat.name));
-            console.log('Matching catalog found:', matchingCatalog);
-            
                          if (matchingCatalog) {
                const fallbackCatalogId = matchingCatalog.id || matchingCatalog._id;
-               console.log('Found fallback catalog ID:', fallbackCatalogId);
               
               if (fallbackCatalogId) {
-                console.log('Attempting course addition with fallback catalog ID');
                 try {
                   const addResult = await addCoursesToCatalog(fallbackCatalogId, selectedCourses);
-                  console.log('Fallback course addition result:', addResult);
                   
                                    if (addResult.success) {
                    // Verify the courses were actually added
                    try {
                      await new Promise(resolve => setTimeout(resolve, 500));
                      const verifyCourses = await getCatalogCourses(fallbackCatalogId);
-                     console.log('Fallback verification - courses in catalog:', verifyCourses);
                      
                      if (verifyCourses && verifyCourses.length > 0) {
                        setFormSuccess(prev => prev + ` (${verifyCourses.length} courses added via fallback)`);
@@ -451,12 +396,8 @@ const AddCatelog = () => {
       }
       
       // Final refresh to update the UI
-      console.log('🔄 Performing final refresh...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       await refreshCatalogsAndCounts();
-      console.log('✅ All operations completed successfully');
-      console.log('🎯 COURSE ASSOCIATION PROCESS COMPLETED');
-      console.log('Final course counts:', courseCounts);
     } catch (err) {
       setFormError((err && err.message ? err.message : "Failed to save catalog. Please try again.") + (err && err.stack ? "\n" + err.stack : ""));
     } finally {
@@ -514,15 +455,12 @@ const AddCatelog = () => {
           );
           
           if (titleMatch) {
-            console.log(`Matched course by title: ${catalogCourse.title} -> ${titleMatch.id}`);
             return titleMatch.id;
           }
         }
         
         return null; // No match found
       }).filter(Boolean); // Remove null values
-      
-      console.log('Final valid course IDs:', validCourseIds);
       
       // Always sync form state with latest catalog data
       setForm({
@@ -539,26 +477,39 @@ const AddCatelog = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this catalog?")) {
-      try {
-        const result = await deleteCatalog(id);
-        
-        // Show appropriate message
-        if (result.warning) {
-          setFormSuccess(`${result.message} (${result.warning})`);
-        } else {
-          setFormSuccess(result.message || "Catalog deleted successfully!");
-        }
-        
-        // Refresh catalogs and course counts after successful deletion
-        console.log('🔄 Refreshing data after catalog deletion...');
-        await refreshCatalogsAndCounts();
-      } catch (err) {
-        setFormError(err.message || "Failed to delete catalog. Please try again.");
+    // Find the catalog object to get its name
+    const catalog = catalogs.find(cat => cat.id === id);
+    setCatalogToDelete(catalog);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!catalogToDelete) return;
+    try {
+      const result = await deleteCatalog(catalogToDelete.id);
+      
+      // Show appropriate message
+      if (result.warning) {
+        setFormSuccess(`${result.message} (${result.warning})`);
+      } else {
+        setFormSuccess(result.message || "Catalog deleted successfully!");
       }
+      
+      // Refresh catalogs and course counts after successful deletion
+      await refreshCatalogsAndCounts();
+      setShowDeleteConfirm(false);
+      setCatalogToDelete(null);
+    } catch (err) {
+      setFormError(err.message || "Failed to delete catalog. Please try again.");
+      setShowDeleteConfirm(false);
+      setCatalogToDelete(null);
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setCatalogToDelete(null);
+  };
 
 
   // Fallback to ensure catalogs is always an array
@@ -790,7 +741,7 @@ const AddCatelog = () => {
             <div>
               <h3 className="text-sm font-medium text-yellow-800">Limited Permissions</h3>
               <p className="text-sm text-yellow-700 mt-1">
-                You are logged in with role: <strong>{userRoles.length > 0 ? userRoles[0] : 'user'}</strong>. Catalog changes will be saved locally only. 
+                You are logged in with role: <strong>{userRole || 'user'}</strong>. Catalog changes will be saved locally only. 
                 Contact an administrator to get instructor or admin permissions for full functionality.
               </p>
               <p className="text-sm text-yellow-600 mt-2">
@@ -842,13 +793,11 @@ const AddCatelog = () => {
           <button
             className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             onClick={() => { 
-              console.log('Opening modal for new catalog creation');
               setShowModal(true); 
               setEditId(null); 
               setForm({ name: "", description: "", thumbnail: "", courses: [] }); 
               setFormError("");
               setFormSuccess("");
-              console.log('Form reset for new catalog');
             }}
           >
             Add New Catalog
@@ -1150,6 +1099,19 @@ const AddCatelog = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmationDialog
+          isOpen={showDeleteConfirm}
+          onClose={cancelDelete}
+          onConfirm={confirmDelete}
+          title="Delete Catalog"
+          message={`Are you sure you want to delete the catalog "${catalogToDelete?.name || 'Unknown Catalog'}"? This action cannot be undone and will remove all associated course relationships.`}
+          confirmText="Delete Catalog"
+          cancelText="Cancel"
+          type="danger"
+        />
       )}
     </div>
   );
