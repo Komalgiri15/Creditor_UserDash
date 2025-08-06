@@ -10,6 +10,8 @@ export function ModuleView() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     const fetchModule = async () => {
       setIsLoading(true);
@@ -101,9 +103,8 @@ export function ModuleView() {
     );
   }
 
-  // HARDCODED SCORM TEST URL
-  const testIframeUrl =
-    "https://creditor-backend-testing-branch.onrender.com/api/scorm/launch/29f70914-f647-4870-8fb6-7fcc522032aa/scormcontent/index.html#/";
+  // ✅ Build the iframe URL using .env variable
+  const testIframeUrl = `${API_BASE_URL}/api/scorm/launch/29f70914-f647-4870-8fb6-7fcc522032aa/scormcontent/index.html#/`;
 
   return (
     <div className="flex flex-col min-h-screen">
