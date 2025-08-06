@@ -14,6 +14,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { fetchUserCourses, fetchCourseModules } from '../services/courseService';
 import { useUser } from '@/contexts/UserContext';
+import { getAuthToken } from '@/services/userService';
+import apiClient from '@/utils/apiClient';
 
 
 export function Dashboard() {
@@ -56,18 +58,13 @@ export function Dashboard() {
   const [coursesError, setCoursesError] = useState(null);
   const [userCoursesMap, setUserCoursesMap] = useState({});
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-gvtd.onrender.com";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:9000";
   // Get userId from localStorage or cookies, or fetch from profile
   const [userId, setUserId] = useState(localStorage.getItem('userId') || Cookies.get('userId'));
 
   const fetchUserOverview = async () => {
     try {
       setLoading(true);
-      // Get token from cookies (primary) or localStorage (fallback)
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
       
       // Get userId - use from context if available, otherwise fetch from profile
       let currentUserId = userId;
@@ -90,13 +87,7 @@ export function Dashboard() {
         // console.log('👤 User ID:', currentUserId);
         
         // Get user courses using the correct endpoint
-        const userCoursesResponse = await axios.get(`${API_BASE}/api/course/getCourses`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          withCredentials: true
-        });
+        const userCoursesResponse = await apiClient.get('/api/course/getCourses');
         
         console.log('✅ API Response:', userCoursesResponse.data);
         

@@ -1,10 +1,10 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import Cookies from "js-cookie";
+import { getAuthToken } from "@/services/userService";
 
 const ProtectedRoute = ({ children }) => {
-  // Check for token in both cookies and localStorage
-  const token = Cookies.get("token") || localStorage.getItem("token");
+  // Check for token using the centralized function
+  const token = getAuthToken();
   
   if (!token) {
     // No token found, redirect to login

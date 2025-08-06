@@ -132,7 +132,7 @@ const ScormPage = () => {
         description,
       });
       
-      const fullUrl = `${import.meta.env.VITE_API_BASE_URL}${result.data.url}`;
+      const fullUrl = result.data.url;
       
       setScormUploadState((prev) => ({
         ...prev,
@@ -493,10 +493,11 @@ const ScormPage = () => {
             </div>
             <div className="flex-1 p-6">
               <iframe
-                src={`${import.meta.env.VITE_API_BASE_URL}${previewModule.resource_url}`}
+                src={previewModule.resource_url}
                 className="w-full h-full border border-gray-300 rounded-md"
                 title={previewModule.title}
                 allowFullScreen
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
               />
             </div>
           </div>

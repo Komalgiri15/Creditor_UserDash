@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCORM Bridge Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SCORM Bridge Test Page</h1>
+        <p>This page tests the SCORM bridge functionality for cross-origin communication.</p>
+        
+        <div class="test-section">
+            <h3>Height Communication Test</h3>
+            <button onclick="sendHeight()">Send Current Height</button>
+            <button onclick="simulateResize()">Simulate Content Resize</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>SCORM API Test</h3>
+            <button onclick="simulateScormCall()">Simulate SCORM CommitData Call</button>
+            <button onclick="testAPI()">Test SCORM API</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Message Log</h3>
+            <div id="messageLog" class="log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Content Area</h3>
+            <div id="contentArea" style="min-height: 300px; border: 2px dashed #ccc; padding: 20px; margin: 10px 0;">
+                <h4>Test Content</h4>
+                <p>This is test content to simulate a SCORM module. The height of this area can be changed to test dynamic sizing.</p>
+                <button onclick="addContent()">Add More Content</button>
+                <button onclick="removeContent()">Remove Content</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SCORM Bridge for cross-origin communication
+        window.scormBridge = {
+            // Send message to parent window
+            sendMessage: function(type, data) {
+                try {
+                    window.parent.postMessage({
+                        type: type,
+                        data: data,
+                        source: 'scorm-content'
+                    }, '*');
+                    this.logMessage('Sent message: ' + type, data);
+                } catch (error) {
+                    this.logMessage('Failed to send message: ' + error.message);
+                }
+            },
+            
+            // Get content height and send to parent
+            sendHeight: function() {
+                try {
+                    const height = Math.max(
+                        document.body.scrollHeight,
+                        document.body.offsetHeight,
+                        document.documentElement.clientHeight,
+                        document.documentElement.scrollHeight,
+                        document.documentElement.offsetHeight
+                    );
+                    this.sendMessage('resize', { height: height });
+                } catch (error) {
+                    this.logMessage('Failed to send height: ' + error.message);
+                }
+            },
+            
+            // Handle SCORM API calls
+            handleScormCall: function(functionName, parameters) {
+                try {
+                    this.sendMessage('scorm-call', {
+                        function: functionName,
+                        parameters: parameters
+                    });
+                } catch (error) {
+                    this.logMessage('Failed to handle SCORM call: ' + error.message);
+                }
+            },
+            
+            // Log messages
+            logMessage: function(message, data) {
+                const log = document.getElementById('messageLog');
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = `[${timestamp}] ${message}` + (data ? ' - ' + JSON.stringify(data) : '');
+                log.innerHTML += logEntry + '<br>';
+                log.scrollTop = log.scrollHeight;
+                console.log(logEntry);
+            },
+            
+            // Initialize the bridge
+            init: function() {
+                this.logMessage('SCORM Bridge initialized');
+                
+                // Send initial height
+                setTimeout(() => this.sendHeight(), 100);
+                
+                // Listen for messages from parent
+                window.addEventListener('message', (event) => {
+                    this.logMessage('Received message from parent', event.data);
+                    
+                    if (event.data && event.data.type === 'getHeight') {
+                        this.sendHeight();
+                    }
+                });
+                
+                // Monitor for height changes
+                const resizeObserver = new ResizeObserver(() => {
+                    this.sendHeight();
+                });
+                
+                if (document.body) {
+                    resizeObserver.observe(document.body);
+                }
+                
+                // Simulate SCORM API
+                window.API = {
+                    CommitData: function() {
+                        this.logMessage('SCORM CommitData called');
+                        return "true";
+                    }.bind(this),
+                    
+                    GetValue: function(element) {
+                        this.logMessage('SCORM GetValue called for: ' + element);
+                        return "test_value";
+                    }.bind(this),
+                    
+                    SetValue: function(element, value) {
+                        this.logMessage('SCORM SetValue called: ' + element + ' = ' + value);
+                        return "true";
+                    }.bind(this)
+                };
+                
+                this.logMessage('SCORM API initialized');
+            }
+        };
+        
+        // Test functions
+        function sendHeight() {
+            window.scormBridge.sendHeight();
+        }
+        
+        function simulateResize() {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.style.height = Math.random() * 200 + 200 + 'px';
+            window.scormBridge.sendHeight();
+        }
+        
+        function simulateScormCall() {
+            if (window.API && window.API.CommitData) {
+                window.API.CommitData();
+            }
+        }
+        
+        function testAPI() {
+            if (window.API) {
+                window.API.SetValue('cmi.core.lesson_status', 'completed');
+                window.API.GetValue('cmi.core.lesson_status');
+                window.API.CommitData();
+            }
+        }
+        
+        function addContent() {
+            const contentArea = document.getElementById('contentArea');
+            const newContent = document.createElement('div');
+            newContent.innerHTML = '<p>Additional content added at ' + new Date().toLocaleTimeString() + '</p>';
+            contentArea.appendChild(newContent);
+            window.scormBridge.sendHeight();
+        }
+        
+        function removeContent() {
+            const contentArea = document.getElementById('contentArea');
+            const children = contentArea.children;
+            if (children.length > 2) { // Keep the title and first paragraph
+                contentArea.removeChild(children[children.length - 1]);
+                window.scormBridge.sendHeight();
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('messageLog').innerHTML = '';
+        }
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.scormBridge.init();
+            });
+        } else {
+            window.scormBridge.init();
+        }
+    </script>
+</body>
+</html> 

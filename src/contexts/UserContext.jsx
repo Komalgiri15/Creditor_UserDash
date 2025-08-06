@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchUserProfile } from '@/services/userService';
+import { fetchUserProfile, getAuthToken } from '@/services/userService';
 
 const UserContext = createContext();
 
@@ -21,10 +21,50 @@ export const UserProvider = ({ children }) => {
     loadUserProfile();
   }, []);
 
+  // Listen for login events to refresh user profile
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'token' && event.newValue) {
+        // Token was added, refresh user profile
+        console.log('Token detected, refreshing user profile');
+        setTimeout(() => {
+          loadUserProfile();
+        }, 200); // Small delay to ensure token is fully set
+      }
+    };
+
+    // Listen for localStorage changes (cross-tab)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Listen for custom events (same tab)
+    const handleUserLogin = () => {
+      console.log('User login event detected, refreshing profile');
+      setTimeout(() => {
+        loadUserProfile();
+      }, 200);
+    };
+
+    window.addEventListener('userLoggedIn', handleUserLogin);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLoggedIn', handleUserLogin);
+    };
+  }, []);
+
   const loadUserProfile = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // Check if token is available before fetching profile
+      const token = getAuthToken();
+      if (!token) {
+        console.log('No token available, skipping profile fetch');
+        setUserProfile(null);
+        return;
+      }
+      
       const data = await fetchUserProfile();
       setUserProfile(data);
     } catch (err) {

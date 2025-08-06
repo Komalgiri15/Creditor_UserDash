@@ -22,6 +22,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-bh52.onrender.com'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://localhost:9000'),
   },
 }));

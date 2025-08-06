@@ -1,4 +1,12 @@
 // Service for user profile API calls
+import Cookies from 'js-cookie';
+import apiClient from '@/utils/apiClient';
+
+// Utility function to get token from both cookies and localStorage
+export function getAuthToken() {
+  // Try cookies first, then localStorage
+  return Cookies.get("token") || localStorage.getItem("token");
+}
 
 // Utility function to get user role (for backward compatibility)
 export function getUserRole() {
@@ -73,66 +81,46 @@ export function setSingleRole(role) {
 
 // Utility function to clear user data on logout
 export function clearUserData() {
+  // Clear tokens from both cookies and localStorage
+  Cookies.remove("token");
+  localStorage.removeItem("token");
   localStorage.removeItem('userRole');
   localStorage.removeItem('userRoles');
   // Dispatch custom event to notify other components
   window.dispatchEvent(new Event('userRoleChanged'));
 }
 
-export async function fetchUserProfile() {
+export async function fetchUserProfile(retryCount = 0) {
   try {
-    console.log("🔍 userService: Fetching profile from:", `${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`);
+    console.log("🔍 userService: Fetching profile from:", `/api/user/getUserProfile`);
     
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    const response = await apiClient.get('/api/user/getUserProfile');
     
-    console.log("🔍 userService: Response status:", response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ userService: Fetch profile failed:", response.status, errorText);
-      throw new Error(`Failed to fetch user profile: ${response.status} ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log("✅ userService: Fetch profile success:", result);
-    return result.data; // Return only the user object
+    console.log("✅ userService: Fetch profile success:", response.data);
+    return response.data.data; // Return only the user object
   } catch (error) {
     console.error("❌ userService: Fetch profile error:", error);
+    
+    // If unauthorized and we haven't retried yet, try once more after a small delay
+    if (error.response?.status === 401 && retryCount < 1) {
+      console.log("🔄 userService: Retrying profile fetch due to 401 error");
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+      return fetchUserProfile(retryCount + 1);
+    }
+    
     throw error;
   }
 }
 
 export async function updateUserProfile(profileData) {
   try {
-    console.log("📤 userService: Updating profile to:", `${import.meta.env.VITE_API_BASE_URL}/api/user/updateUserProfile`);
+    console.log("📤 userService: Updating profile to:", `/api/user/updateUserProfile`);
     console.log("📤 userService: Update data:", profileData);
     
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/updateUserProfile`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(profileData),
-    });
+    const response = await apiClient.put('/api/user/updateUserProfile', profileData);
     
-    console.log("🔍 userService: Update response status:", response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ userService: Update profile failed:", response.status, errorText);
-      throw new Error(`Failed to update user profile: ${response.status} ${errorText}`);
-    }
-    
-    const result = await response.json();
-    console.log("✅ userService: Update profile success:", result);
-    return result;
+    console.log("✅ userService: Update profile success:", response.data);
+    return response.data;
   } catch (error) {
     console.error("❌ userService: Update profile error:", error);
     throw error;
