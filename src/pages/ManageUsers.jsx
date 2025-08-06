@@ -270,20 +270,75 @@ const ManageUsers = () => {
     setCurrentPage(1);
   }, [searchTerm, filterRole]);
 
+  // Modified handleSelectAll to accumulate selections across pages
+  const handleSelectAll = () => {
+    const currentPageUserIds = currentUsers.map(user => user.id);
+    const allCurrentSelected = currentPageUserIds.every(id => selectedUsers.includes(id));
+    if (allCurrentSelected) {
+      // Deselect all users on this page only
+      setSelectedUsers(selectedUsers.filter(id => !currentPageUserIds.includes(id)));
+    } else {
+      // Add all users from this page to the selection (accumulate)
+      setSelectedUsers(Array.from(new Set([...selectedUsers, ...currentPageUserIds])));
+    }
+  };
+
+  // Only show the select-all-across-pages button if all users on the current page are selected
+  const showSelectAllAcrossPages = () => {
+    const currentPageUserIds = currentUsers.map(user => user.id);
+    return currentPageUserIds.length > 0 && currentPageUserIds.every(id => selectedUsers.includes(id));
+  };
+
+  // handleSelectUser: Deselecting a user removes them from selectedUsers
   const handleSelectUser = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
+    setSelectedUsers(prev =>
+      prev.includes(userId)
         ? prev.filter(id => id !== userId)
         : [...prev, userId]
     );
   };
 
-  const handleSelectAll = () => {
-    if (selectedUsers.length === currentUsers.length) {
+  // New function to select all users across all pages for the current filter role
+  const handleSelectAllUsers = () => {
+    // Get all users that match the current filter role
+    const allFilteredUsers = users.filter(user => {
+      const matchesSearch = user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const userRole = getUserRole(user);
+      const matchesRole = userRole === filterRole;
+      
+      return matchesSearch && matchesRole;
+    });
+
+    // Get all user IDs for the filtered users
+    const allFilteredUserIds = allFilteredUsers.map(user => user.id);
+    
+    // Check if all filtered users are already selected
+    const allSelected = allFilteredUserIds.every(id => selectedUsers.includes(id));
+    
+    if (allSelected) {
+      // If all are selected, deselect all
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(currentUsers.map(user => user.id));
+      // If not all are selected, select all
+      setSelectedUsers(allFilteredUserIds);
     }
+  };
+
+  // Helper function to get total count of users for current filter role
+  const getTotalFilteredUsersCount = () => {
+    return users.filter(user => {
+      const matchesSearch = user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const userRole = getUserRole(user);
+      const matchesRole = userRole === filterRole;
+      
+      return matchesSearch && matchesRole;
+    }).length;
   };
 
   const handleAddToCourse = async () => {
@@ -1263,6 +1318,16 @@ const ManageUsers = () => {
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-blue-800">
               {selectedUsers.length} {filterRole}(s) selected
+              {selectedUsers.length > currentUsers.length && (
+                <span className="text-xs text-blue-600 ml-2">
+                  (across all pages)
+                </span>
+              )}
+              {selectedUsers.length > 0 && selectedUsers.length <= currentUsers.length && (
+                <span className="text-xs text-gray-500 ml-2">
+                  (current page only)
+                </span>
+              )}
             </span>
             <div className="flex gap-2">
               {/* Role Management Buttons */}
@@ -1484,12 +1549,78 @@ const ManageUsers = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.length === currentUsers.length && currentUsers.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={currentUsers.length > 0 && currentUsers.every(user => selectedUsers.includes(user.id))}
+                      onChange={handleSelectAll}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    {/* Show Select All [Role]s (X) button only if all users on this page are selected */}
+                    {showSelectAllAcrossPages() && (
+                      filterRole === "user" ? (
+                        <button
+                          onClick={handleSelectAllUsers}
+                          className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                            selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                          title={`Select all ${getTotalFilteredUsersCount()} users across all pages`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          All Users ({getTotalFilteredUsersCount()})
+                          {selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0 && (
+                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      ) : filterRole === "instructor" ? (
+                        <button
+                          onClick={handleSelectAllUsers}
+                          className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                            selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                          title={`Select all ${getTotalFilteredUsersCount()} instructors across all pages`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          All Instructors ({getTotalFilteredUsersCount()})
+                          {selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0 && (
+                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      ) : filterRole === "admin" && (
+                        <button
+                          onClick={handleSelectAllUsers}
+                          className={`px-2 py-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                            selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                          }`}
+                          title={`Select all ${getTotalFilteredUsersCount()} admins across all pages`}
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                          </svg>
+                          All Admins ({getTotalFilteredUsersCount()})
+                          {selectedUsers.length === getTotalFilteredUsersCount() && getTotalFilteredUsersCount() > 0 && (
+                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User

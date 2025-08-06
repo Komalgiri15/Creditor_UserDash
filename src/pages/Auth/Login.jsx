@@ -133,7 +133,7 @@ export function Login() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-blue-700 bg-clip-text text-transparent">
                   Creditor Academy
                 </h1>
-                <p className="text-slate-600 text-lg">Premier private Education Platform</p>
+                <p className="text-slate-600 text-lg">Premier Private Education Platform</p>
               </div>
             </div>
           </div>
@@ -142,11 +142,11 @@ export function Login() {
             <h2 className="text-4xl font-bold mb-6 leading-tight text-slate-800">
               Master the Art of
               <span className="block bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                private Excellence
+                Private Excellence
               </span>
             </h2>
             <p className="text-lg text-slate-600 leading-relaxed mb-8">
-              Join thousands of legal professionals who have transformed their careers through our comprehensive, expert-led courses.
+              Join thousands of professionals who have transformed their careers through our comprehensive, expert-led courses.
             </p>
           </div>
           {/* Feature Highlights */}
@@ -172,13 +172,13 @@ export function Login() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">Creditor Academy</h2>
-                  <p className="text-xs text-slate-600">Legal Education Platform</p>
+                  <p className="text-xs text-slate-600">Private Education Platform</p>
                 </div>
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold text-slate-800 mb-1">Welcome Back</CardTitle>
                 <CardDescription className="text-slate-600">
-                  Sign in to continue your legal education journey
+                  Sign in to continue your private education journey
                 </CardDescription>
               </div>
             </CardHeader>
