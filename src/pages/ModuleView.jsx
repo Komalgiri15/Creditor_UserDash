@@ -191,30 +191,31 @@ export function ModuleView() {
       <main className="flex-1">
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="sm" asChild>
+          <div className="relative bg-gradient-to-r from-primary/10 to-white border-b border-gray-200 px-0 py-0 shadow-sm">
+            <div className="max-w-5xl mx-auto rounded-lg bg-white/90 backdrop-blur-md px-8 py-5 mt-6 mb-2 shadow-lg border-l-8 border-primary">
+              {/* Back to Modules Button - Top Left */}
+              <div className="mb-2">
+                <Button variant="ghost" size="sm" asChild className="text-primary font-semibold hover:bg-primary/10 -ml-2">
                   <Link to={`/dashboard/courses/${courseId}/modules`}>
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={18} className="mr-1" />
                     Back to Modules
                   </Link>
                 </Button>
-                <div>
-                  <h1 className="text-xl font-semibold">{module.title}</h1>
-                  <p className="text-sm text-muted-foreground">{module.description}</p>
-                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+              {/* Module Title and Description */}
+              <div className="flex flex-col items-start gap-2">
+                <h1 className="text-2xl font-bold text-primary drop-shadow-sm tracking-tight mb-1">
+                  {module.title}
+                </h1>
+                <p className="text-[15px] text-gray-700 font-normal leading-7 max-w-3xl text-left mb-0">
+                  {module.description}
+                </p>
+              </div>
+              {/* Fullscreen Button - Bottom Left */}
+              <div className="mt-4">
+                <Button variant="outline" size="sm" onClick={toggleFullscreen} className="border-primary text-primary hover:bg-primary/10">
                   {isFullscreen ? <Minimize2 size={16} className="mr-2" /> : <Maximize2 size={16} className="mr-2" />}
                   {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <a href={resourceUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink size={16} className="mr-2" />
-                    Open in New Tab
-                  </a>
                 </Button>
               </div>
             </div>
@@ -263,7 +264,7 @@ export function ModuleView() {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-presentation allow-top-navigation"
                   onError={handleIframeError}
-                  onLoad={handleIframeLoad}
+                  onLoad={handleIframeLoad} 
                 />
               </div>
             )}
