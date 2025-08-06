@@ -46,7 +46,7 @@ export function Login() {
         Cookies.set("token", response.data.token, { 
           expires: 7,
           secure: true,
-          sameSite: 'strict'
+          sameSite: 'None'
         });
         
         // Set default role first
