@@ -160,9 +160,9 @@ export function CatalogPage() {
 
                     <div className="flex items-center justify-between">
                       {/* Remove all Badge components that display catalog.category or 'General' in catalog cards */}
-                      <span className="text-sm text-muted-foreground">
+                      {/* <span className="text-sm text-muted-foreground">
                         Created: {new Date(catalog.created_at || Date.now()).toLocaleDateString()}
-                      </span>
+                      </span> */}
                     </div>
 
                     <Button className="w-full mt-2" asChild>
