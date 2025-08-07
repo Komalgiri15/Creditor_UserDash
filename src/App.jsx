@@ -165,6 +165,7 @@ function App() {
                 } />
                 <Route path="modules" element={<ModulesList />} />
                 <Route path="modules/:moduleId/view" element={<ModuleView />} />
+                <Route path="modules/:moduleId/assessments" element={<ModuleAssessmentsView />} />
                 <Route path="module/:moduleId">
                   <Route index element={<ModuleDetail />} />
                   <Route path="lessons" element={<ModuleLessonsView />} />

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, ChevronLeft, Play, BookOpen, Users, Calendar, Award } from "lucide-react";
+import { Search, Clock, ChevronLeft, Play, BookOpen, Users, Calendar, Award, FileText } from "lucide-react";
 import { fetchCourseModules, fetchCourseById } from "@/services/courseService";
 
 export function CourseView() {
@@ -251,14 +251,22 @@ export function CourseView() {
                       </div>
                       {/* Footer always at the bottom */}
                       <div className="mt-auto px-6 pb-4">
-                        <CardFooter className="p-0">
+                        <CardFooter className="p-0 flex flex-col gap-2">
                           {module.resource_url ? (
-                            <Link to={`/dashboard/courses/${courseId}/modules/${module.id}/view`} className="w-full">
-                              <Button className="w-full">
-                                <Play size={16} className="mr-2" />
-                                Start Module
-                              </Button>
-                            </Link>
+                            <>
+                              <Link to={`/dashboard/courses/${courseId}/modules/${module.id}/view`} className="w-full">
+                                <Button className="w-full">
+                                  <Play size={16} className="mr-2" />
+                                  Start Module
+                                </Button>
+                              </Link>
+                              <Link to={`/dashboard/courses/${courseId}/modules/${module.id}/assessments`} className="w-full">
+                                <Button variant="outline" className="w-full">
+                                  <FileText size={16} className="mr-2" />
+                                  Start Assessment
+                                </Button>
+                              </Link>
+                            </>
                           ) : (
                             <Button className="w-full" variant="outline" disabled>
                               No Content Available
