@@ -387,21 +387,25 @@ const CreateQuizPage = () => {
                 </div>
               ) : previewQuizData && previewQuizData.questions && previewQuizData.questions.length > 0 ? (
                 <div className="space-y-8">
-                  {previewQuizData.questions.map((q, idx) => (
-                    <div key={q.id} className="mb-6">
-                      <div className="font-medium text-gray-900 mb-2">{idx + 1}. {q.question}</div>
-                      {q.question_options && q.question_options.length > 0 && (
-                        <div className="space-y-2 ml-4">
-                          {q.question_options.map(opt => (
-                            <div key={opt.id} className="flex items-center">
-                              <input type="radio" disabled className="mr-2" name={`preview-q-${q.id}`} readOnly />
-                              <span className="text-gray-800">{opt.text}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {previewQuizData.questions.map((q, idx) => {
+                    const options = q.question_options && q.question_options.length > 0 ? q.question_options : (q.options || []);
+                    return (
+                      <div key={q.id} className="mb-6">
+                        <div className="font-medium text-gray-900 mb-2">{idx + 1}. {q.question}</div>
+                        {options.length > 0 && (
+                          <div className="space-y-2 ml-4">
+                            {options.map(opt => (
+                              <div key={opt.id || opt.text} className="flex items-center">
+                                <input type="radio" disabled className="mr-2" name={`preview-q-${q.id}`} checked={opt.isCorrect || false} readOnly />
+                                <span className="text-gray-800">{opt.text || opt}</span>
+                                {opt.isCorrect && <span className="ml-2 text-green-600 text-xs font-semibold">(Correct)</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
