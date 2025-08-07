@@ -207,9 +207,9 @@ export function ModuleView() {
                 <h1 className="text-2xl font-bold text-primary drop-shadow-sm tracking-tight mb-1">
                   {module.title}
                 </h1>
-                <p className="text-[15px] text-gray-700 font-normal leading-7 max-w-3xl text-left mb-0">
-                  {module.description}
-                </p>
+                                 <p className="text-sm text-gray-700 font-normal leading-6 text-justify mb-0">
+                   {module.description}
+                 </p>
               </div>
               {/* Fullscreen Button - Bottom Left */}
               <div className="mt-4">
