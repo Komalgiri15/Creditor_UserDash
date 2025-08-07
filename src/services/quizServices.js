@@ -79,3 +79,49 @@ export async function getQuizById(quizId) {
   const data = await response.json();
   return data.data || data;
 }
+
+// New functions for quiz scores and user attempts
+export async function fetchQuizScores(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/scores`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch quiz scores');
+  }
+  const data = await response.json();
+  return data.data || data;
+}
+
+export async function fetchUserQuizAttempts(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/attempts`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch user quiz attempts');
+  }
+  const data = await response.json();
+  return data.data || data;
+}
+
+export async function fetchQuizAnalytics(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/analytics`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch quiz analytics');
+  }
+  const data = await response.json();
+  return data.data || data;
+}

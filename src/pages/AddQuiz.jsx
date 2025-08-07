@@ -6,9 +6,10 @@ import { CreateModuleDialog } from "@/components/courses/CreateModuleDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Clock, ChevronLeft, Play, Eye, Plus, Trash2 } from "lucide-react";
+import { Search, Clock, ChevronLeft, Play, Eye, Plus, Trash2, Trophy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import QuizModal from '@/components/courses/QuizModal';
+import QuizScoresModal from '@/components/courses/QuizScoresModal';
 import { fetchQuizzesByModule, fetchAllQuizzes, getQuizById } from '@/services/quizServices';
 
 const COURSES_PER_PAGE = 5;
@@ -30,6 +31,8 @@ const CreateQuizPage = () => {
   const [previewQuizData, setPreviewQuizData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
+  const [showScoresModal, setShowScoresModal] = useState(false);
+  const [selectedQuizForScores, setSelectedQuizForScores] = useState(null);
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
 
@@ -170,13 +173,41 @@ const CreateQuizPage = () => {
     // Implement actual delete logic here
   };
 
+  const handleViewScores = (quiz, courseId) => {
+    setSelectedQuizForScores(quiz);
+    setShowScoresModal(true);
+  };
+
   const handleQuizCreatedOrUpdated = async () => {
     // Refresh all quizzes after creation or update
     if (isAllowed) {
       try {
+        console.log('Refreshing quiz data after creation/update...');
+        // Add a small delay to ensure backend has processed the update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         const quizzes = await fetchAllQuizzes();
+        console.log('Fetched quizzes:', quizzes);
         setAllQuizzes(Array.isArray(quizzes) ? quizzes : quizzes.data || []);
-      } catch {
+        
+        // Also refresh module-specific quizzes for the selected module
+        if (selectedModuleForQuiz) {
+          console.log('Refreshing module quizzes for module:', selectedModuleForQuiz);
+          await fetchAndSetModuleQuizzes(selectedModuleForQuiz);
+        }
+        
+        // Refresh all module quizzes to ensure consistency
+        const coursesData = await fetchAllCourses();
+        await Promise.all(
+          coursesData.flatMap(course =>
+            course.modules?.map(async (mod) => {
+              if (mod?.id) await fetchAndSetModuleQuizzes(mod.id);
+            }) || []
+          )
+        );
+        console.log('Quiz data refresh completed');
+      } catch (error) {
+        console.error('Error refreshing quiz data:', error);
         setAllQuizzes([]);
       }
     }
@@ -209,6 +240,61 @@ const CreateQuizPage = () => {
           onChange={e => setSearchTerm(e.target.value)}
           className="w-full max-w-md"
         />
+      </div>
+
+      {/* Quick Stats */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Trophy className="w-8 h-8 text-blue-600 mr-3" />
+              <div>
+                <p className="text-sm text-gray-600">Total Quizzes</p>
+                <p className="text-2xl font-bold">{allQuizzes.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Plus className="w-8 h-8 text-green-600 mr-3" />
+              <div>
+                <p className="text-sm text-gray-600">Active Courses</p>
+                <p className="text-2xl font-bold">{courses.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Eye className="w-8 h-8 text-purple-600 mr-3" />
+              <div>
+                <p className="text-sm text-gray-600">Total Modules</p>
+                <p className="text-2xl font-bold">
+                  {courses.reduce((sum, course) => sum + (course.modules?.length || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Clock className="w-8 h-8 text-orange-600 mr-3" />
+              <div>
+                <p className="text-sm text-gray-600">Quizzes with Questions</p>
+                <p className="text-2xl font-bold">
+                  {allQuizzes.filter(q => (q.questions?.length || q.question_count || 0) > 0).length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {paginatedCourses.length === 0 ? (
@@ -253,6 +339,7 @@ const CreateQuizPage = () => {
                       course.modules.map((mod) => {
                         // Get all quizzes for this module
                         const quizzes = allQuizzes.filter(q => q.module_id === mod.id);
+                        console.log(`Module ${mod.id} quizzes:`, quizzes);
                         return (
                           <div key={mod.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 p-6">
                             <div className="flex justify-between items-start">
@@ -305,15 +392,49 @@ const CreateQuizPage = () => {
                                       <div className="font-semibold text-gray-900">{quiz.title}</div>
                                       <div className="text-xs text-gray-500 mb-1">Type: {quiz.type} | Max Attempts: {quiz.maxAttempts}</div>
                                       <div className="text-xs text-gray-500 mb-1">Score: {quiz.min_score} - {quiz.max_score} | Time: {quiz.time_estimate} min</div>
-                                      <div className="text-xs text-gray-500 mb-1">Questions: {quiz.questions?.length || 0}</div>
+                                      <div className="text-xs text-gray-500 mb-1">Questions: {quiz.questions?.length || quiz.question_count || 0}</div>
                                     </div>
-                                    <div className="flex gap-2 mt-2 md:mt-0">
-                                      <Button onClick={() => handlePreviewQuiz(quiz)} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded shadow-sm">Preview</Button>
-                                      <Button onClick={() => handleDeleteQuiz(quiz)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded shadow-sm">Delete</Button>
-                                      {(!quiz.questions || quiz.questions.length === 0) && (
-                                        <Button onClick={() => { setSelectedModuleForQuiz(mod.id); setShowQuizModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded shadow-sm">Add Questions</Button>
-                                      )}
-                                    </div>
+                                                                          <div className="flex gap-2 mt-2 md:mt-0">
+                                        <Button
+                                          onClick={() => handlePreviewQuiz(quiz)}
+                                          className="p-2 bg-slate-600 hover:bg-slate-700 text-white rounded-md shadow-sm transition duration-200"
+                                          title="Preview Quiz"
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                        </Button>
+
+                                        <Button
+                                          onClick={() => handleViewScores(quiz, course.id)}
+                                          className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-md shadow-sm transition duration-200"
+                                          title="View Scores"
+                                        >
+                                          <Trophy className="w-4 h-4" />
+                                        </Button>
+
+                                        <Button
+                                          onClick={() => handleDeleteQuiz(quiz)}
+                                          className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-md shadow-sm transition duration-200"
+                                          title="Delete Quiz"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </Button>
+
+                                        {(!quiz.questions || quiz.questions.length === 0) &&
+                                          (!quiz.question_count || quiz.question_count === 0) && (
+                                            <Button
+                                              onClick={() => {
+                                                setSelectedModuleForQuiz(mod.id);
+                                                setShowQuizModal(true);
+                                              }}
+                                              className="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md shadow-sm transition duration-200"
+                                              title="Add Questions"
+                                            >
+                                              <Plus className="w-4 h-4" />
+                                            </Button>
+                                          )}
+                                      </div>
+
+
                                   </div>
                                 ))}
                               </div>
@@ -419,9 +540,25 @@ const CreateQuizPage = () => {
 
       <QuizModal
         isOpen={showQuizModal}
-        onClose={() => setShowQuizModal(false)}
+        onClose={() => {
+          setShowQuizModal(false);
+          // Refresh quizzes for all modules when modal closes
+          if (isAllowed && selectedModuleForQuiz) {
+            fetchAndSetModuleQuizzes(selectedModuleForQuiz);
+          }
+        }}
         moduleId={selectedModuleForQuiz}
         onQuizCreated={handleQuizCreatedOrUpdated}
+      />
+
+      <QuizScoresModal
+        isOpen={showScoresModal}
+        onClose={() => {
+          setShowScoresModal(false);
+          setSelectedQuizForScores(null);
+        }}
+        quiz={selectedQuizForScores}
+        courseId={courses.find(c => c.modules?.some(m => m.id === selectedQuizForScores?.module_id))?.id}
       />
     </div>
   );

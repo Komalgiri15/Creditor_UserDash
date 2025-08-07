@@ -165,6 +165,7 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated }) => {
       if (!quizId) throw new Error('Quiz ID not found.');
       await bulkUploadQuestions(quizId, payload);
       setStep(3);
+      if (onQuizCreated) onQuizCreated();
     } catch (err) {
       setError('Failed to upload questions. Please try again.');
     } finally {
@@ -267,7 +268,10 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated }) => {
         <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Quiz Created!</h2>
           <p className="mb-4 text-gray-600">Your quiz and questions have been successfully created.</p>
-          <Button onClick={onClose} variant="outline">Close</Button>
+          <Button onClick={() => {
+            if (onQuizCreated) onQuizCreated();
+            onClose();
+          }} variant="outline">Close</Button>
         </div>
       </div>
     );
