@@ -22,6 +22,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-testing-branch.onrender.com'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-9upi.onrender.com'),
   },
 }));
