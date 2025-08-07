@@ -156,7 +156,7 @@ class ScormService {
 
   static async uploadScorm({ moduleId, file, uploadedBy, description, onProgress, onCancel }) {
     const formData = new FormData();
-    formData.append('scorm_package', file);
+    formData.append('scorm', file);
     formData.append('module_id', moduleId);
     formData.append('uploaded_by', uploadedBy);
     formData.append('description', description);
