@@ -105,7 +105,7 @@ function ModuleAssessmentsView() {
             <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
               {module.title}
             </h1>
-            <p className="text-muted-foreground mb-4 text-lg">
+            <p className="text-muted-foreground mb-4 text-md">
               {module.description}
             </p>
             {/* <div className="flex items-center gap-1 text-sm text-muted-foreground">
