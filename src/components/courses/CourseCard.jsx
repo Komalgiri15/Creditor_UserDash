@@ -141,12 +141,12 @@ const CourseCard = ({
               {course.max_students || '∞'} students
             </span>
           </div>
-          <div className="text-right">
+          {/* <div className="text-right">
             <div className="font-semibold text-lg text-gray-900">
               ${course.price || '0'}
             </div>
             <div className="text-xs text-gray-500">Price</div>
-          </div>
+          </div> */}
         </div>
 
         {/* Course Features */}
