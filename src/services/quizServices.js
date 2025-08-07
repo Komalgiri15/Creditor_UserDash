@@ -64,3 +64,18 @@ export async function fetchAllQuizzes() {
   const data = await response.json();
   return data.data || data;
 }
+
+export async function getQuizById(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/getQuizById`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch quiz by ID');
+  }
+  const data = await response.json();
+  return data.data || data;
+}

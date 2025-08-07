@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Clock, ChevronLeft, Play, Eye, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import QuizModal from '@/components/courses/QuizModal';
-import { fetchQuizzesByModule, fetchAllQuizzes } from '@/services/quizServices';
+import { fetchQuizzesByModule, fetchAllQuizzes, getQuizById } from '@/services/quizServices';
 
 const COURSES_PER_PAGE = 5;
 
@@ -22,11 +22,14 @@ const CreateQuizPage = () => {
   const [showCreateModuleDialog, setShowCreateModuleDialog] = useState(false);
   const [selectedCourseForModule, setSelectedCourseForModule] = useState(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [previewQuiz, setPreviewQuiz] = useState(null);
+  const [previewModule, setPreviewModule] = useState(null);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [selectedModuleForQuiz, setSelectedModuleForQuiz] = useState(null);
   const [moduleQuizzes, setModuleQuizzes] = useState({}); // { [moduleId]: [quiz, ...] }
   const [allQuizzes, setAllQuizzes] = useState([]);
+  const [previewQuizData, setPreviewQuizData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
 
@@ -144,9 +147,19 @@ const CreateQuizPage = () => {
     setShowQuizModal(true);
   };
 
-  const handlePreviewQuiz = (quiz) => {
-    setPreviewQuiz(quiz);
+  const handlePreviewQuiz = async (quiz) => {
+    setPreviewLoading(true);
+    setPreviewError(null);
     setShowPreviewDialog(true);
+    try {
+      const data = await getQuizById(quiz.id);
+      setPreviewQuizData(data);
+    } catch (err) {
+      setPreviewError('Failed to load quiz details.');
+      setPreviewQuizData(null);
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   const handleDeleteQuiz = async (module) => {
@@ -348,93 +361,51 @@ const CreateQuizPage = () => {
       />
 
       {/* Preview Dialog */}
-      {showPreviewDialog && previewQuiz && (
+      {showPreviewDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <h2 className="text-xl font-semibold">{previewQuiz.title}</h2>
-                <p className="text-sm text-gray-600">{previewQuiz.description}</p>
+                <h2 className="text-xl font-semibold">{previewQuizData?.title || 'Quiz Preview'}</h2>
+                <p className="text-sm text-gray-600">{previewQuizData?.description}</p>
               </div>
               <Button
-                onClick={() => setShowPreviewDialog(false)}
+                onClick={() => { setShowPreviewDialog(false); setPreviewQuizData(null); setPreviewError(null); }}
                 variant="outline"
               >
                 Close
               </Button>
             </div>
             <div className="flex-1 p-6 overflow-y-auto">
-              {previewQuiz.questions && previewQuiz.questions.length > 0 ? (
-                <div className="space-y-6">
-                  {previewQuiz.questions.map((q, idx) => (
-                    <div key={q.id || idx} className="border rounded p-4 bg-gray-50">
-                      <div className="font-medium text-gray-900 mb-2">
-                        Q{idx + 1}: {q.text || q.question}
-                      </div>
-                      {/* MCQ (multiple correct) */}
-                      {(q.type === 'mcq' || (q.type === 'multiple')) && q.options && (
-                        <ul className="space-y-2 ml-4">
-                          {q.options.map((opt, oidx) => (
-                            <li key={oidx} className="flex items-center gap-2">
-                              <input type="checkbox" disabled className="accent-blue-600" />
-                              <span>{opt.text || opt}</span>
-                            </li>
+              {previewLoading ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
+                  <p className="text-lg text-gray-500">Loading quiz...</p>
+                </div>
+              ) : previewError ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
+                  <p className="text-lg text-red-500">{previewError}</p>
+                </div>
+              ) : previewQuizData && previewQuizData.questions && previewQuizData.questions.length > 0 ? (
+                <div className="space-y-8">
+                  {previewQuizData.questions.map((q, idx) => (
+                    <div key={q.id} className="mb-6">
+                      <div className="font-medium text-gray-900 mb-2">{idx + 1}. {q.question}</div>
+                      {q.question_options && q.question_options.length > 0 && (
+                        <div className="space-y-2 ml-4">
+                          {q.question_options.map(opt => (
+                            <div key={opt.id} className="flex items-center">
+                              <input type="radio" disabled className="mr-2" name={`preview-q-${q.id}`} readOnly />
+                              <span className="text-gray-800">{opt.text}</span>
+                            </div>
                           ))}
-                        </ul>
-                      )}
-                      {/* SCQ (single correct) */}
-                      {(q.type === 'scq' || q.type === 'single') && q.options && (
-                        <ul className="space-y-2 ml-4">
-                          {q.options.map((opt, oidx) => (
-                            <li key={oidx} className="flex items-center gap-2">
-                              <input type="radio" disabled className="accent-blue-600" />
-                              <span>{opt.text || opt}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {/* True/False */}
-                      {q.type === 'truefalse' && (
-                        <ul className="space-y-2 ml-4">
-                          {['True', 'False'].map((opt, oidx) => (
-                            <li key={oidx} className="flex items-center gap-2">
-                              <input type="radio" disabled className="accent-blue-600" />
-                              <span>{opt}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {/* Matching */}
-                      {q.type === 'matching' && q.leftColumn && q.rightColumn && (
-                        <div className="grid grid-cols-2 gap-6 mt-2">
-                          <div>
-                            <h4 className="font-semibold mb-3 text-blue-600">Left</h4>
-                            {q.leftColumn.map((item, i) => (
-                              <div key={i} className="p-3 bg-blue-50 rounded mb-2 border text-center font-medium">{item}</div>
-                            ))}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold mb-3 text-green-600">Right</h4>
-                            {q.rightColumn.map((item, i) => (
-                              <div key={i} className="p-3 bg-green-50 rounded mb-2 border text-center font-medium">{item}</div>
-                            ))}
-                          </div>
                         </div>
-                      )}
-                      {/* Fillup/One word/Short answer */}
-                      {(q.type === 'fillup' || q.type === 'oneword' || q.type === 'short_answer' || q.type === 'text') && (
-                        <input type="text" disabled className="mt-2 w-full border rounded px-2 py-1 bg-gray-100" placeholder="Your answer..." />
-                      )}
-                      {/* Descriptive/Essay */}
-                      {(q.type === 'descriptive' || q.type === 'essay') && (
-                        <textarea disabled className="mt-2 w-full border rounded px-2 py-1 bg-gray-100" placeholder="Your answer..." rows={4} />
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
-                  <p className="text-lg text-gray-500">No questions in this quiz.</p>
+                  <p className="text-lg text-gray-500">No questions found for this quiz.</p>
                 </div>
               )}
             </div>
