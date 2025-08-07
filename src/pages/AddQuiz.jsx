@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Clock, ChevronLeft, Play, Eye, Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import QuizModal from '@/components/courses/QuizModal';
+import { fetchQuizzesByModule, fetchAllQuizzes } from '@/services/quizServices';
 
 const COURSES_PER_PAGE = 5;
 
@@ -21,8 +23,21 @@ const CreateQuizPage = () => {
   const [selectedCourseForModule, setSelectedCourseForModule] = useState(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewModule, setPreviewModule] = useState(null);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+  const [selectedModuleForQuiz, setSelectedModuleForQuiz] = useState(null);
+  const [moduleQuizzes, setModuleQuizzes] = useState({}); // { [moduleId]: [quiz, ...] }
+  const [allQuizzes, setAllQuizzes] = useState([]);
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
+
+  const fetchAndSetModuleQuizzes = async (moduleId) => {
+    try {
+      const quizzes = await fetchQuizzesByModule(moduleId);
+      setModuleQuizzes(prev => ({ ...prev, [moduleId]: quizzes }));
+    } catch (err) {
+      setModuleQuizzes(prev => ({ ...prev, [moduleId]: [] }));
+    }
+  };
 
   useEffect(() => {
     if (!isAllowed) {
@@ -48,6 +63,37 @@ const CreateQuizPage = () => {
       }
     };
     fetchCoursesData();
+  }, [isAllowed]);
+
+  useEffect(() => {
+    if (!isAllowed) return;
+    const fetchAllQuizzes = async () => {
+      try {
+        const coursesData = await fetchAllCourses();
+        await Promise.all(
+          coursesData.flatMap(course =>
+            course.modules?.map(async (mod) => {
+              if (mod?.id) await fetchAndSetModuleQuizzes(mod.id);
+            }) || []
+          )
+        );
+      } catch {}
+    };
+    fetchAllQuizzes();
+  }, [courses, isAllowed]);
+
+  // Fetch all quizzes once
+  useEffect(() => {
+    if (!isAllowed) return;
+    const fetchQuizzes = async () => {
+      try {
+        const quizzes = await fetchAllQuizzes();
+        setAllQuizzes(Array.isArray(quizzes) ? quizzes : quizzes.data || []);
+      } catch {
+        setAllQuizzes([]);
+      }
+    };
+    fetchQuizzes();
   }, [isAllowed]);
 
   // Filtered and paginated courses
@@ -94,8 +140,8 @@ const CreateQuizPage = () => {
   };
 
   const handleCreateQuiz = (moduleId) => {
-    // Implement quiz creation logic here
-    alert(`Create quiz for module ${moduleId}`);
+    setSelectedModuleForQuiz(moduleId);
+    setShowQuizModal(true);
   };
 
   const handlePreviewQuiz = (module) => {
@@ -109,6 +155,18 @@ const CreateQuizPage = () => {
     }
     alert(`Delete quiz for module ${module.id}`);
     // Implement actual delete logic here
+  };
+
+  const handleQuizCreatedOrUpdated = async () => {
+    // Refresh all quizzes after creation or update
+    if (isAllowed) {
+      try {
+        const quizzes = await fetchAllQuizzes();
+        setAllQuizzes(Array.isArray(quizzes) ? quizzes : quizzes.data || []);
+      } catch {
+        setAllQuizzes([]);
+      }
+    }
   };
 
   if (!isAllowed) {
@@ -180,8 +238,8 @@ const CreateQuizPage = () => {
                       </div>
                     ) : (
                       course.modules.map((mod) => {
-                        const hasQuiz = false; // Replace with actual quiz check
-                        
+                        // Get all quizzes for this module
+                        const quizzes = allQuizzes.filter(q => q.module_id === mod.id);
                         return (
                           <div key={mod.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 p-6">
                             <div className="flex justify-between items-start">
@@ -195,11 +253,6 @@ const CreateQuizPage = () => {
                                   }`}>
                                     {mod.module_status}
                                   </span>
-                                  {hasQuiz && (
-                                    <Badge variant="default" className="bg-emerald-100 text-emerald-800 border-emerald-200">
-                                      Quiz Created
-                                    </Badge>
-                                  )}
                                 </div>
                                 
                                 <p className="text-sm text-gray-600 mb-4 leading-relaxed">{mod.description}</p>
@@ -225,34 +278,33 @@ const CreateQuizPage = () => {
                               </div>
                               
                               <div className="flex flex-col gap-2 ml-4">
-                                {hasQuiz ? (
-                                  <div className="flex flex-col gap-2">
-                                    <Button
-                                      onClick={() => handlePreviewQuiz(mod)}
-                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
-                                    >
-                                      <Eye size={16} className="mr-2" />
-                                      Preview
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleDeleteQuiz(mod)}
-                                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
-                                    >
-                                      <Trash2 size={16} className="mr-2" />
-                                      Delete Quiz
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    onClick={() => handleCreateQuiz(mod.id)}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
-                                  >
-                                    <Plus size={16} className="mr-2" />
-                                    Create Quiz
-                                  </Button>
-                                )}
+                                <Button onClick={() => handleCreateQuiz(mod.id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
+                                  <Plus size={16} className="mr-2" /> Create Quiz
+                                </Button>
                               </div>
                             </div>
+                            {/* List all quizzes for this module */}
+                            {quizzes.length > 0 && (
+                              <div className="mt-4 space-y-4">
+                                {quizzes.map((quiz) => (
+                                  <div key={quiz.id} className="border rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50">
+                                    <div>
+                                      <div className="font-semibold text-gray-900">{quiz.title}</div>
+                                      <div className="text-xs text-gray-500 mb-1">Type: {quiz.type} | Max Attempts: {quiz.maxAttempts}</div>
+                                      <div className="text-xs text-gray-500 mb-1">Score: {quiz.min_score} - {quiz.max_score} | Time: {quiz.time_estimate} min</div>
+                                      <div className="text-xs text-gray-500 mb-1">Questions: {quiz.questions?.length || 0}</div>
+                                    </div>
+                                    <div className="flex gap-2 mt-2 md:mt-0">
+                                      <Button onClick={() => handlePreviewQuiz(quiz)} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded shadow-sm">Preview</Button>
+                                      <Button onClick={() => handleDeleteQuiz(quiz)} className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded shadow-sm">Delete</Button>
+                                      {(!quiz.questions || quiz.questions.length === 0) && (
+                                        <Button onClick={() => { setSelectedModuleForQuiz(mod.id); setShowQuizModal(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded shadow-sm">Add Questions</Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })
@@ -319,6 +371,13 @@ const CreateQuizPage = () => {
           </div>
         </div>
       )}
+
+      <QuizModal
+        isOpen={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+        moduleId={selectedModuleForQuiz}
+        onQuizCreated={handleQuizCreatedOrUpdated}
+      />
     </div>
   );
 };
