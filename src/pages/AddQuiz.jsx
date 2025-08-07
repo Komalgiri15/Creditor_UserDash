@@ -22,7 +22,7 @@ const CreateQuizPage = () => {
   const [showCreateModuleDialog, setShowCreateModuleDialog] = useState(false);
   const [selectedCourseForModule, setSelectedCourseForModule] = useState(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const [previewModule, setPreviewModule] = useState(null);
+  const [previewQuiz, setPreviewQuiz] = useState(null);
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [selectedModuleForQuiz, setSelectedModuleForQuiz] = useState(null);
   const [moduleQuizzes, setModuleQuizzes] = useState({}); // { [moduleId]: [quiz, ...] }
@@ -144,8 +144,8 @@ const CreateQuizPage = () => {
     setShowQuizModal(true);
   };
 
-  const handlePreviewQuiz = (module) => {
-    setPreviewModule(module);
+  const handlePreviewQuiz = (quiz) => {
+    setPreviewQuiz(quiz);
     setShowPreviewDialog(true);
   };
 
@@ -348,13 +348,13 @@ const CreateQuizPage = () => {
       />
 
       {/* Preview Dialog */}
-      {showPreviewDialog && previewModule && (
+      {showPreviewDialog && previewQuiz && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-5/6 flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <h2 className="text-xl font-semibold">{previewModule.title}</h2>
-                <p className="text-sm text-gray-600">{previewModule.description}</p>
+                <h2 className="text-xl font-semibold">{previewQuiz.title}</h2>
+                <p className="text-sm text-gray-600">{previewQuiz.description}</p>
               </div>
               <Button
                 onClick={() => setShowPreviewDialog(false)}
@@ -363,10 +363,80 @@ const CreateQuizPage = () => {
                 Close
               </Button>
             </div>
-            <div className="flex-1 p-6">
-              <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
-                <p className="text-lg text-gray-500">Quiz Preview Content Would Appear Here</p>
-              </div>
+            <div className="flex-1 p-6 overflow-y-auto">
+              {previewQuiz.questions && previewQuiz.questions.length > 0 ? (
+                <div className="space-y-6">
+                  {previewQuiz.questions.map((q, idx) => (
+                    <div key={q.id || idx} className="border rounded p-4 bg-gray-50">
+                      <div className="font-medium text-gray-900 mb-2">
+                        Q{idx + 1}: {q.text || q.question}
+                      </div>
+                      {/* MCQ (multiple correct) */}
+                      {(q.type === 'mcq' || (q.type === 'multiple')) && q.options && (
+                        <ul className="space-y-2 ml-4">
+                          {q.options.map((opt, oidx) => (
+                            <li key={oidx} className="flex items-center gap-2">
+                              <input type="checkbox" disabled className="accent-blue-600" />
+                              <span>{opt.text || opt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {/* SCQ (single correct) */}
+                      {(q.type === 'scq' || q.type === 'single') && q.options && (
+                        <ul className="space-y-2 ml-4">
+                          {q.options.map((opt, oidx) => (
+                            <li key={oidx} className="flex items-center gap-2">
+                              <input type="radio" disabled className="accent-blue-600" />
+                              <span>{opt.text || opt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {/* True/False */}
+                      {q.type === 'truefalse' && (
+                        <ul className="space-y-2 ml-4">
+                          {['True', 'False'].map((opt, oidx) => (
+                            <li key={oidx} className="flex items-center gap-2">
+                              <input type="radio" disabled className="accent-blue-600" />
+                              <span>{opt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {/* Matching */}
+                      {q.type === 'matching' && q.leftColumn && q.rightColumn && (
+                        <div className="grid grid-cols-2 gap-6 mt-2">
+                          <div>
+                            <h4 className="font-semibold mb-3 text-blue-600">Left</h4>
+                            {q.leftColumn.map((item, i) => (
+                              <div key={i} className="p-3 bg-blue-50 rounded mb-2 border text-center font-medium">{item}</div>
+                            ))}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold mb-3 text-green-600">Right</h4>
+                            {q.rightColumn.map((item, i) => (
+                              <div key={i} className="p-3 bg-green-50 rounded mb-2 border text-center font-medium">{item}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Fillup/One word/Short answer */}
+                      {(q.type === 'fillup' || q.type === 'oneword' || q.type === 'short_answer' || q.type === 'text') && (
+                        <input type="text" disabled className="mt-2 w-full border rounded px-2 py-1 bg-gray-100" placeholder="Your answer..." />
+                      )}
+                      {/* Descriptive/Essay */}
+                      {(q.type === 'descriptive' || q.type === 'essay') && (
+                        <textarea disabled className="mt-2 w-full border rounded px-2 py-1 bg-gray-100" placeholder="Your answer..." rows={4} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-md border border-gray-300">
+                  <p className="text-lg text-gray-500">No questions in this quiz.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
