@@ -70,19 +70,9 @@ const ManageUsers = () => {
       const currentTime = new Date();
       setApiCallTime(currentTime);
       
-      // Enhanced token retrieval with debugging
-      let token = localStorage.getItem('token');
-      if (!token) {
-        token = document.cookie.split('token=')[1]?.split(';')[0];
-      }
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
+      // Backend's HttpOnly token cookie will be automatically sent with the request
       const response = await axios.get(`${API_BASE}/api/user/all`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true, // Include cookies in the request
@@ -105,8 +95,6 @@ const ManageUsers = () => {
       
       if (error.response?.status === 401) {
         setError('Authentication failed. Please log in again.');
-      } else if (error.message.includes('No authentication token')) {
-        setError('No authentication token found. Please log in again.');
       } else {
         setError('Failed to load users. Please try again.');
       }
@@ -118,19 +106,9 @@ const ManageUsers = () => {
 
   const fetchCourses = async () => {
     try {
-      // Enhanced token retrieval with debugging
-      let token = localStorage.getItem('token');
-      if (!token) {
-        token = document.cookie.split('token=')[1]?.split(';')[0];
-      }
-      
-      if (!token) {
-        // Still try to fetch courses without token
-      }
-      
+      // Backend's HttpOnly token cookie will be automatically sent with the request
       const response = await axios.get(`${API_BASE}/api/course/getAllCourses`, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : undefined,
           'Content-Type': 'application/json',
         },
         withCredentials: true, // Include cookies in the request
@@ -348,12 +326,6 @@ const ManageUsers = () => {
       setAddingToCourse(true);
       setError("");
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       let response;
       
       // Different API endpoints based on the current filter role
@@ -374,7 +346,6 @@ const ManageUsers = () => {
           learnerIds: selectedUsers
         }, {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           withCredentials: true,
@@ -396,7 +367,6 @@ const ManageUsers = () => {
           learnerIds: selectedUsers
         }, {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           withCredentials: true,
@@ -420,7 +390,6 @@ const ManageUsers = () => {
           learnerIds: selectedUsers
         }, {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           withCredentials: true,
@@ -451,7 +420,6 @@ const ManageUsers = () => {
         try {
           const verifyResponse = await axios.get(`${API_BASE}/api/course/${selectedCourse}/getAllUsersByCourseId`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             withCredentials: true,
@@ -554,7 +522,6 @@ const ManageUsers = () => {
                   instructorIds: [userId]
                 }, {
                   headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                   },
                   withCredentials: true,
@@ -633,12 +600,6 @@ const ManageUsers = () => {
       setUpdatingRole(true);
       setError("");
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       // console.log('🔄 Making instructor API call:', {
       //   url: `${API_BASE}/api/user/make-instructors`,
       //   payload: { user_ids: selectedUsers },
@@ -650,7 +611,6 @@ const ManageUsers = () => {
         user_ids: selectedUsers
       }, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
@@ -731,7 +691,6 @@ const ManageUsers = () => {
                 learnerIds: selectedUsers
               }, {
                 headers: {
-                  'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json',
                 },
                 withCredentials: true,
@@ -838,12 +797,6 @@ const ManageUsers = () => {
       setUpdatingRole(true);
       setError("");
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       // console.log('🔄 Making admin API call:', {
       //   url: `${API_BASE}/api/user/make-admins`,
       //   payload: { user_ids: selectedUsers },
@@ -855,7 +808,6 @@ const ManageUsers = () => {
         user_ids: selectedUsers
       }, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
@@ -944,15 +896,10 @@ const ManageUsers = () => {
       setUpdatingRole(true); // Reuse the same loading state
       setError("");
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       // console.log('🔄 Making user API call:', {
       //   url: `${API_BASE}/api/user/make-users`,
       //   payload: { user_ids: selectedUsers },
+      //   selectedUsers },
       //   selectedUsers
       // });
       
@@ -961,7 +908,6 @@ const ManageUsers = () => {
         user_ids: selectedUsers
       }, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
@@ -1050,12 +996,6 @@ const ManageUsers = () => {
       setDeletingUser(true);
       setError("");
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       // console.log('🗑️ Deleting user:', {
       //   userId: userToDelete.id,
       //   userName: `${userToDelete.first_name} ${userToDelete.last_name}`,
@@ -1066,7 +1006,6 @@ const ManageUsers = () => {
       // Make API call to delete user using the correct endpoint format
       const response = await axios.delete(`${API_BASE}/api/user/${userToDelete.id}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
@@ -1154,15 +1093,8 @@ const ManageUsers = () => {
     try {
       // console.log('🔍 Manually checking course users for course:', courseId);
       
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
-      
       const response = await axios.get(`${API_BASE}/api/course/${courseId}/getAllUsersByCourseId`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
