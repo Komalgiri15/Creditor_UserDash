@@ -7,7 +7,7 @@ import AddCatelog from "./AddCatelog";
 import AddUsersForm from "./AddUsersPage";
 import ManageUsers from "./ManageUsers";
 import AddQuiz from "./AddQuiz";
-import SupportTickets from "./SupportTicket";
+import SupportTickets from "./Support";
 import Sidebar from "@/components/layout/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
