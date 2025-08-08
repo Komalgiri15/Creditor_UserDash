@@ -7,6 +7,7 @@ import AddCatelog from "./AddCatelog";
 import AddUsersForm from "./AddUsersPage";
 import ManageUsers from "./ManageUsers";
 import AddQuiz from "./AddQuiz";
+import SupportTickets from "./SupportTicket";
 import Sidebar from "@/components/layout/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -155,6 +156,16 @@ const InstructorPage = () => {
           >
             📅 Event Management
           </button>
+          <button 
+            onClick={() => setActiveTab("tickets")} 
+            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+              activeTab === "events" 
+                ? "bg-blue-100 text-blue-700 font-semibold" 
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            📅 Support Tickets
+          </button>
         </div>
       </div>
 
@@ -249,6 +260,11 @@ const InstructorPage = () => {
             {activeTab === "events" && (
               <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <AddEvent />
+              </section>
+            )}
+            {activeTab === "tickets" && (
+              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <SupportTickets />
               </section>
             )}
           </div>
