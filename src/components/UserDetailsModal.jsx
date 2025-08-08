@@ -22,25 +22,25 @@ import {
   XCircle,
   AlertCircle
 } from "lucide-react";
-import { fetchAllCourses } from "@/services/userService";
+import { fetchUserCoursesByUserId } from "@/services/userService";
 
 const UserDetailsModal = ({ isOpen, onClose, user }) => {
   const [courses, setCourses] = React.useState([]);
   const [loadingCourses, setLoadingCourses] = React.useState(false);
   const [coursesError, setCoursesError] = React.useState(null);
 
-  // Fetch courses when modal opens
+  // Fetch courses for the selected user when modal opens or user changes
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && user?.id) {
       fetchCourses();
     }
-  }, [isOpen]);
+  }, [isOpen, user?.id]);
 
   const fetchCourses = async () => {
     setLoadingCourses(true);
     setCoursesError(null);
     try {
-      const coursesData = await fetchAllCourses();
+      const coursesData = await fetchUserCoursesByUserId(user.id);
       setCourses(Array.isArray(coursesData) ? coursesData : []);
     } catch (error) {
       console.error("Failed to fetch courses:", error);
