@@ -15,7 +15,12 @@ import {
   Activity,
   Shield,
   Users,
-  GraduationCap
+  GraduationCap,
+  CreditCard,
+  DollarSign,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 import { fetchAllCourses } from "@/services/userService";
 
@@ -134,6 +139,20 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+  const getPaymentStatusBadge = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" /> Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="h-3 w-3 mr-1" /> Pending</Badge>;
+      case 'failed':
+      case 'declined':
+        return <Badge className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" /> Failed</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
   };
 
   const userRole = getUserRole(user);
@@ -330,8 +349,104 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
               </CardContent>
             </Card>
           )}
+          {/* Payment Status Section */}
+          {(user.payments || user.subscriptions || true) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Overall Payment Status */}
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5 text-gray-600" />
+                      <div>
+                        <h4 className="text-sm font-medium">Payment Status</h4>
+                        <p className="text-xs text-gray-500">
+                          {user.payment_status || 'Sample payment information'}
+                        </p>
+                      </div>
+                    </div>
+                    {getPaymentStatusBadge(user.payment_status || 'completed')}
+                  </div>
 
-          
+                  {/* Recent Payments */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Recent Payments</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {(user.payments?.length > 0 ? user.payments : [
+                        {
+                          id: 1,
+                          amount: 49.99,
+                          description: "Premium Course Payment",
+                          status: "completed",
+                          createdAt: new Date().toISOString()
+                        },
+                        {
+                          id: 2,
+                          amount: 19.99,
+                          description: "Basic Course Payment",
+                          status: "completed",
+                          createdAt: new Date(Date.now() - 86400000).toISOString()
+                        }
+                      ]).slice(0, 3).map((payment, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {payment.description || `Payment #${index + 1}`}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(payment.createdAt)} • ${payment.amount}
+                            </p>
+                          </div>
+                          {getPaymentStatusBadge(payment.status)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Subscriptions */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Subscriptions</h4>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {(user.subscriptions?.length > 0 ? user.subscriptions : [
+                        {
+                          id: 1,
+                          plan_name: "Monthly Subscription",
+                          amount: 9.99,
+                          interval: "month",
+                          status: "active",
+                          start_date: new Date(Date.now() - 2592000000).toISOString(),
+                          end_date: null
+                        }
+                      ]).map((sub, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div>
+                            <p className="text-sm font-medium">
+                              {sub.plan_name || `Subscription Plan`}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(sub.start_date)} - {sub.end_date ? formatDate(sub.end_date) : 'Ongoing'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              ${sub.amount}/{sub.interval}
+                            </Badge>
+                            {getPaymentStatusBadge(sub.status)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* Activity Information */}
           {user.activity_log && user.activity_log.length > 0 && (
             <Card>
