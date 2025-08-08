@@ -138,3 +138,32 @@ export async function updateUserProfile(profileData) {
     throw error;
   }
 }
+
+export async function fetchAllCourses() {
+  try {
+    console.log("🔍 userService: Fetching all courses from:", `${import.meta.env.VITE_API_BASE_URL}/api/course/getCourses`);
+    
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/getCourses`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+    
+    console.log("🔍 userService: Courses response status:", response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ userService: Fetch courses failed:", response.status, errorText);
+      throw new Error(`Failed to fetch courses: ${response.status} ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log("✅ userService: Fetch courses success:", result);
+    return result.data || result; // Return data if it exists, otherwise return the full result
+  } catch (error) {
+    console.error("❌ userService: Fetch courses error:", error);
+    throw error;
+  }
+}

@@ -23,18 +23,8 @@ const LandingPage = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0); // Optional: scroll to top on mount
-    
-    // Check if user is already logged in
-    const token = Cookies.get("token") || localStorage.getItem("token");
-    if (token) {
-      // User is already logged in, redirect to dashboard
-      navigate("/dashboard");
-      return;
-    }
-    
-    // User is not logged in, show landing page
     setIsCheckingAuth(false);
-  }, [navigate]);
+  }, []);
 
   // Show loading spinner while checking authentication
   if (isCheckingAuth) {

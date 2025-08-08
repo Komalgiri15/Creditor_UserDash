@@ -36,7 +36,7 @@ export default function ClassRecording() {
               rel="noopener noreferrer"
               className="inline-block bg-[#6b5cff] hover:bg-[#5b4bde] text-white text-sm font-medium px-4 py-2 rounded-md transition shadow-md w-full sm:w-auto text-center"
             >
-              Watch Recording Now
+              Coming Soon
             </a>
           </div>
         </div>
