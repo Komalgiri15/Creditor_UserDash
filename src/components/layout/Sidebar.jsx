@@ -122,9 +122,13 @@ export function Sidebar({ collapsed, setCollapsed }) {
   };
 
   const handleNavigate = (path) => {
-    // Expand sidebar if collapsed when navigating to other pages
+    // Keep sidebar collapsed when on instructor portal
     if (collapsed && path !== "/instructor") {
       setCollapsed(false);
+    }
+    // Collapse sidebar when navigating to instructor portal
+    if (path === "/instructor") {
+      setCollapsed(true);
     }
   };
 

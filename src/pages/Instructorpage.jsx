@@ -26,7 +26,7 @@ import {
 const InstructorPage = () => {
   const { isInstructorOrAdmin } = useAuth();
   const isAllowed = isInstructorOrAdmin();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // Start with sidebar collapsed
   const [activeTab, setActiveTab] = useState("course");
   const [userManagementView, setUserManagementView] = useState(() => {
     const saved = localStorage.getItem("userManagementView");

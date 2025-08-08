@@ -5,7 +5,11 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, Mail, AlertCircle, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Search, Filter, Mail, AlertCircle, CheckCircle, Clock, ChevronDown, ChevronUp, Send, User, MessageSquare } from 'lucide-react';
+import { getAllTickets, addReplyToTicket } from '@/services/ticketService';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const SupportTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
@@ -13,63 +17,59 @@ const SupportTicketsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedTicket, setExpandedTicket] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const { toast } = useToast();
 
-  // Mock data - replace with API calls in a real application
+  // Modal state
+  const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [activeTicketId, setActiveTicketId] = useState(null);
+  const [statusDraft, setStatusDraft] = useState('open');
+
+  // Fetch tickets from backend
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 800));
+        setLoading(true);
+        const response = await getAllTickets();
         
-        const mockTickets = [
-          {
-            id: 'TKT-001',
-            userId: 'USR-101',
-            userName: 'John Doe',
-            userEmail: 'john@example.com',
-            subject: 'Login issues',
-            message: "I can't login to my account since yesterday. Getting error 500.",
-            status: 'open',
-            priority: 'high',
-            createdAt: '2023-05-15T10:30:00Z',
-            updatedAt: '2023-05-15T10:30:00Z',
-          },
-          {
-            id: 'TKT-002',
-            userId: 'USR-102',
-            userName: 'Jane Smith',
-            userEmail: 'jane@example.com',
-            subject: 'Payment not processed',
-            message: "My payment was deducted but the course wasn't unlocked.",
-            status: 'in-progress',
-            priority: 'medium',
-            createdAt: '2023-05-14T14:15:00Z',
-            updatedAt: '2023-05-15T09:45:00Z',
-          },
-          {
-            id: 'TKT-003',
-            userId: 'USR-103',
-            userName: 'Robert Johnson',
-            userEmail: 'robert@example.com',
-            subject: 'Course content missing',
-            message: "Module 3 videos are not loading properly.",
-            status: 'resolved',
-            priority: 'low',
-            createdAt: '2023-05-10T08:20:00Z',
-            updatedAt: '2023-05-12T16:30:00Z',
-          },
-        ];
+        // Transform the data to match our component's expected format
+        const transformedTickets = response.data.data.map(ticket => ({
+          id: ticket.id,
+          userId: ticket.student_id,
+          userName: ticket.student ? `${ticket.student.first_name} ${ticket.student.last_name}`.trim() : 'Unknown User',
+          userEmail: ticket.student?.email || 'No email',
+          subject: ticket.subject,
+          message: ticket.description || ticket.message, // Use description field from backend
+          status: ticket.status?.toLowerCase() || 'pending',
+          priority: ticket.priority?.toLowerCase() || 'medium',
+          createdAt: ticket.created_at,
+          updatedAt: ticket.updated_at,
+          attachments: ticket.attachments ? JSON.parse(ticket.attachments) : [],
+          replies: ticket.replies || []
+        }));
         
-        setTickets(mockTickets);
+        // Sort tickets by creation date (newest first)
+        const sortedTickets = transformedTickets.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setTickets(sortedTickets);
       } catch (error) {
         console.error('Error fetching tickets:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch support tickets. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchTickets();
-  }, []);
+  }, [toast]);
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -83,18 +83,102 @@ const SupportTicketsPage = () => {
 
   const toggleTicketExpansion = (ticketId) => {
     setExpandedTicket(expandedTicket === ticketId ? null : ticketId);
+    setReplyingTo(null);
+    setReplyText('');
+  };
+
+  const handleReply = async (ticketId) => {
+    if (!replyText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a reply message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingReply(true);
+      await addReplyToTicket(ticketId, {
+        message: replyText.trim()
+      });
+
+      // Refresh tickets to get the updated data
+      const response = await getAllTickets();
+      const transformedTickets = response.data.data.map(ticket => ({
+        id: ticket.id,
+        userId: ticket.student_id,
+        userName: ticket.student ? `${ticket.student.first_name} ${ticket.student.last_name}`.trim() : 'Unknown User',
+        userEmail: ticket.student?.email || 'No email',
+        subject: ticket.subject,
+        message: ticket.description || ticket.message,
+        status: ticket.status?.toLowerCase() || 'pending',
+        priority: ticket.priority?.toLowerCase() || 'medium',
+        createdAt: ticket.created_at,
+        updatedAt: ticket.updated_at,
+        attachments: ticket.attachments ? JSON.parse(ticket.attachments) : [],
+        replies: ticket.replies || []
+      }));
+      
+      // Sort tickets by creation date (newest first)
+      const sortedTickets = transformedTickets.sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setTickets(sortedTickets);
+      setReplyText('');
+      setReplyingTo(null);
+      setIsReplyDialogOpen(false);
+
+      toast({
+        title: "Success",
+        description: "Reply sent successfully!",
+      });
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send reply. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
+  const openReplyDialog = (ticketId) => {
+    setActiveTicketId(ticketId);
+    setReplyingTo(ticketId);
+    setReplyText('');
+    setIsReplyDialogOpen(true);
+  };
+
+  const openStatusDialog = (ticketId, currentStatus) => {
+    setActiveTicketId(ticketId);
+    setStatusDraft(currentStatus || 'open');
+    setIsStatusDialogOpen(true);
+  };
+
+  // For now, perform an optimistic in-memory status update to match the UI
+  const applyStatusChange = () => {
+    if (!activeTicketId) return;
+    setTickets((prev) =>
+      prev.map((t) => (t.id === activeTicketId ? { ...t, status: statusDraft } : t))
+    );
+    setIsStatusDialogOpen(false);
+    toast({ title: 'Status updated', description: `Ticket status changed to ${statusDraft}.` });
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'open':
+      case 'pending':
         return <Badge variant="destructive">Open</Badge>;
       case 'in-progress':
         return <Badge variant="warning">In Progress</Badge>;
       case 'resolved':
         return <Badge variant="success">Resolved</Badge>;
       default:
-        return <Badge>Unknown</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
@@ -111,35 +195,47 @@ const SupportTicketsPage = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="container mx-auto py-8">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-6 w-6" />
+    <div className="w-full h-full flex flex-col">
+      <Card className="w-full h-full flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Mail className="h-5 w-5" />
             Support Tickets
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
+        <CardContent className="p-3 flex-1 flex flex-col overflow-hidden">
+          {/* Search and Filter Section */}
+          <div className="flex flex-col lg:flex-row gap-3 mb-3 flex-shrink-0">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search tickets..."
-                className="pl-10"
+                className="pl-10 w-full h-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="w-full md:w-48">
+            <div className="w-full lg:w-40">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="flex items-center gap-2">
+                <SelectTrigger className="flex items-center gap-2 w-full h-9">
                   <Filter className="h-4 w-4" />
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
                 </SelectContent>
@@ -147,112 +243,245 @@ const SupportTicketsPage = () => {
             </div>
           </div>
 
+          {/* Loading State */}
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            <div className="flex justify-center items-center h-32 flex-1">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           ) : filteredTickets.length === 0 ? (
-            <div className="text-center py-12">
-              <Mail className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mt-4">No tickets found</h3>
-              <p className="text-gray-500 mt-1">
+            <div className="text-center py-8 flex-1">
+              <Mail className="mx-auto h-8 w-8 text-gray-400" />
+              <h3 className="text-sm font-medium text-gray-900 mt-2">No tickets found</h3>
+              <p className="text-xs text-gray-500 mt-1">
                 {searchTerm || statusFilter !== 'all' 
                   ? 'Try adjusting your search or filter' 
                   : 'No support tickets have been created yet'}
               </p>
             </div>
           ) : (
-            <Table>
-              <TableCaption>A list of recent support tickets raised by users.</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ticket ID</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTickets.map((ticket) => (
-                  <React.Fragment key={ticket.id}>
-                    <TableRow>
-                      <TableCell className="font-medium">{ticket.id}</TableCell>
-                      <TableCell>
-                        <div className="font-medium">{ticket.userName}</div>
-                        <div className="text-sm text-gray-500">{ticket.userEmail}</div>
-                      </TableCell>
-                      <TableCell>{ticket.subject}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getPriorityIcon(ticket.priority)}
-                          <span className="capitalize">{ticket.priority}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {new Date(ticket.createdAt).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleTicketExpansion(ticket.id)}
-                        >
-                          {expandedTicket === ticket.id ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TableCell>
+            /* Responsive Table Container */
+            <div className="flex-1 overflow-auto">
+              <div className="min-w-[800px] w-full">
+                <Table>
+                  <TableCaption className="text-xs">A list of recent support tickets raised by users.</TableCaption>
+                  <TableHeader>
+                    <TableRow className="sticky top-0 z-10 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
+                      <TableHead className="w-32 text-xs font-semibold text-gray-600">Ticket ID</TableHead>
+                      <TableHead className="w-48 text-xs font-semibold text-gray-600">User</TableHead>
+                      <TableHead className="w-[24rem] text-xs font-semibold text-gray-600">Subject</TableHead>
+                      <TableHead className="w-20 text-xs font-semibold text-gray-600">Priority</TableHead>
+                      <TableHead className="w-24 text-xs font-semibold text-gray-600">Status</TableHead>
+                      <TableHead className="w-32 text-xs font-semibold text-gray-600">Date</TableHead>
+                      <TableHead className="w-12 text-xs font-semibold text-gray-600">Actions</TableHead>
                     </TableRow>
-                    {expandedTicket === ticket.id && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="bg-gray-50 p-4">
-                          <div className="grid gap-4">
-                            <div>
-                              <h4 className="font-medium mb-2">Message:</h4>
-                              <p className="text-gray-700 whitespace-pre-line">{ticket.message}</p>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTickets.map((ticket) => (
+                      <React.Fragment key={ticket.id}>
+                        <TableRow className="hover:bg-gray-50/60 border-b align-top">
+                          <TableCell className="font-medium text-xs py-2">
+                            <div className="truncate" title={ticket.id}>
+                              #{ticket.id.slice(0, 8)}...
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <h4 className="font-medium mb-2">Details:</h4>
-                                <div className="text-sm space-y-1">
-                                  <div>
-                                    <span className="text-gray-500">Created: </span>
-                                    {new Date(ticket.createdAt).toLocaleString()}
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-500">Last Updated: </span>
-                                    {new Date(ticket.updatedAt).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="font-medium text-xs truncate" title={ticket.userName}>
+                              {ticket.userName}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate" title={ticket.userEmail}>
+                              {ticket.userEmail}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="truncate text-xs" title={ticket.subject}>
+                              {ticket.subject}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <div className="flex items-center gap-1">
+                              {getPriorityIcon(ticket.priority)}
+                              <span className="capitalize text-xs hidden sm:inline">{ticket.priority}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">{getStatusBadge(ticket.status)}</TableCell>
+                          <TableCell className="py-2">
+                            <div className="text-xs whitespace-nowrap">
+                              {formatDate(ticket.createdAt)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleTicketExpansion(ticket.id)}
+                              className="h-6 w-6 p-0"
+                            >
+                              {expandedTicket === ticket.id ? (
+                                <ChevronUp className="h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        {expandedTicket === ticket.id && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="bg-gray-50 p-3">
+                              <div className="grid gap-4">
+                                {/* Original Message */}
+                                <div>
+                                  <h4 className="font-medium mb-1 flex items-center gap-2 text-sm">
+                                    <User className="h-3 w-3" />
+                                    Message:
+                                  </h4>
+                                  <div className="bg-white p-2 rounded-lg border">
+                                    <p className="text-gray-700 whitespace-pre-line text-xs leading-5">{ticket.message}</p>
+                                    {ticket.attachments && ticket.attachments.length > 0 && (
+                                      <div className="mt-2 pt-2 border-t">
+                                        <h5 className="text-xs font-medium text-gray-600 mb-1">Attachments:</h5>
+                                        <div className="flex flex-wrap gap-1">
+                                          {ticket.attachments.map((attachment, index) => (
+                                            <a
+                                              key={index}
+                                              href={attachment}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 text-xs underline"
+                                            >
+                                              Attachment {index + 1}
+                                            </a>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
+
+                                {/* Ticket Details + Actions */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                                  <div className="lg:col-span-2">
+                                    <h4 className="font-medium mb-1 text-sm">Details:</h4>
+                                    <div className="bg-white p-2 rounded-lg border text-xs space-y-1">
+                                      <div>
+                                        <span className="text-gray-500">Created: </span>
+                                        {formatDate(ticket.createdAt)}
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Last Updated: </span>
+                                        {formatDate(ticket.updatedAt)}
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Status: </span>
+                                        <span className="capitalize">{ticket.status}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Priority: </span>
+                                        <span className="capitalize">{ticket.priority}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col gap-2 justify-start">
+                                    <Button size="sm" onClick={() => openStatusDialog(ticket.id, ticket.status)}>
+                                      Change Status
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => openReplyDialog(ticket.id)}>
+                                      Reply to User
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Replies */}
+                                {ticket.replies && ticket.replies.length > 0 && (
+                                  <div>
+                                    <h4 className="font-medium mb-1 flex items-center gap-2 text-sm">
+                                      <MessageSquare className="h-3 w-3" />
+                                      Replies ({ticket.replies.length}):
+                                    </h4>
+                                    <div className="space-y-2">
+                                      {ticket.replies.map((reply, index) => (
+                                        <div key={index} className="bg-white p-2 rounded-lg border">
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-medium text-gray-700">
+                                              {reply.sender?.name || 'Admin'}
+                                            </span>
+                                            <span className="text-xs text-gray-500">
+                                              {formatDate(reply.created_at)}
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-gray-700 whitespace-pre-line leading-5">{reply.message}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="flex flex-col gap-2">
-                                <Button variant="outline" size="sm">
-                                  Change Status
-                                </Button>
-                                <Button variant="outline" size="sm">
-                                  Reply to User
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Reply Dialog */}
+      <Dialog open={isReplyDialogOpen} onOpenChange={setIsReplyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reply to User</DialogTitle>
+            <DialogDescription>Write your response and send it to the user.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              placeholder="Type your reply..."
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              rows={5}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => handleReply(activeTicketId)}
+              disabled={submittingReply || !replyText.trim()}
+              className="flex items-center gap-2"
+            >
+              <Send className="h-4 w-4" />
+              {submittingReply ? 'Sending...' : 'Send Reply'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Status Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Status</DialogTitle>
+            <DialogDescription>Select a new status for this ticket.</DialogDescription>
+          </DialogHeader>
+          <div className="pt-2">
+            <Select value={statusDraft} onValueChange={setStatusDraft}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="in-progress">In Progress</SelectItem>
+                <SelectItem value="resolved">Resolved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button onClick={applyStatusChange}>Apply</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
