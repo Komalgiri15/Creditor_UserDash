@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
+import UserDetailsModal from "@/components/UserDetailsModal";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
@@ -32,6 +33,10 @@ const ManageUsers = () => {
   const [deletingUser, setDeletingUser] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [enrollmentProgress, setEnrollmentProgress] = useState({ current: 0, total: 0 });
+  
+  // User details modal state
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1134,6 +1139,11 @@ const ManageUsers = () => {
     setShowDeleteModal(true);
   };
 
+  const handleUserDetailsClick = (user) => {
+    setSelectedUserForDetails(user);
+    setShowUserDetailsModal(true);
+  };
+
   const handleAddToMoreCourses = () => {
     // Close the success modal
     setShowSuccessModal(false);
@@ -1655,7 +1665,11 @@ const ManageUsers = () => {
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div 
+                          className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 hover:underline transition-colors"
+                          onClick={() => handleUserDetailsClick(user)}
+                          title="Click to view user details"
+                        >
                           {user.first_name} {user.last_name}
                         </div>
                         <div className="text-sm text-gray-500">{user.email}</div>
@@ -1785,6 +1799,16 @@ const ManageUsers = () => {
           </div>
         </div>
       )}
+
+      {/* User Details Modal */}
+      <UserDetailsModal
+        isOpen={showUserDetailsModal}
+        onClose={() => {
+          setShowUserDetailsModal(false);
+          setSelectedUserForDetails(null);
+        }}
+        user={selectedUserForDetails}
+      />
     </div>
   );
 };
