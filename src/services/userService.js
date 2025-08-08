@@ -167,3 +167,37 @@ export async function fetchAllCourses() {
     throw error;
   }
 }
+
+// Fetch courses for a specific user by their userId
+export async function fetchUserCoursesByUserId(userId) {
+  try {
+    if (!userId) {
+      throw new Error('fetchUserCoursesByUserId: userId is required');
+    }
+
+    const base = `${import.meta.env.VITE_API_BASE_URL}`;
+    const url = `${base}/api/course/getUserCoursesByUserId`;
+
+    console.log("🔍 userService: Fetching courses for user (POST with body { userId }):", { url, userId });
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ userService: Fetch user courses failed:", response.status, errorText);
+      throw new Error(`Failed to fetch user courses: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log("✅ userService: Fetch user courses success:", result);
+    return result.data || result;
+  } catch (error) {
+    console.error("❌ userService: Fetch user courses error:", error);
+    throw error;
+  }
+}
