@@ -22,13 +22,13 @@ const InstructorPage = () => {
     return saved || "add";
   });
 
-  const collapsedWidth = "4.5rem";
-  const expandedWidth = "17rem";
   const navigate = useNavigate();
 
   useEffect(() => {
     localStorage.setItem("userManagementView", userManagementView);
   }, [userManagementView]);
+
+  // No auto-collapse needed - sub-sidebar is always visible
 
   if (!isAllowed) {
     return (
@@ -80,12 +80,11 @@ const InstructorPage = () => {
         <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
 
-      {/* Sub Sidebar with Header */}
-      <div
-        className="fixed top-0 h-screen z-20 bg-white shadow-sm border-r border-gray-200 transition-all duration-300 overflow-y-auto"
+      {/* Sub Sidebar - Always show when on instructor page */}
+      <div 
+        className="fixed top-0 h-screen z-20 bg-white shadow-sm border-r border-gray-200 transition-all duration-300 overflow-y-auto w-52"
         style={{
-          left: collapsed ? collapsedWidth : expandedWidth,
-          width: collapsed ? "0" : "13rem",
+          left: collapsed ? "4.5rem" : "17rem"
         }}
       >
         {/* Sub Sidebar Header */}
@@ -159,7 +158,7 @@ const InstructorPage = () => {
           <button 
             onClick={() => setActiveTab("tickets")} 
             className={`text-left px-3 py-2 rounded-lg transition-colors ${
-              activeTab === "events" 
+              activeTab === "tickets" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
@@ -173,17 +172,13 @@ const InstructorPage = () => {
       <div
         className="flex-1 flex flex-col min-h-screen transition-all duration-300"
         style={{ 
-          marginLeft: collapsed 
-            ? `calc(${collapsedWidth} + ${!collapsed ? "13rem" : "0"})` 
-            : `calc(${expandedWidth} + 13rem)`
+          marginLeft: collapsed ? "calc(4.5rem + 13rem)" : "calc(17rem + 13rem)"
         }}
       >
         <header
           className="fixed top-0 left-0 right-0 z-10 bg-white border-b border-gray-200 h-16 transition-all duration-300"
           style={{ 
-            marginLeft: collapsed 
-              ? `calc(${collapsedWidth} + ${!collapsed ? "13rem" : "0"})` 
-              : `calc(${expandedWidth} + 13rem)`
+            marginLeft: collapsed ? "calc(4.5rem + 13rem)" : "calc(17rem + 13rem)"
           }}
         >
           <div className="max-w-7xl mx-auto w-full">

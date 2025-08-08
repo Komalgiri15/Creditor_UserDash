@@ -42,7 +42,7 @@ import { motion } from "framer-motion";
 const SidebarItem = ({ icon: Icon, label, href, active, collapsed, dropdownContent, onNavigate }) => {
   const handleClick = () => {
     if (onNavigate) {
-      onNavigate();
+      onNavigate(href);
     }
   };
 
@@ -121,8 +121,9 @@ export function Sidebar({ collapsed, setCollapsed }) {
     return location.pathname === path;
   };
 
-  const handleNavigate = () => {
-    if (collapsed) {
+  const handleNavigate = (path) => {
+    // Expand sidebar if collapsed when navigating to other pages
+    if (collapsed && path !== "/instructor") {
       setCollapsed(false);
     }
   };
@@ -143,10 +144,11 @@ export function Sidebar({ collapsed, setCollapsed }) {
 
   // Help section navigation items
   const helpItems = [
-    { icon: FileQuestion, label: "FAQs", path: "/faqs" },
-    { icon: MessageSquare, label: "Contact Support", path: "/support" },
-    { icon: BookOpen, label: "User Guides", path: "/guides" },
-    { icon: Contact, label: "Support Ticket", path: "/support/ticket" }
+    // { icon: FileQuestion, label: "FAQs", path: "/dashboard/faqs" },
+    // { icon: MessageSquare, label: "Contact Support", path: "/dashboard/support" },
+    // { icon: BookOpen, label: "User Guides", path: "/dashboard/guides" },
+    { icon: Contact, label: "Create Ticket", path: "/dashboard/support/ticket" },
+    { icon: FileQuestion, label: "My Tickets", path: "/dashboard/support/tickets" }
   ];
 
   // Animation variants with smooth transition
@@ -361,10 +363,12 @@ export function Sidebar({ collapsed, setCollapsed }) {
               />
             </motion.div>
           )}
+
+
         </motion.div>
       </div>
 
-      {/* Help & Support Footer
+      {/* Help & Support Footer */}
       <motion.div 
         className="border-t border-gray-200 p-4 bg-gradient-to-r from-gray-50 to-gray-100"
         variants={itemVariants}
@@ -435,7 +439,7 @@ export function Sidebar({ collapsed, setCollapsed }) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </motion.div> */}
+      </motion.div>
     </motion.div>
   );
 }
