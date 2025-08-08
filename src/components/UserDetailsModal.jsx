@@ -325,7 +325,7 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GraduationCap className="h-4 w-4" />
-                  Available Courses
+                  Enrolled Courses
                 </CardTitle>
               </CardHeader>
               <CardContent>
