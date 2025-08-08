@@ -1332,27 +1332,48 @@ const ManageUsers = () => {
             <div className="flex gap-2">
               {/* Role Management Buttons */}
               {filterRole === "user" && (
-                <button
-                  onClick={handleMakeInstructor}
-                  disabled={updatingRole}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Promote to Instructor (replaces all existing roles)"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {updatingRole 
-                    ? enrollmentProgress.total > 0 
-                      ? `Updating & Enrolling... (${enrollmentProgress.current}/${enrollmentProgress.total})`
-                      : 'Updating & Enrolling...'
-                    : 'Make Instructor'
-                  }
-                </button>
+                <>
+                  <button
+                    onClick={handleMakeInstructor}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Promote to Instructor (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {updatingRole 
+                      ? enrollmentProgress.total > 0 
+                        ? `Updating & Enrolling... (${enrollmentProgress.current}/${enrollmentProgress.total})`
+                        : 'Updating & Enrolling...'
+                      : 'Make Instructor'
+                    }
+                  </button>
+                  <button
+                    onClick={handleMakeAdmin}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Promote to Admin (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {updatingRole ? 'Updating...' : 'Make Admin'}
+                  </button>
+                </>
               )}
               {filterRole === "instructor" && (
-                <div className="text-sm text-gray-500 italic">
-                  {/* No role changes available for instructors */}
-                </div>
+                <button
+                  onClick={handleMakeAdmin}
+                  disabled={updatingRole}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Promote to Admin (replaces all existing roles)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {updatingRole ? 'Updating...' : 'Make Admin'}
+                </button>
               )}
               <button
                 onClick={() => setShowCourseModal(true)}
