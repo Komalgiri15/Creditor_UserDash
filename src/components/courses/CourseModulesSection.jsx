@@ -32,7 +32,7 @@ const CourseModulesSection = ({
       </div>
       
       {modules && modules.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
           {modules.map((module) => (
             <div key={module.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
               <div>
