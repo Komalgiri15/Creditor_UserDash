@@ -11,6 +11,17 @@ import SupportTickets from "./Support";
 import Sidebar from "@/components/layout/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
+import { 
+  FaBook, 
+  FaUsers, 
+  FaBookOpen, 
+  FaEdit, 
+  FaFolder, 
+  FaCalendarAlt,
+  FaTicketAlt,
+  FaExclamationTriangle,
+  FaArrowLeft
+} from "react-icons/fa";
 
 const InstructorPage = () => {
   const { isInstructorOrAdmin } = useAuth();
@@ -28,8 +39,6 @@ const InstructorPage = () => {
     localStorage.setItem("userManagementView", userManagementView);
   }, [userManagementView]);
 
-  // No auto-collapse needed - sub-sidebar is always visible
-
   if (!isAllowed) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
@@ -37,18 +46,7 @@ const InstructorPage = () => {
           <div className="bg-yellow-50 border-l-8 border-yellow-400 p-6">
             <div className="flex items-start gap-4">
               <div className="mt-0.5 text-yellow-500">
-                <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <FaExclamationTriangle className="h-6 w-6" />
               </div>
               <div>
                 <h3 className="text-lg font-medium text-yellow-800 mb-1">
@@ -61,9 +59,9 @@ const InstructorPage = () => {
                 </p>
                 <button
                   onClick={() => window.history.back()}
-                  className="mt-4 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors"
+                  className="mt-4 px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
-                  Go Back
+                  <FaArrowLeft /> Go Back
                 </button>
               </div>
             </div>
@@ -97,73 +95,73 @@ const InstructorPage = () => {
         <div className="flex flex-col p-4 gap-3 text-sm">
           <button 
             onClick={() => setActiveTab("course")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "course" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📚 Course Management
+            <FaBook /> Course Management
           </button>
           <button 
             onClick={() => setActiveTab("users")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "users" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            👥 User Management
+            <FaUsers /> User Management
           </button>
           <button 
             onClick={() => setActiveTab("catalog")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "catalog" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📖 Course Catalog
+            <FaBookOpen /> Course Catalog
           </button>
           <button 
             onClick={() => setActiveTab("quiz")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "quiz" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📝 Create Quiz
+            <FaEdit /> Create Quiz
           </button>
           <button 
             onClick={() => setActiveTab("scorm")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "scorm" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📂 SCORM Content
+            <FaFolder /> SCORM Content
           </button>
           <button 
             onClick={() => setActiveTab("events")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "events" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📅 Event Management
+            <FaCalendarAlt /> Event Management
           </button>
           <button 
             onClick={() => setActiveTab("tickets")} 
-            className={`text-left px-3 py-2 rounded-lg transition-colors ${
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "tickets" 
                 ? "bg-blue-100 text-blue-700 font-semibold" 
                 : "hover:bg-gray-100 text-gray-700"
             }`}
           >
-            📅 Support Tickets
+            <FaTicketAlt /> Support Tickets
           </button>
         </div>
       </div>
@@ -211,23 +209,23 @@ const InstructorPage = () => {
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setUserManagementView("add")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
                       userManagementView === "add"
                         ? "bg-blue-600 text-white shadow-sm"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                     }`}
                   >
-                    ➕ Add Users
+                    <FaUsers /> Add Users
                   </button>
                   <button
                     onClick={() => setUserManagementView("manage")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
                       userManagementView === "manage"
                         ? "bg-blue-600 text-white shadow-sm"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
                     }`}
                   >
-                    👥 Manage Users
+                    <FaUsers /> Manage Users
                   </button>
                 </div>
                 {userManagementView === "add" ? <AddUsersForm /> : <ManageUsers />}
