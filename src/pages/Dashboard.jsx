@@ -11,7 +11,6 @@ import MonthlyProgress from "@/components/dashboard/MonthlyProgress";
 import DashboardAnnouncements from "@/components/dashboard/DashboardAnnouncements";
 import LiveClasses from "@/components/dashboard/LiveClasses";
 import axios from "axios";
-import Cookies from "js-cookie";
 import { fetchUserCourses, fetchCourseModules } from '../services/courseService';
 import { useUser } from '@/contexts/UserContext';
 
@@ -58,16 +57,11 @@ export function Dashboard() {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
   // Get userId from localStorage or cookies, or fetch from profile
-  const [userId, setUserId] = useState(localStorage.getItem('userId') || Cookies.get('userId'));
+  const [userId, setUserId] = useState(localStorage.getItem('userId'));
 
   const fetchUserOverview = async () => {
     try {
       setLoading(true);
-      // Get token from cookies (primary) or localStorage (fallback)
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found. Please log in again.');
-      }
       
       // Get userId - use from context if available, otherwise fetch from profile
       let currentUserId = userId;
@@ -86,13 +80,11 @@ export function Dashboard() {
       // Use the working endpoints from your backend
       try {
         // console.log('🔍 Fetching user courses from:', `${API_BASE}/api/course/getCourses`);
-        // console.log('🔑 Token available:', !!token);
         // console.log('👤 User ID:', currentUserId);
         
-        // Get user courses using the correct endpoint
+        // Get user courses using the correct endpoint - backend's HttpOnly token cookie will be automatically sent
         const userCoursesResponse = await axios.get(`${API_BASE}/api/course/getCourses`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
           withCredentials: true
@@ -202,18 +194,8 @@ export function Dashboard() {
   };
 
   useEffect(() => {
-    // Check if user is authenticated before making API call
-    const token = Cookies.get('token') || localStorage.getItem('token');
-    
-    if (token) {
-      fetchUserOverview();
-    } else {
-      setError('Please log in to view your dashboard.');
-      // Redirect to login
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
-    }
+    // Always try to fetch user overview - UserContext handles authentication
+    fetchUserOverview();
   }, [userId]);
 
   useEffect(() => {
@@ -264,14 +246,9 @@ export function Dashboard() {
   // Fetch user profile to get userId and userName if not available
   const fetchUserProfile = async () => {
     try {
-      const token = Cookies.get('token') || localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      
+      // Backend's HttpOnly token cookie will be automatically sent with the request
       const response = await axios.get(`${API_BASE}/api/user/getUserProfile`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         withCredentials: true
