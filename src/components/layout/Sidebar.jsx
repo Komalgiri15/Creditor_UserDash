@@ -42,7 +42,7 @@ import { motion } from "framer-motion";
 const SidebarItem = ({ icon: Icon, label, href, active, collapsed, dropdownContent, onNavigate }) => {
   const handleClick = () => {
     if (onNavigate) {
-      onNavigate();
+      onNavigate(href);
     }
   };
 
@@ -121,8 +121,9 @@ export function Sidebar({ collapsed, setCollapsed }) {
     return location.pathname === path;
   };
 
-  const handleNavigate = () => {
-    if (collapsed) {
+  const handleNavigate = (path) => {
+    // Expand sidebar if collapsed when navigating to other pages
+    if (collapsed && path !== "/instructor") {
       setCollapsed(false);
     }
   };
