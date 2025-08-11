@@ -56,14 +56,17 @@ export function DashboardCarousel() {
           {carouselItems.map((item) => (
             <CarouselItem key={item.id} className="md:basis-full">
               <div className="relative w-full overflow-hidden rounded-xl shadow-lg">
-                <a href={item.link} className="block w-full">
-                  <img
-                    src={item.image}
-                    alt={`Banner ${item.id}`}
-                    className="w-full h-auto object-contain max-h-[400px] transition-transform duration-300"
-                    style={{ minHeight: '200px' }}
-                  />
-                </a>
+                <div className="block w-full cursor-default select-none">
+                  <div className="relative w-full h-[220px] sm:h-[280px] md:h-[360px] lg:h-[420px]">
+                    <img
+                      src={item.image}
+                      alt={`Banner ${item.id}`}
+                      loading="lazy"
+                      draggable={false}
+                      className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 select-none bg-white"
+                    />
+                  </div>
+                </div>
               </div>
             </CarouselItem>
           ))}
