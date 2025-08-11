@@ -22,6 +22,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://userdashboard01.netlify.app/'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-testing-branch.onrender.com'),
   },
 }));
