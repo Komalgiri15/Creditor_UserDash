@@ -62,6 +62,20 @@ export const addReplyToTicket = async (ticketId, replyData) => {
   }
 };
 
+// Update ticket status (admin only)
+export const updateTicketStatus = async (ticketId, status) => {
+  return axios.patch(
+    joinUrl(baseUrl, `api/support-tickets/status/${ticketId}`),
+    { status },
+    {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      withCredentials: true
+    }
+  );
+};
+
 // Fetch user's own tickets
 export const getUserTickets = async () => {
   return axios.get(
