@@ -16,13 +16,14 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { fetchQuizScores, fetchUserQuizAttempts, fetchQuizAnalytics } from '@/services/quizServices';
+import { fetchQuizScores, fetchUserQuizAttempts, fetchQuizAnalytics, fetchQuizAdminAnalytics } from '@/services/quizServices';
 import { fetchCourseUsers } from '@/services/courseService';
 
 const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
   const [scores, setScores] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [adminAnalytics, setAdminAnalytics] = useState(null);
   const [courseUsers, setCourseUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -39,10 +40,11 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
     setError(null);
     try {
       // Fetch all data in parallel
-      const [scoresData, attemptsData, analyticsData, usersData] = await Promise.allSettled([
+      const [scoresData, attemptsData, analyticsData, adminAnalyticsData, usersData] = await Promise.allSettled([
         fetchQuizScores(quiz.id),
         fetchUserQuizAttempts(quiz.id),
         fetchQuizAnalytics(quiz.id),
+        fetchQuizAdminAnalytics(quiz.id),
         fetchCourseUsers(courseId)
       ]);
 
@@ -59,6 +61,11 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
       // Handle analytics data
       if (analyticsData.status === 'fulfilled') {
         setAnalytics(analyticsData.value);
+      }
+
+      // Handle admin analytics data
+      if (adminAnalyticsData.status === 'fulfilled') {
+        setAdminAnalytics(adminAnalyticsData.value);
       }
 
       // Handle course users data
@@ -321,58 +328,158 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold mb-4">Quiz Analytics</h3>
                   
-                  {analytics ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Score Distribution */}
+                  {adminAnalytics ? (
+                    <div className="space-y-6">
+                      {/* Quiz Overview */}
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-lg">Score Distribution</CardTitle>
+                          <CardTitle className="text-lg">Quiz Overview</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-3">
-                            {analytics.scoreDistribution?.map((range, index) => (
-                              <div key={index} className="flex items-center justify-between">
-                                <span className="text-sm">{range.range}</span>
-                                <div className="flex items-center space-x-2">
-                                  <Progress value={range.percentage} className="w-24" />
-                                  <span className="text-sm text-gray-600">{range.count}</span>
-                                </div>
-                              </div>
-                            )) || (
-                              <p className="text-gray-500">No distribution data available</p>
-                            )}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-blue-600">{adminAnalytics.totalAttempts}</p>
+                              <p className="text-sm text-gray-600">Total Attempts</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-green-600">{adminAnalytics.totalQuestions}</p>
+                              <p className="text-sm text-gray-600">Total Questions</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-purple-600">{adminAnalytics.averageScore}%</p>
+                              <p className="text-sm text-gray-600">Average Score</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-orange-600">{adminAnalytics.passPercentage}%</p>
+                              <p className="text-sm text-gray-600">Pass Rate</p>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
 
-                      {/* Time Analysis */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Time Analysis</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="flex justify-between">
-                              <span className="text-sm">Average Time</span>
-                              <span className="text-sm font-medium">
-                                {analytics.averageTime || 'N/A'}
-                              </span>
+                      {/* Performance Metrics */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Pass/Fail Breakdown</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Passed</span>
+                                <div className="flex items-center space-x-2">
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {adminAnalytics.passedCount}
+                                  </Badge>
+                                  <span className="text-sm text-gray-600">
+                                    ({adminAnalytics.passPercentage}%)
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Failed</span>
+                                <div className="flex items-center space-x-2">
+                                  <Badge className="bg-red-100 text-red-800">
+                                    {adminAnalytics.failedCount}
+                                  </Badge>
+                                  <span className="text-sm text-gray-600">
+                                    ({100 - adminAnalytics.passPercentage}%)
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Fastest Completion</span>
-                              <span className="text-sm font-medium">
-                                {analytics.fastestTime || 'N/A'}
-                              </span>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Score Range</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Highest Score</span>
+                                <Badge className="bg-green-100 text-green-800">
+                                  {adminAnalytics.highestScore}%
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Lowest Score</span>
+                                <Badge className="bg-red-100 text-red-800">
+                                  {adminAnalytics.lowestScore}%
+                                </Badge>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Score Range</span>
+                                <span className="text-sm font-medium">
+                                  {adminAnalytics.minScore}% - {adminAnalytics.maxScore}%
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm">Time Estimate</span>
+                                <span className="text-sm font-medium">
+                                  {adminAnalytics.timeEstimate} min
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Slowest Completion</span>
-                              <span className="text-sm font-medium">
-                                {analytics.slowestTime || 'N/A'}
-                              </span>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Legacy Analytics (if available) */}
+                      {analytics && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">Additional Analytics</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Score Distribution */}
+                              <div>
+                                <h4 className="font-medium mb-3">Score Distribution</h4>
+                                <div className="space-y-3">
+                                  {analytics.scoreDistribution?.map((range, index) => (
+                                    <div key={index} className="flex items-center justify-between">
+                                      <span className="text-sm">{range.range}</span>
+                                      <div className="flex items-center space-x-2">
+                                        <Progress value={range.percentage} className="w-24" />
+                                        <span className="text-sm text-gray-600">{range.count}</span>
+                                      </div>
+                                    </div>
+                                  )) || (
+                                    <p className="text-gray-500">No distribution data available</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Time Analysis */}
+                              <div>
+                                <h4 className="font-medium mb-3">Time Analysis</h4>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-sm">Average Time</span>
+                                    <span className="text-sm font-medium">
+                                      {analytics.averageTime || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm">Fastest Completion</span>
+                                    <span className="text-sm font-medium">
+                                      {analytics.fastestTime || 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-sm">Slowest Completion</span>
+                                    <span className="text-sm font-medium">
+                                      {analytics.slowestTime || 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          </CardContent>
+                        </Card>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-8">

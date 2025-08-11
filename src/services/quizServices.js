@@ -125,3 +125,59 @@ export async function fetchQuizAnalytics(quizId) {
   const data = await response.json();
   return data.data || data;
 }
+
+export async function fetchQuizAdminAnalytics(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}/analytics`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch quiz admin analytics');
+  }
+  const data = await response.json();
+  return data.data || data;
+}
+
+export async function deleteQuiz(quizId) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(errorData.message || `Failed to delete quiz (${response.status})`);
+  }
+  return await response.json();
+}
+
+export async function updateQuiz(quizId, quizData) {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/updateQuizz`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(quizData),
+    credentials: 'include',
+  });
+  
+  const responseData = await response.json();
+  
+  // Check if the response indicates success despite HTTP status
+  if (responseData.success === true && responseData.code === 200) {
+    return responseData;
+  }
+  
+  // If not successful, throw error
+  if (!response.ok) {
+    const errorData = responseData || { message: 'Unknown error' };
+    throw new Error(errorData.message || `Failed to update quiz (${response.status})`);
+  }
+  
+  return responseData;
+}
