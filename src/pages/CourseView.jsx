@@ -16,6 +16,7 @@ export function CourseView() {
   const [filteredModules, setFilteredModules] = useState([]);
   const [error, setError] = useState("");
   const [totalDuration, setTotalDuration] = useState(0);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,66 +116,78 @@ export function CourseView() {
           {/* Course Details Section */}
           {courseDetails && (
             <div className="mb-8">
-              <Card className="overflow-hidden">
-                <div className="relative h-32 bg-gradient-to-r from-blue-600 to-purple-600">
+              <Card className="overflow-hidden shadow-xl border-0">
+                {/* Course Image at the top */}
+                <div className="relative h-72 bg-gradient-to-r from-blue-600 to-purple-600">
                   <img 
                     src={courseDetails.thumbnail || courseDetails.image || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"} 
                     alt={courseDetails.title}
-                    className="w-full h-full object-cover opacity-20"
+                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 to-purple-600/80"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent"></div>
                   
                   {/* Category Badge - Positioned at top right if exists */}
                   {courseDetails.category && (
-                    <div className="absolute top-4 right-6">
-                      <Badge variant="outline" className="text-white border-white/30">
+                    <div className="absolute top-6 right-6">
+                      <Badge variant="outline" className="bg-white/90 backdrop-blur-sm text-gray-800 border-white/50 font-medium px-4 py-2">
                         {courseDetails.category}
                       </Badge>
                     </div>
                   )}
-                  
-                  {/* Course Title and Description - Centered vertically */}
-                  <div className="absolute inset-0 flex flex-col justify-center left-6 right-6">
-                    <h1 className="text-2xl font-bold text-white mb-2">{courseDetails.title}</h1>
-                    <p className="text-blue-100 text-sm line-clamp-2">{courseDetails.description}</p>
-                  </div>
                 </div>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <BookOpen className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Modules</p>
-                        <p className="font-semibold">{modules.length}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <Clock className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Duration</p>
-                        <p className="font-semibold">
-                          {totalDuration > 0 ? `${totalDuration} min` : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {courseDetails.instructor && (
-                    <div className="mt-6 pt-6 border-t">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 rounded-lg">
-                          <Award className="h-5 w-5 text-orange-600" />
+                
+                {/* Course Title and Description below the image */}
+                <CardContent className="p-8">
+                  <div className="max-w-4xl">
+                    <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">{courseDetails.title}</h1>
+                    <p className={`text-gray-600 text-lg leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-4' : ''}`}>
+                      {courseDetails.description}
+                    </p>
+                    {courseDetails.description.length > 150 && (
+                      <Button 
+                        variant="link"
+                        className="text-blue-600 hover:text-blue-800 p-0 h-auto mt-4 text-lg font-medium hover:underline"
+                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                      >
+                        {isDescriptionExpanded ? 'Show Less' : 'Show More'}
+                      </Button>
+                    )}
+                    
+                    {/* Course Stats with improved styling */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 pt-8 border-t border-gray-100">
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                        <div className="p-3 bg-green-500 rounded-xl shadow-lg">
+                          <BookOpen className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">Instructor</p>
-                          <p className="font-semibold">{courseDetails.instructor}</p>
+                          <p className="text-sm font-medium text-green-700">Total Modules</p>
+                          <p className="text-2xl font-bold text-green-800">{modules.length}</p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
+                        <div className="p-3 bg-purple-500 rounded-xl shadow-lg">
+                          <Clock className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-purple-700">Duration</p>
+                          <p className="text-2xl font-bold text-purple-800">
+                            {totalDuration > 0 ? `${totalDuration} min` : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                      {courseDetails.instructor && (
+                        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                          <div className="p-3 bg-orange-500 rounded-xl shadow-lg">
+                            <Award className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-orange-700">Instructor</p>
+                            <p className="text-lg font-bold text-orange-800">{courseDetails.instructor}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -218,17 +231,6 @@ export function CourseView() {
                           alt={module.title}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute top-3 right-3">
-                          <Badge 
-                            className={`${
-                              module.module_status === 'PUBLISHED' 
-                                ? 'bg-green-100 text-green-800 border-green-200' 
-                                : 'bg-amber-50 text-amber-900 border-amber-200'
-                            } border font-medium px-3 py-1 rounded-full shadow-sm`}
-                          >
-                            {module.module_status}
-                          </Badge>
-                        </div>
                       </div>
                       {/* Fixed height for content area, flex-grow to fill space */}
                       <div className="flex flex-col flex-grow min-h-[170px] max-h-[170px] px-6 pt-4 pb-2">
