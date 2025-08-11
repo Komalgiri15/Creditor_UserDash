@@ -4,6 +4,21 @@ import { useNavigate } from "react-router-dom";
 
 export default function ClassRecording() {
   const driveLink = import.meta.env.VITE_DRIVE_FOLDER_URL;
+  const navigate = useNavigate();
+
+  const handleOperatePrivateClick = () => {
+    navigate("/dashboard/catalog/08f33c72-5942-4dce-ad0d-f3763ecd43f3", {
+      state: {
+        catalog: {
+          id: "08f33c72-5942-4dce-ad0d-f3763ecd43f3",
+          name: "Course Recordings",
+          description: "Access a comprehensive catalogue of our course recordings, designed for flexible learning at your own pace. Revisit lessons, explore missed topics, and strengthen your understanding anytime, anywhere.",
+          thumbnail: null,
+          updated_at: new Date().toISOString()
+        }
+      }
+    });
+  };
 
   return (
     <div className="p-4 sm:p-6 w-full max-w-5xl mx-auto">
@@ -56,14 +71,12 @@ export default function ClassRecording() {
             </div>
           </div>
           <div className="sm:self-center">
-            <a
-              href={driveLink}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handleOperatePrivateClick}
               className="inline-block bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-md transition shadow-md w-full sm:w-auto text-center"
             >
               Watch Now
-            </a>
+            </button>
           </div>
         </div>
       </div>
