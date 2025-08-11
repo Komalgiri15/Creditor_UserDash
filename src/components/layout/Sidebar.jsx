@@ -42,7 +42,7 @@ import { motion } from "framer-motion";
 const SidebarItem = ({ icon: Icon, label, href, active, collapsed, dropdownContent, onNavigate }) => {
   const handleClick = () => {
     if (onNavigate) {
-      onNavigate();
+      onNavigate(href);
     }
   };
 
@@ -121,9 +121,14 @@ export function Sidebar({ collapsed, setCollapsed }) {
     return location.pathname === path;
   };
 
-  const handleNavigate = () => {
-    if (collapsed) {
+  const handleNavigate = (path) => {
+    // Keep sidebar collapsed when on instructor portal
+    if (collapsed && path !== "/instructor") {
       setCollapsed(false);
+    }
+    // Collapse sidebar when navigating to instructor portal
+    if (path === "/instructor") {
+      setCollapsed(true);
     }
   };
 

@@ -92,6 +92,7 @@ import AddUsersPage from "@/pages/AddUsersPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserProvider } from "./contexts/UserContext";
 import  ModuleView  from "@/pages/ModuleView";
+     
 
 function ProtectedScormRoute() {
   if (!allowedScormUserIds.includes(currentUserId)) {
