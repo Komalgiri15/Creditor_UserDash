@@ -100,7 +100,14 @@ export default function MyTickets() {
     fetchTickets();
   }, []);
 
-  const filteredTickets = tickets.filter((ticket) => {
+  // Sort tickets by creation date (newest first) before filtering
+  const sortedTickets = [...tickets].sort((a, b) => {
+    const dateA = new Date(a.createdAt || 0);
+    const dateB = new Date(b.createdAt || 0);
+    return dateB - dateA; // Descending order (newest first)
+  });
+
+  const filteredTickets = sortedTickets.filter((ticket) => {
     const matchesSearch = 
       ticket.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||

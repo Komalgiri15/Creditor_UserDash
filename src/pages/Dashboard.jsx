@@ -605,11 +605,8 @@ export function Dashboard() {
               </div> */}
             </div>
           </div>
-              {/* Latest Updates Section - now full width */}
+              {/* Catalog Banner Section */}
           <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-800">Latest Updates</h3>
-            </div>
             <DashboardCarousel />
           </div>
           <div className="mb-8">
