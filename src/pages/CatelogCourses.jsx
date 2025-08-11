@@ -270,7 +270,7 @@ const CatelogCourses = () => {
                 </span>
               </div>
               {/* Catalog Title */}
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 {catalog?.name || "Catalog"}
               </h1>
               {/* Description Box - Compact and Justified */}
