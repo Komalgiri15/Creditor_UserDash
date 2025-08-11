@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 
 // ✅ Admin Modal Component
 const AdminModal = ({ isOpen, onClose }) => {
@@ -12,7 +11,7 @@ const AdminModal = ({ isOpen, onClose }) => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
   
   const toggleMode = () => {
@@ -21,7 +20,6 @@ const AdminModal = ({ isOpen, onClose }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
     setIsLoggedIn(false);
     onClose && onClose();
     window.location.href = "/";
@@ -37,13 +35,12 @@ const AdminModal = ({ isOpen, onClose }) => {
       const response = await axios.post(url, credentials, {
         withCredentials: true,
       });
-      if (response.data.token) {
-        Cookies.set("token", response.data.token, { expires: 7 });
+      if (response.data.success) {
         setIsLoggedIn(true);
         onClose && onClose();
         window.location.href = "/dashboard";
       } else {
-        setError("Login failed. No token received.");
+        setError("Login failed. Please try again.");
       }
     } catch (err) {
       setError(

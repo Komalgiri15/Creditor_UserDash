@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import Cookies from "js-cookie";
 import axios from "axios";
 import { createTicket } from "@/services/ticketService";
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/creditorlogo.png';
 import AdminModal from './AdminModal';
-import Cookies from 'js-cookie';
 import './navbar.css';
 
 const Navbar = () => {

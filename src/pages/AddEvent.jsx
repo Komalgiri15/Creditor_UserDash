@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { currentUserId } from "@/data/currentUser";
 import { getAllEvents } from "@/services/calendarService";
 import { fetchUserProfile } from "@/services/userService";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
 
 
 const DEFAULT_TIMEZONE = "America/New_York";
@@ -72,11 +70,6 @@ const AddEvent = () => {
     setCurrentPage(1);
   }, [events]);
 
-  // Get authentication token from cookies
-  const getAuthToken = () => {
-    return Cookies.get("token");
-  };
-
   // Get user role from localStorage
   const getUserRole = () => {
     return localStorage.getItem("userRole") || "";
@@ -84,16 +77,7 @@ const AddEvent = () => {
 
   // Decode JWT token to see what's in it
   const decodeToken = () => {
-    const token = getAuthToken();
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        return decoded;
-      } catch (error) {
-       
-        return null;
-      }
-    }
+    // Backend handles authentication via cookies
     return null;
   };
 
@@ -224,12 +208,10 @@ const AddEvent = () => {
     };
     
     // Test the API call
-    const token = getAuthToken();
     fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
         "X-User-Role": getUserRole(),
       },
       body: JSON.stringify(testPayload),
@@ -274,12 +256,10 @@ const AddEvent = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = getAuthToken();
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/getAllCourses`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
             'X-User-Role': getUserRole(), // Add role in header as well
           },
           credentials: 'include'
@@ -392,12 +372,10 @@ const AddEvent = () => {
   // Fetch event details for editing
   const fetchEventDetails = async (eventId) => {
     try {
-      const token = getAuthToken();
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
           'X-User-Role': getUserRole(),
         },
         credentials: 'include',
@@ -413,12 +391,10 @@ const AddEvent = () => {
   // Fetch deleted occurrences for a recurring event
   const fetchDeletedOccurrences = async (eventId) => {
     try {
-      const token = getAuthToken();
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
           'X-User-Role': getUserRole(),
         },
         credentials: 'include',
@@ -487,13 +463,11 @@ const AddEvent = () => {
     if (deleteIndex === null) return;
     const event = events[deleteIndex];
     try {
-      const token = getAuthToken();
       // DELETE non-recurring event
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${event.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
           "X-User-Role": getUserRole(), // Add role in header as well
         },
         credentials: "include"
@@ -518,13 +492,11 @@ const AddEvent = () => {
   const handleDeleteOccurrence = async (eventId, occurrenceStartTime) => {
     setDeletingOccurrenceKey(occurrenceStartTime);
     try {
-      const token = getAuthToken();
       // DELETE a single occurrence in a recurring event (POST)
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
           "X-User-Role": getUserRole(),
         },
         credentials: "include",
@@ -546,13 +518,11 @@ const AddEvent = () => {
   const handleDeleteAllOccurrences = async (eventId) => {
     setDeletingAll(true);
     try {
-      const token = getAuthToken();
       // DELETE recurring event series
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events/recurring/${eventId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
           "X-User-Role": getUserRole(),
         },
         credentials: "include"
@@ -572,7 +542,6 @@ const AddEvent = () => {
   const handleRestoreOccurrence = async (eventId, occurrenceDate) => {
     setDeletingOccurrenceKey(occurrenceDate);
     try {
-      const token = getAuthToken();
       // RESTORE a single occurrence in a recurring event (DELETE)
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/calendar/events/${eventId}/recurrence-exception`,
@@ -580,7 +549,6 @@ const AddEvent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
             "X-User-Role": getUserRole(),
           },
           credentials: "include",
@@ -688,8 +656,6 @@ const AddEvent = () => {
     if (editIndex !== null) {
       // Update event in backend
       try {
-        const token = getAuthToken();
-        
         // Use different endpoint based on whether the event is recurring
         const endpoint = form.isRecurring 
           ? `${import.meta.env.VITE_API_BASE_URL}/calendar/events/recurring/${form.id}`
@@ -699,7 +665,6 @@ const AddEvent = () => {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
             "X-User-Role": currentRole, // Add role in header as well
           },
           body: JSON.stringify(payload),
@@ -732,13 +697,10 @@ const AddEvent = () => {
     } else {
       // Send to backend only on add
       try {
-        const token = getAuthToken();
-        
         const postRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
             "X-User-Role": currentRole, // Add role in header as well
           },
           body: JSON.stringify(payload),

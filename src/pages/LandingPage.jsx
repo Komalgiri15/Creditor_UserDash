@@ -15,7 +15,6 @@ import HeroCarousel from '../components/HeroCarousel.jsx';
 import StatHighlights from '../components/stathighlight.jsx';
 import Navbar from '../components/navbar';
 import Footer from '../components/Footer';
-import Cookies from 'js-cookie';
 
 const LandingPage = () => {
   const navigate = useNavigate();

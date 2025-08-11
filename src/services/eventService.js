@@ -1,20 +1,14 @@
 // Event management service
 
 // Utility functions for authentication
-const getAuthToken = () => {
-  return localStorage.getItem('token') || document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-};
-
 const getUserRole = () => {
   return localStorage.getItem('userRole') || 'user';
 };
 
 // Base API call function
 const makeApiCall = async (url, options = {}) => {
-  const token = getAuthToken();
   const defaultHeaders = {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 
   const response = await fetch(url, {

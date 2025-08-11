@@ -14,7 +14,6 @@ import { User, LogOut, Book, Library, GraduationCap } from "lucide-react";
 import { getUserAvatarUrl } from "@/lib/avatar-utils";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 import { fetchUserProfile, clearUserData } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -50,10 +49,6 @@ export function ProfileDropdown() {
     // Clear all user data
     clearUserData();
     logoutAuth(); // Use AuthContext logout
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    Cookies.remove("token");
-    Cookies.remove("userId");
     
     // Dispatch event to trigger UserContext refresh
     window.dispatchEvent(new Event('userRoleChanged'));
