@@ -3,7 +3,8 @@ import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 import UserDetailsModal from "@/components/UserDetailsModal";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-testing-branch.onrender.com";
+console.log('🔧 API_BASE:', API_BASE);
 
 const ManageUsers = () => {
   const { userRole, hasRole } = useAuth();
@@ -802,14 +803,16 @@ const ManageUsers = () => {
       setUpdatingRole(true);
       setError("");
       
-      // console.log('🔄 Making admin API call:', {
-      //   url: `${API_BASE}/api/user/make-admins`,
-      //   payload: { user_ids: selectedUsers },
-      //   selectedUsers
-      // });
+      console.log('🔄 Making admin API call:', {
+        url: `${API_BASE}/api/user/convert-to-admin`,
+        payload: { user_ids: selectedUsers },
+        selectedUsers,
+        API_BASE,
+        fullUrl: `${API_BASE}/api/user/convert-to-admin`
+      });
       
-      // Make API call to make users admins
-      const response = await axios.post(`${API_BASE}/api/user/make-admins`, {
+      // Make API call to convert users to admin using the new endpoint
+      const response = await axios.post(`${API_BASE}/api/user/convert-to-admin`, {
         user_ids: selectedUsers
       }, {
         headers: {
@@ -876,6 +879,18 @@ const ManageUsers = () => {
       }
     } catch (error) {
       console.error('❌ Error making users admins:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          data: error.config?.data
+        }
+      });
       
       // Handle specific error cases
       if (error.response?.status === 400) {

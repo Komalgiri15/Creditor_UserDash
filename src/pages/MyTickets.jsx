@@ -33,7 +33,7 @@ import {
 import axios from "axios";
 import { toast } from "sonner";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-testing-branch.onrender.com";
 
 const statusColor = (status) => {
   switch (status?.toUpperCase()) {
