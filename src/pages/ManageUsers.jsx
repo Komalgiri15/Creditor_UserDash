@@ -3,7 +3,8 @@ import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 import UserDetailsModal from "@/components/UserDetailsModal";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-testing-branch.onrender.com";
+console.log('🔧 API_BASE:', API_BASE);
 
 const ManageUsers = () => {
   const { userRole, hasRole } = useAuth();
@@ -802,14 +803,16 @@ const ManageUsers = () => {
       setUpdatingRole(true);
       setError("");
       
-      // console.log('🔄 Making admin API call:', {
-      //   url: `${API_BASE}/api/user/make-admins`,
-      //   payload: { user_ids: selectedUsers },
-      //   selectedUsers
-      // });
+      console.log('🔄 Making admin API call:', {
+        url: `${API_BASE}/api/user/convert-to-admin`,
+        payload: { user_ids: selectedUsers },
+        selectedUsers,
+        API_BASE,
+        fullUrl: `${API_BASE}/api/user/convert-to-admin`
+      });
       
-      // Make API call to make users admins
-      const response = await axios.post(`${API_BASE}/api/user/make-admins`, {
+      // Make API call to convert users to admin using PUT method as expected by backend
+      const response = await axios.put(`${API_BASE}/api/user/convert-to-admin`, {
         user_ids: selectedUsers
       }, {
         headers: {
@@ -822,6 +825,19 @@ const ManageUsers = () => {
       if (response.status >= 200 && response.status < 300) {
         // Get the selected users data
         const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+        
+        // Parse backend response to get detailed information
+        const backendData = response.data?.data || {};
+        const updateCount = backendData.count || 0;
+        const statusMessages = backendData.messages || [];
+        const allAlreadyAdmins = backendData.allAlreadyAdmins || false;
+        
+        console.log('🔍 Backend response for admin conversion:', {
+          count: updateCount,
+          messages: statusMessages,
+          allAlreadyAdmins: allAlreadyAdmins,
+          fullResponse: response.data
+        });
         
         // Manually update the local state to reflect the role change
         setUsers(prevUsers => {
@@ -841,11 +857,11 @@ const ManageUsers = () => {
                 
                 return updatedUser;
               } else {
-                // console.log('ℹ️ User already has admin role:', {
-                //   id: user.id,
-                //   name: `${user.first_name} ${user.last_name}`,
-                //   roles: user.user_roles
-                // });
+                console.log('ℹ️ User already has admin role:', {
+                  id: user.id,
+                  name: `${user.first_name} ${user.last_name}`,
+                  roles: user.user_roles
+                });
                 return user;
               }
             }
@@ -858,24 +874,52 @@ const ManageUsers = () => {
         // Reset selection first
         setSelectedUsers([]);
         
-        // Show success message immediately
+        // Show success message with backend information
+        let successTitle = "Admin Role Update";
+        let successMessage = "";
+        
+        if (allAlreadyAdmins) {
+          successTitle = "Users Already Admins";
+          successMessage = "All selected users are already administrators.";
+        } else if (updateCount > 0) {
+          successTitle = "Admin Role Update";
+          successMessage = `Successfully converted ${updateCount} user(s) to admin role.`;
+        }
+        
         setSuccessData({
-          courseTitle: "Admin Role Update",
-          addedUsers: updatedUsers
+          courseTitle: successTitle,
+          addedUsers: updatedUsers,
+          backendInfo: {
+            count: updateCount,
+            messages: statusMessages,
+            allAlreadyAdmins: allAlreadyAdmins
+          }
         });
         setShowSuccessModal(true);
         
         // Wait a moment for backend to process, then refresh
         setTimeout(async () => {
-          // console.log('🔄 Refreshing users list to get updated admin roles...');
+          console.log('🔄 Refreshing users list to get updated admin roles...');
           await fetchUsers();
         }, 2000);
       } else {
-        // console.error('❌ API returned non-success status:', response.status);
+        console.error('❌ API returned non-success status:', response.status);
         throw new Error(response.data?.message || `API returned status ${response.status}`);
       }
     } catch (error) {
       console.error('❌ Error making users admins:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers,
+          data: error.config?.data
+        }
+      });
       
       // Handle specific error cases
       if (error.response?.status === 400) {
@@ -1274,27 +1318,48 @@ const ManageUsers = () => {
             <div className="flex gap-2">
               {/* Role Management Buttons */}
               {filterRole === "user" && (
-                <button
-                  onClick={handleMakeInstructor}
-                  disabled={updatingRole}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Promote to Instructor (replaces all existing roles)"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {updatingRole 
-                    ? enrollmentProgress.total > 0 
-                      ? `Updating & Enrolling... (${enrollmentProgress.current}/${enrollmentProgress.total})`
-                      : 'Updating & Enrolling...'
-                    : 'Make Instructor'
-                  }
-                </button>
+                <>
+                  <button
+                    onClick={handleMakeInstructor}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Promote to Instructor (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {updatingRole 
+                      ? enrollmentProgress.total > 0 
+                        ? `Updating & Enrolling... (${enrollmentProgress.current}/${enrollmentProgress.total})`
+                        : 'Updating & Enrolling...'
+                      : 'Make Instructor'
+                    }
+                  </button>
+                  <button
+                    onClick={handleMakeAdmin}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Promote to Admin (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {updatingRole ? 'Updating...' : 'Make Admin'}
+                  </button>
+                </>
               )}
               {filterRole === "instructor" && (
-                <div className="text-sm text-gray-500 italic">
-                  {/* No role changes available for instructors */}
-                </div>
+                <button
+                  onClick={handleMakeAdmin}
+                  disabled={updatingRole}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Promote to Admin (replaces all existing roles)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {updatingRole ? 'Updating...' : 'Make Admin'}
+                </button>
               )}
               <button
                 onClick={() => setShowCourseModal(true)}
@@ -1398,6 +1463,10 @@ const ManageUsers = () => {
               <p className="text-sm text-gray-600 mb-3">
                 {successData.courseTitle === "Role Update" 
                   ? <>You have successfully updated <span className="font-semibold text-gray-800">{successData.addedUsers.length} user(s)</span> to instructor role{successData.enrollmentInfo?.message || ''}. They will now appear in the Instructor section.</>
+                  : successData.courseTitle === "Admin Role Update"
+                  ? <>You have successfully converted <span className="font-semibold text-gray-800">{successData.backendInfo?.count || successData.addedUsers.length} user(s)</span> to admin role. They will now appear in the Admin section.</>
+                  : successData.courseTitle === "Users Already Admins"
+                  ? <>All selected users are already administrators. No changes were made.</>
                   : successData.courseTitle === "User Deleted"
                   ? <>You have successfully deleted {getUserRole(successData.addedUsers[0])} <span className="font-semibold text-gray-800">{successData.addedUsers[0]?.first_name} {successData.addedUsers[0]?.last_name}</span> from the system.</>
                   : <>You have successfully added <span className="font-semibold text-gray-800">{successData.addedUsers.length} {filterRole}(s)</span> to the course:</>
@@ -1428,10 +1497,41 @@ const ManageUsers = () => {
                   )}
                 </div>
               )}
+
+              {/* Backend Status Messages for Admin Conversion */}
+              {(successData.courseTitle === "Admin Role Update" || successData.courseTitle === "Users Already Admins") && successData.backendInfo && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm font-medium text-blue-800">Backend Status</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-blue-700">
+                      <span className="font-semibold">Updated:</span> {successData.backendInfo.count} user(s)
+                    </p>
+                    {successData.backendInfo.messages && successData.backendInfo.messages.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-blue-600 mb-1">Status Messages:</p>
+                        <div className="space-y-1">
+                          {successData.backendInfo.messages.map((message, index) => (
+                            <p key={index} className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                              {message}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <div className="max-h-48 overflow-y-auto">
                 <p className="text-sm font-medium text-gray-700 mb-2">
                   {successData.courseTitle === "Role Update" ? "Updated users:" : 
+                   successData.courseTitle === "Admin Role Update" ? "Users converted to admin:" :
+                   successData.courseTitle === "Users Already Admins" ? "Users (already admins):" :
                    successData.courseTitle === "User Deleted" ? "Deleted member:" : 
                    `Added ${filterRole}s:`}
                 </p>
@@ -1457,7 +1557,7 @@ const ManageUsers = () => {
             
             <div className="flex justify-end gap-3">
               {/* Show "Add to More Courses" button only for course addition operations */}
-              {successData.courseTitle !== "Role Update" && successData.courseTitle !== "User Deleted" && (
+              {successData.courseTitle !== "Role Update" && successData.courseTitle !== "Admin Role Update" && successData.courseTitle !== "Users Already Admins" && successData.courseTitle !== "User Deleted" && (
                 <button
                   onClick={handleAddToMoreCourses}
                   className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
