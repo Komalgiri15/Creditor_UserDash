@@ -95,7 +95,9 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
       };
       let created;
       if (editingQuiz) {
-        created = await updateQuiz(editingQuiz.id, quizData);
+        // Many backends disallow changing module_id during update. Send only editable fields.
+        const { module_id: _omitModuleId, ...updatableFields } = quizData;
+        created = await updateQuiz(editingQuiz.id, updatableFields);
       } else {
         created = await createQuiz(quizData);
       }
