@@ -10,6 +10,7 @@ import { Search, Clock, ChevronLeft, Play, Eye, Plus, Trash2, Trophy, Edit } fro
 import { Input } from "@/components/ui/input";
 import QuizModal from '@/components/courses/QuizModal';
 import QuizScoresModal from '@/components/courses/QuizScoresModal';
+import EditQuestionModal from '@/components/courses/EditQuestionModal';
 import { fetchQuizzesByModule, fetchAllQuizzes, getQuizById, deleteQuiz, updateQuiz } from '@/services/quizServices';
 import { toast } from "sonner";
 
@@ -38,6 +39,8 @@ const CreateQuizPage = () => {
   const [quizToDelete, setQuizToDelete] = useState(null);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [isAddingQuestions, setIsAddingQuestions] = useState(false);
+  const [showEditQuestionModal, setShowEditQuestionModal] = useState(false);
+  const [selectedQuestionForEdit, setSelectedQuestionForEdit] = useState(null);
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
 
@@ -187,6 +190,18 @@ const CreateQuizPage = () => {
     setSelectedModuleForQuiz(quiz.module_id);
     setIsAddingQuestions(true);
     setShowQuizModal(true);
+  };
+
+  const handleEditQuestion = (question) => {
+    setSelectedQuestionForEdit(question);
+    setShowEditQuestionModal(true);
+  };
+
+  const handleQuestionUpdated = () => {
+    // Refresh the preview data if it's currently open
+    if (previewQuizData) {
+      handlePreviewQuiz(previewQuizData);
+    }
   };
 
   const handleViewScores = (quiz, courseId) => {
@@ -530,7 +545,17 @@ const CreateQuizPage = () => {
                     const options = q.question_options && q.question_options.length > 0 ? q.question_options : (q.options || []);
                     return (
                       <div key={q.id} className="mb-6">
-                        <div className="font-medium text-gray-900 mb-2">{idx + 1}. {q.question}</div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium text-gray-900">{idx + 1}. {q.question}</div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditQuestion(q)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
                         {options.length > 0 && (
                           <div className="space-y-2 ml-4">
                             {options.map(opt => (
@@ -617,6 +642,17 @@ const CreateQuizPage = () => {
           </div>
         </div>
       )}
+
+      <EditQuestionModal
+        isOpen={showEditQuestionModal}
+        onClose={() => {
+          setShowEditQuestionModal(false);
+          setSelectedQuestionForEdit(null);
+        }}
+        question={selectedQuestionForEdit}
+        quizId={previewQuizData?.id}
+        onQuestionUpdated={handleQuestionUpdated}
+      />
     </div>
   );
 };

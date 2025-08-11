@@ -38,12 +38,36 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
     },
   ]);
 
+  // Reset questions each time the modal opens to avoid keeping previous session state
+  useEffect(() => {
+    if (isOpen) {
+      setQuestions([
+        {
+          text: '',
+          type: 'MCQ',
+          correctAnswer: '',
+          options: [{ text: '', isCorrect: false }],
+          matchPairs: [{ text: '', matchWith: '' }],
+        },
+      ]);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (editingQuiz) {
       if (isAddingQuestions) {
-        // If adding questions to existing quiz, go directly to step 2
+        // If adding questions to existing quiz, go directly to step 2 and reset builder to blank
         setStep(2);
         setCreatedQuiz(editingQuiz);
+        setQuestions([
+          {
+            text: '',
+            type: 'MCQ',
+            correctAnswer: '',
+            options: [{ text: '', isCorrect: false }],
+            matchPairs: [{ text: '', matchWith: '' }],
+          },
+        ]);
       } else {
         // If editing quiz details, populate form and stay on step 1
         setForm({
@@ -95,7 +119,9 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
       };
       let created;
       if (editingQuiz) {
-        created = await updateQuiz(editingQuiz.id, quizData);
+        // Many backends disallow changing module_id during update. Send only editable fields.
+        const { module_id: _omitModuleId, ...updatableFields } = quizData;
+        created = await updateQuiz(editingQuiz.id, updatableFields);
       } else {
         created = await createQuiz(quizData);
       }
