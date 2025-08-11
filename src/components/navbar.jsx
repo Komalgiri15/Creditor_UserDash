@@ -63,15 +63,8 @@ const Navbar = () => {
 
   const handleLoginClick = (e) => {
     e.preventDefault();
-    // Check if user is already logged in
-    const token = Cookies.get("token") || localStorage.getItem("token");
-    if (token) {
-      // User is logged in, redirect to dashboard
-      navigate("/dashboard");
-    } else {
-      // User is not logged in, redirect to login page
-      navigate("/login");
-    }
+    // Always navigate to login page - UserContext will handle authentication state
+    navigate("/login");
   };
 
   const loginButton = (isMobileView = false) => (

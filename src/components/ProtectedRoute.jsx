@@ -1,13 +1,24 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import Cookies from "js-cookie";
+import { useUser } from "@/contexts/UserContext";
 
 const ProtectedRoute = ({ children }) => {
-  // Check for token in both cookies and localStorage
-  const token = Cookies.get("token") || localStorage.getItem("token");
+  const { userProfile, isLoading } = useUser();
   
-  if (!token) {
-    // No token found, redirect to login
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // If no user profile, redirect to login
+  if (!userProfile) {
     return <Navigate to="/login" replace />;
   }
   
