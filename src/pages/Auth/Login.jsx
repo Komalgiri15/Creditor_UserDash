@@ -43,11 +43,13 @@ export function Login() {
 
       if (response.data.success && response.data.token) {
         // Store token in cookies for 7 days
-        Cookies.set("token", response.data.token, { 
-          expires: 7,
-          secure: true,
-          sameSite: 'strict'
-        });
+        // Cookies.set("token", response.data.token, { 
+        //   expires: 7,
+        //   secure: true,
+        //   sameSite: 'strict'
+        // });
+        // Also store token in localStorage for mobile compatibility
+        // localStorage.setItem("token", response.data.token);
         
         // Set default role first
         setUserRole('user');
