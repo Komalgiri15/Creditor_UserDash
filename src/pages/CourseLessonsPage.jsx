@@ -4,6 +4,7 @@ import { allowedScormUserIds } from "@/data/allowedScormUsers";
 import { currentUserId } from "@/data/currentUser";
 import { createModule, fetchAllCourses, fetchCourseModules } from "@/services/courseService";
 import { CreateModuleDialog } from "@/components/courses/CreateModuleDialog";
+import { CreateLessonDialog } from "@/components/courses/CreateLessonDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,9 @@ const CourseLessonsPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(null);
   const [moduleDialogMode, setModuleDialogMode] = useState("create");
   const [editModuleData, setEditModuleData] = useState(null);
+  const [showCreateLessonDialog, setShowCreateLessonDialog] = useState(false);
+  const [selectedCourseForLesson, setSelectedCourseForLesson] = useState(null);
+  const [selectedModuleForLesson, setSelectedModuleForLesson] = useState(null);
   const navigate = useNavigate();
 
   const isAllowed = allowedScormUserIds.includes(currentUserId);
@@ -171,8 +175,39 @@ const CourseLessonsPage = () => {
   };
 
   const handleAddLesson = (courseId, moduleId) => {
-    // Navigate to add lesson page
-    navigate(`/instructor/add-lesson/${courseId}/${moduleId}`);
+    setSelectedCourseForLesson(courseId);
+    setSelectedModuleForLesson(moduleId);
+    setShowCreateLessonDialog(true);
+  };
+
+  const handleLessonCreated = (lessonData) => {
+    const newLesson = {
+      id: `lesson-${Date.now()}`,
+      title: lessonData.title,
+      description: lessonData.description,
+      lessonNumber: lessonData.lessonNumber,
+      status: lessonData.status,
+      duration: 0,
+      order: lessonData.lessonNumber,
+      createdAt: lessonData.createdAt
+    };
+    
+    setCourses(prev => prev.map(course => 
+      course.id === selectedCourseForLesson
+        ? {
+            ...course,
+            modules: course.modules.map(module =>
+              module.id === selectedModuleForLesson
+                ? { ...module, lessons: [...(module.lessons || []), newLesson] }
+                : module
+            )
+          }
+        : course
+    ));
+    
+    setShowCreateLessonDialog(false);
+    setSelectedCourseForLesson(null);
+    setSelectedModuleForLesson(null);
   };
 
   const handleEditLesson = (lessonId) => {
@@ -433,6 +468,15 @@ const CourseLessonsPage = () => {
         initialData={editModuleData}
         mode={moduleDialogMode}
         onSave={handleModuleSaved}
+      />
+
+      <CreateLessonDialog
+        isOpen={showCreateLessonDialog}
+        onClose={() => setShowCreateLessonDialog(false)}
+        moduleId={selectedModuleForLesson}
+        onLessonCreated={handleLessonCreated}
+        existingLessons={courses.find(c => c.id === selectedCourseForLesson)?.modules.find(m => m.id === selectedModuleForLesson)?.lessons || []}
+        courseId={selectedCourseForLesson}
       />
 
       {showDeleteDialog && (

@@ -69,6 +69,7 @@ import { allowedScormUserIds } from "@/data/allowedScormUsers";
 import { currentUserId } from "@/data/currentUser";
 import Instructorpage from "@/pages/Instructorpage";
 import InstructorCourseModulesPage from "@/pages/InstructorCourseModulesPage";
+import LessonBuilder from "@/pages/LessonBuilder";
 import LandingPage from "@/pages/LandingPage";
 import AdminModal from "@/components/AdminModal";
 import Scrompack from "@/pages/Scrompack";
@@ -134,6 +135,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InstructorCourseModulesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/lesson-builder/:courseId/:moduleId/:lessonId"
+            element={
+              <ProtectedRoute>
+                <LessonBuilder />
               </ProtectedRoute>
             }
           />

@@ -5,6 +5,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCourseById, fetchCourseModules, createModule } from "@/services/courseService";
 import { CreateModuleDialog } from "@/components/courses/CreateModuleDialog";
+import { CreateLessonDialog } from "@/components/courses/CreateLessonDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -30,6 +31,8 @@ const InstructorCourseModulesPage = () => {
   const [moduleIdToLessons, setModuleIdToLessons] = useState({});
   const [lessonsLoading, setLessonsLoading] = useState(false);
   const [lessonToDelete, setLessonToDelete] = useState(null);
+  const [showCreateLessonDialog, setShowCreateLessonDialog] = useState(false);
+  const [selectedModuleForLesson, setSelectedModuleForLesson] = useState(null);
 
   useEffect(() => {
     if (!isAllowed) return;
@@ -126,7 +129,27 @@ const InstructorCourseModulesPage = () => {
   };
 
   const handleAddLesson = (moduleId) => {
-    navigate(`/instructor/add-lesson/${courseId}/${moduleId}`);
+    setSelectedModuleForLesson(moduleId);
+    setShowCreateLessonDialog(true);
+  };
+
+  const handleLessonCreated = (lessonData) => {
+    const newLesson = {
+      id: Date.now(),
+      title: lessonData.title,
+      description: lessonData.description,
+      lessonNumber: lessonData.lessonNumber,
+      status: lessonData.status,
+      createdAt: lessonData.createdAt
+    };
+    
+    setModuleIdToLessons(prev => ({
+      ...prev,
+      [selectedModuleForLesson]: [...(prev[selectedModuleForLesson] || []), newLesson]
+    }));
+    
+    setShowCreateLessonDialog(false);
+    setSelectedModuleForLesson(null);
   };
 
   const handleEditLesson = (lessonId) => {
@@ -353,6 +376,15 @@ const InstructorCourseModulesPage = () => {
         initialData={editModuleData}
         mode={moduleDialogMode}
         onSave={handleModuleSaved}
+      />
+
+      <CreateLessonDialog
+        isOpen={showCreateLessonDialog}
+        onClose={() => setShowCreateLessonDialog(false)}
+        moduleId={selectedModuleForLesson}
+        onLessonCreated={handleLessonCreated}
+        existingLessons={moduleIdToLessons[selectedModuleForLesson] || []}
+        courseId={courseId}
       />
 
       {lessonToDelete && (
