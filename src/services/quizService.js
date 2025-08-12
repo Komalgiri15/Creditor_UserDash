@@ -73,13 +73,13 @@ export async function submitQuiz(quizId, answers) {
 }
 
 /**
- * Get all quizzes for a user
+ * Get all quizzes for a specific module
+ * @param {string} moduleId - The ID of the module
  * @returns {Promise<Array>} Array of quiz objects
  */
-export async function getUserQuizzes() {
+export async function getModuleQuizzes(moduleId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes`, {
+    const response = await fetch(`${API_BASE}/api/quiz/modules/${moduleId}/quizzes`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -87,23 +87,20 @@ export async function getUserQuizzes() {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Failed to fetch quizzes: ${response.status}`);
+      throw new Error(errorData.message || `Failed to fetch module quizzes: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Raw API response:', data);
-    
-    // Handle different response structures
+    // Support both { data: [...] } and direct array
     if (data && data.data && Array.isArray(data.data)) {
-      return data; // Return the full response with data array
-    } else if (data && Array.isArray(data)) {
-      return { data: data }; // Wrap in data property for consistency
+      return data.data;
+    } else if (Array.isArray(data)) {
+      return data;
     } else {
-      console.warn('Unexpected API response structure:', data);
-      return { data: [] };
+      return [];
     }
   } catch (error) {
-    console.error('Error fetching user quizzes:', error);
+    console.error('Error fetching module quizzes:', error);
     throw error;
   }
 }
@@ -212,6 +209,56 @@ export async function getQuizProgress(quizId) {
     return data.data || data;
   } catch (error) {
     console.error('Error fetching quiz progress:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get quiz questions for a specific quiz in a module
+ * @param {string} moduleId - The ID of the module
+ * @param {string} quizId - The ID of the quiz
+ * @returns {Promise<Array>} Array of quiz questions
+ */
+export async function getModuleQuizQuestions(moduleId, quizId) {
+  try {
+    const response = await fetch(`${API_BASE}/api/quiz/modules/${moduleId}/quizzes/${quizId}/questions`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to fetch quiz questions: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data || data;
+  } catch (error) {
+    console.error('Error fetching module quiz questions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get quiz details by module and quiz ID
+ * @param {string} moduleId - The ID of the module
+ * @param {string} quizId - The ID of the quiz
+ * @returns {Promise<Object>} Quiz details
+ */
+export async function getModuleQuizById(moduleId, quizId) {
+  try {
+    const response = await fetch(`${API_BASE}/api/quiz/modules/${moduleId}/quizzes/${quizId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to fetch quiz: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.data || data;
+  } catch (error) {
+    console.error('Error fetching module quiz:', error);
     throw error;
   }
 }

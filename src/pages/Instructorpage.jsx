@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CreateCourse from "./CreateCourse";
 import ScormPage from "./ScormPage";
+import CourseLessonsPage from "./CourseLessonsPage";
 import AddEvent from "./AddEvent";
 import AddCatelog from "./AddCatelog";
 import AddUsersForm from "./AddUsersPage";
@@ -20,7 +21,8 @@ import {
   FaCalendarAlt,
   FaTicketAlt,
   FaExclamationTriangle,
-  FaArrowLeft
+  FaArrowLeft,
+  FaFileAlt
 } from "react-icons/fa";
 
 const InstructorPage = () => {
@@ -144,6 +146,16 @@ const InstructorPage = () => {
             <FaFolder /> SCORM Content
           </button>
           <button 
+            onClick={() => setActiveTab("lessons")} 
+            className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+              activeTab === "lessons" 
+                ? "bg-blue-100 text-blue-700 font-semibold" 
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            <FaFileAlt /> Course Lessons
+          </button>
+          <button 
             onClick={() => setActiveTab("events")} 
             className={`text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === "events" 
@@ -193,7 +205,7 @@ const InstructorPage = () => {
                 Instructor Dashboard
               </h1>
               <p className="text-gray-600">
-                Manage your courses, users, SCORM, and more.
+                Manage your courses, users, SCORM, lessons, and more.
               </p>
             </section>
 
@@ -247,6 +259,12 @@ const InstructorPage = () => {
             {activeTab === "scorm" && (
               <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <ScormPage />
+              </section>
+            )}
+
+            {activeTab === "lessons" && (
+              <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <CourseLessonsPage />
               </section>
             )}
 

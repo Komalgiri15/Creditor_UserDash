@@ -35,19 +35,47 @@ export async function bulkUploadQuestions(quizId, questionsPayload) {
   return await response.json();
 }
 
+/**
+ * Fetches all quizzes for a specific module
+ * @param {string} moduleId - The ID of the module to fetch quizzes for
+ * @returns {Promise<Array>} Array of quiz objects
+ * @throws {Error} If the request fails or returns an error
+ */
 export async function fetchQuizzesByModule(moduleId) {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/module/${moduleId}/quizzes`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch quizzes for module');
+  if (!moduleId) {
+    throw new Error('Module ID is required to fetch quizzes');
   }
-  const data = await response.json();
-  return data.data || data;
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/quiz/modules/${moduleId}/quizzes`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      }
+    );
+
+    const responseData = await response.json().catch(() => ({}));
+    
+    if (!response.ok) {
+      const errorMessage = responseData.message || `Failed to fetch quizzes for module (${response.status})`;
+      console.error('Error fetching quizzes:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: responseData
+      });
+      throw new Error(errorMessage);
+    }
+
+    // Return the data array directly if it exists, otherwise return an empty array
+    return Array.isArray(responseData.data) ? responseData.data : [];
+  } catch (error) {
+    console.error('Error in fetchQuizzesByModule:', error);
+    throw error;
+  }
 }
 
 export async function fetchAllQuizzes() {
