@@ -110,10 +110,13 @@ const InstructorCourseModulesPage = () => {
         console.log("Fetching lessons from:", apiUrl);
 
         const response = await axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+            method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+  },
+  credentials: 'include',
+});
         console.log("Lessons API response:", response.data);
 
         // The API returns { lessons: [...] }

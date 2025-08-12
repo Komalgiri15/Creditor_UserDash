@@ -21,6 +21,7 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/ge
   method: 'GET',
   headers: {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   },
   credentials: 'include',
 });
