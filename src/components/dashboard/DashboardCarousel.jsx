@@ -6,63 +6,33 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
-import { Calendar, User, AlertCircle, BookOpen } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
 const carouselItems = [
   {
     id: 1,
-    title: "Welcome to Your Dashboard!",
-    description: "Explore your personalized dashboard. Track your progress, manage your tasks, and stay updated with the latest features.",
-    icon: User,
-    type: 'profile',
-    image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1000&q=80",
-    buttonText: "View Profile",
-    buttonLink: "/profile"
+    image: "https://lesson-banners.s3.us-east-1.amazonaws.com/Dashboard-banners/Become+%2B+SOV.png",
+    link: "/banner1"
   },
   {
     id: 2,
-    title: "New Feature: Your Calendar ",
-    description: "View your upcoming events and deadlines with the new integrated calendar. Stay organized and never miss an important date.",
-    icon: Calendar,
-    type: 'event',
-    image: "https://i.pinimg.com/1200x/0b/0a/da/0b0ada13a45165cec43bdc91d2fe9028.jpg",
-    buttonText: "Open Calendar",
-    buttonLink: "/calendar"
+    image: "https://lesson-banners.s3.us-east-1.amazonaws.com/Dashboard-banners/Private+business.png",
+    link: "/banner2"
   },
   {
     id: 3,
-    title: "Explore the Course Catalog",
-    description: "Browse all available courses and find new learning opportunities tailored to your interests.",
-    icon: BookOpen,
-    type: 'course',
-    image: "https://i.pinimg.com/1200x/a0/15/f7/a015f7b1535d6bd8ce88d705cdcbd231.jpg",
-    buttonText: "Browse Catalog",
-    buttonLink: "/dashboard/catalog"
+    image: "https://lesson-banners.s3.us-east-1.amazonaws.com/Dashboard-banners/masterclass.jpg",
+    link: "/banner3"
   },
   {
     id: 4,
-    title: "Recent Improvements",
-    description: "We’ve improved performance and squashed bugs for a smoother experience. Thank you for your feedback!",
-    icon: BookOpen,
-    type: 'course',
-    image: "https://i.pinimg.com/736x/b5/3e/be/b53ebe5bb381adc4d177f2aa81b1a829.jpg",
-    buttonText: "Learn More",
-    buttonLink: "/updates"
+    image: "https://lesson-banners.s3.us-east-1.amazonaws.com/Dashboard-banners/Operate+Private.png",
+    link: "/banner4"
   }
 ];
 
 export function DashboardCarousel() {
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const nextBtnRef = useRef(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -74,100 +44,89 @@ export function DashboardCarousel() {
     return () => clearInterval(interval);
   }, []);
 
-  const getItemColor = (type) => {
-    switch (type) {
-      case 'event': return 'from-blue-500 to-blue-700';
-      case 'profile': return 'from-purple-500 to-purple-700';
-      case 'notification': return 'from-amber-500 to-amber-700';
-      case 'alert': return 'from-red-500 to-red-700';
-      case 'course': return 'from-green-500 to-green-700';
-      default: return 'from-gray-500 to-gray-700';
-    }
+  const handleSlideChange = (index) => {
+    setCurrentSlide(index);
   };
 
   return (
-    <>
+    <div className="group relative w-full max-w-4xl mx-auto">
+      {/* Subtle decorative border */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 p-[2px] pointer-events-none">
+        <div className="w-full h-full rounded-2xl bg-white"></div>
+      </div>
+      
       <Carousel
         opts={{
           align: "center",
           loop: true
         }}
-        className="w-full"
+        className="w-full relative z-10"
+        onSlideChange={handleSlideChange}
       >
         <CarouselContent>
-          {carouselItems.map((item) => {
-            const Icon = item.icon;
-            const gradientClass = getItemColor(item.type);
-            const isRegisterItem = item.title.includes("Mock Trial");
-
-            return (
-              <CarouselItem key={item.id} className="md:basis-full">
-                <div className="relative h-[300px] w-full overflow-hidden rounded-xl shadow-lg">
-                  <div className="absolute inset-0">
+          {carouselItems.map((item, index) => (
+            <CarouselItem key={item.id} className="md:basis-full">
+              <div className="relative w-full overflow-hidden rounded-2xl shadow-2xl bg-gradient-to-br from-gray-50 to-white border border-gray-100">
+                <div className="block w-full cursor-pointer select-none transform transition-all duration-500 hover:scale-[1.02]">
+                  <div className="relative w-full h-[200px] sm:h-[250px] md:h-[300px] lg:h-[350px]">
                     <img
                       src={item.image}
-                      alt={item.title}
-                      className="h-full w-full object-cover object-center"
+                      alt={`Banner ${item.id}`}
+                      loading="lazy"
+                      draggable={false}
+                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 select-none ${
+                        item.id === 1 ? 'object-top' : 'object-center'
+                      }`}
                     />
-                    <div className={`absolute inset-0 bg-gradient-to-r ${gradientClass} mix-blend-multiply opacity-50`} />
-                  </div>
-
-                  <div className="absolute inset-0 p-8 flex flex-col justify-between text-white">
-                    <div>
-                      <div className="flex items-center mb-4">
-                        <div className="p-2 rounded-full bg-white/20 mr-3">
-                          <Icon size={24} />
-                        </div>
-                        <h3 className="text-2xl font-bold">{item.title}</h3>
-                      </div>
-                      <p className="text-lg opacity-90 max-w-[80%] line-clamp-3">{item.description}</p>
-                    </div>
-
-                    {/* {item.buttonText && (
-                      <Button
-                        variant="outline"
-                        className="self-start bg-white/10 border-white/30 hover:bg-white/20 backdrop-blur text-white"
-                        onClick={() => {
-                          if (isRegisterItem) {
-                            setShowRegisterModal(true);
-                          } else {
-                            window.location.href = item.buttonLink;
-                          }
-                        }}
-                      >
-                        {item.buttonText}
-                      </Button>
-                    )} */}
+                    {/* Subtle overlay gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent pointer-events-none" />
+                    
+                    {/* Subtle corner accent */}
+                    <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full opacity-60"></div>
                   </div>
                 </div>
-              </CarouselItem>
-            );
-          })}
+              </div>
+            </CarouselItem>
+          ))}
         </CarouselContent>
 
-        <div className="flex justify-center gap-2 mt-3">
-          <CarouselPrevious className="static transform-none translate-y-0 mr-2" />
-          <CarouselNext ref={nextBtnRef} className="static transform-none translate-y-0" />
+        {/* Enhanced navigation arrows */}
+        <CarouselPrevious
+          className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-full shadow-lg hover:shadow-xl p-3 w-12 h-12 backdrop-blur-sm hover:scale-110"
+        />
+        <CarouselNext
+          ref={nextBtnRef}
+          className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/90 hover:bg-white text-gray-700 hover:text-gray-900 border border-gray-200 hover:border-gray-300 rounded-full shadow-lg hover:shadow-xl p-3 w-12 h-12 backdrop-blur-sm hover:scale-110"
+        />
+
+        {/* Slide indicators */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+          {carouselItems.map((_, index) => (
+            <button
+              key={index}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentSlide
+                  ? 'bg-white shadow-lg scale-125'
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              onClick={() => {
+                // This would need to be connected to the carousel API
+                // For now, it's just visual
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Subtle gradient overlays for better text readability */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/10 to-transparent" />
         </div>
       </Carousel>
-
-      {/* Register Modal */}
-      {/* <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Register for Mock Trial</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Input placeholder="Full Name" />
-            <Input type="email" placeholder="Email Address" />
-            <Input type="tel" placeholder="Phone Number" />
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowRegisterModal(false)}>Submit</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog> */}
-    </>
+      
+      {/* Subtle bottom accent line */}
+      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-blue-500/30 to-transparent rounded-full"></div>
+    </div>
   );
 }
 
