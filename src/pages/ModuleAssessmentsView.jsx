@@ -167,7 +167,7 @@ function ModuleAssessmentsView() {
         <div className="container py-8 max-w-7xl">
           <div className="flex items-center gap-2 mb-6">
             <Button variant="ghost" size="sm" asChild>
-              <Link to={`/dashboard/courses/${courseId}/modules/${moduleId}/view`}>
+              <Link to={`/dashboard/courses/${courseId}/modules`}>
                 <ChevronLeft size={16} />
                 Back to Module
               </Link>
