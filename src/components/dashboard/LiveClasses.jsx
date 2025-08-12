@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, Play, Video, Clock, Calendar, Users, FileVideo } from "lucide-react";
 import { AttendanceViewerModal } from "./AttendanceViewerModal";
 import ClassRecording from "./ClassRecording";
-
+import { getAuthHeader } from '../../services/authHeader'; // adjust path as needed
 // Empty array - no recordings exist yet
 const recordedSessions = [];
 
@@ -108,8 +108,9 @@ export function LiveClasses() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeader(),
           },
-          credentials: 'include'
+          credentials: 'include',
         }
       );
 
@@ -134,8 +135,9 @@ export function LiveClasses() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeader(),
           },
-          credentials: 'include'
+          credentials: 'include',
         });
         const data = await response.json();
         if (data && data.data) {
@@ -148,6 +150,7 @@ export function LiveClasses() {
     fetchCourses();
   }, []);
 
+  // Fetch live class events
   useEffect(() => {
     const fetchLiveClass = async () => {
       setLoading(true);
@@ -158,6 +161,11 @@ export function LiveClasses() {
         const params = new URLSearchParams({ startDate: start, endDate: end });
 
         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/calendar/events?${params}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeader(),
+          },
           credentials: 'include',
         });
         const data = await response.json();

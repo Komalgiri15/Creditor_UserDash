@@ -1,3 +1,5 @@
+import { getAuthHeader } from './authHeader';
+
 // Catalog Service for handling catalog-related API calls
 
 // Helper function to get auth headers
@@ -5,6 +7,7 @@ const getAuthHeaders = () => {
   // Backend handles authentication via cookies
   return {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   };
 };
 
@@ -284,4 +287,4 @@ export async function fetchCourseCategories() {
     console.error('Error fetching course categories:', error);
     throw error;
   }
-} 
+}

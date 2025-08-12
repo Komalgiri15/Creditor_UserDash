@@ -1,11 +1,14 @@
+import { getAuthHeader } from '../services/authHeader'; // adjust path as needed
+
 export async function fetchAllCourses() {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/getAllCourses`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include', // Ensure cookies are sent
-  });
+      method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+  },
+  credentials: 'include',
+});
   if (!response.ok) {
     throw new Error('Failed to fetch courses');
   }
@@ -33,6 +36,7 @@ export async function fetchUserCourses() {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
   });
@@ -103,6 +107,7 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${
   method: 'GET',
   headers: {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   },
   credentials: 'include',
 });
@@ -204,4 +209,17 @@ export async function unenrollUser(courseId, userId) {
   
   const data = await response.json();
   return data;
+}
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
 }

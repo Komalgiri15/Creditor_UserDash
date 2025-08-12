@@ -43,6 +43,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import axios from 'axios';
 
 // --- ADDED: Rich Text Editor ---
 import ReactQuill, { Quill } from 'react-quill';
@@ -98,6 +99,8 @@ const LessonBuilder = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [showTextTypeModal, setShowTextTypeModal] = useState(false);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
+  const [savedLesson, setSavedLesson] = useState(null);
+  const [lessons, setLessons] = useState([]);
 
   // --- UPDATED: Modal states for editing ---
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -173,6 +176,25 @@ const LessonBuilder = () => {
 
     loadLessonData();
   }, [lessonId]);
+
+  // Fetch all lessons for the current course and module
+  const fetchLessons = async () => {
+    const apiUrl = `https://creditor-backend-testing-branch.onrender.com/api/course/${courseId}/modules/${moduleId}/lesson/all-lessons`;
+    try {
+      const response = await axios.get(apiUrl);
+      console.log('LESSONS API RESPONSE:', response.data); // Debug: check structure
+      setLessons(response.data.lessons || response.data); // Use correct property
+    } catch (error) {
+      console.error('Error fetching lessons:', error);
+    }
+  };
+
+  // Fetch lessons on mount and after saving
+  useEffect(() => {
+    if (courseId && moduleId) {
+      fetchLessons();
+    }
+  }, [courseId, moduleId]);
 
   // Content block types available in the sidebar
   const contentBlockTypes = [
@@ -306,21 +328,26 @@ const LessonBuilder = () => {
     setDraggedBlockId(null);
   };
 
-  const handleSave = () => {
-    // Save lesson content as draft
+  const handleSave = async () => {
+    // Prepare lesson data
     const lessonDataToSave = {
-      ...lessonData,
       title: lessonTitle,
       contentBlocks,
       status: 'DRAFT',
       lastModified: new Date().toISOString()
     };
-    
-    console.log('Saving lesson as draft:', lessonDataToSave);
-    // Here you would typically call your API to save the lesson
-    
-    // Show success message
-    alert('Lesson saved as draft successfully!');
+
+    // Use dynamic courseId and moduleId from URL params
+    const apiUrl = `https://creditor-backend-testing-branch.onrender.com/api/course/${courseId}/modules/${moduleId}/lesson/create-lesson`;
+
+    try {
+      const response = await axios.post(apiUrl, lessonDataToSave);
+      setSavedLesson(response.data.lesson || response.data); // Adjust based on API response structure
+      alert('Lesson saved as draft successfully!');
+    } catch (error) {
+      alert('Error saving lesson!');
+      console.error(error);
+    }
   };
 
   const handlePreview = () => {
@@ -623,6 +650,21 @@ const LessonBuilder = () => {
                 </Card>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Lessons Section */}
+        <div className="mt-8">
+          <h2 className="text-lg font-bold mb-4">Lessons</h2>
+          {lessons && lessons.length === 0 ? (
+            <p>No lessons yet</p>
+          ) : (
+            lessons && lessons.map(lesson => (
+              <div key={lesson._id || lesson.id} className="card">
+                <h3>{lesson.title}</h3>
+                {/* Render lesson details */}
+              </div>
+            ))
           )}
         </div>
       </div>

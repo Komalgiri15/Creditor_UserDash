@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthHeader } from './authHeader';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 console.log('Ticket Service Base URL:', baseUrl); // Debug: print the base URL being used
@@ -17,7 +18,8 @@ export const createTicket = async (formData) => {
     formData,
     {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        ...getAuthHeader(),
       },
       withCredentials: true
     }
@@ -29,6 +31,9 @@ export const getAllTickets = async () => {
   return axios.get(
     joinUrl(baseUrl, 'api/support-tickets/'),
     {
+      headers: {
+        ...getAuthHeader(),
+      },
       withCredentials: true
     }
   );
@@ -38,7 +43,10 @@ export const getAllTickets = async () => {
 export const addReplyToTicket = async (ticketId, replyData) => {
   const message = replyData?.message;
   const commonOptions = {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
     withCredentials: true,
   };
 
@@ -67,7 +75,23 @@ export const getUserTickets = async () => {
   return axios.get(
     joinUrl(baseUrl, 'api/support-tickets/user/me'),
     {
+      headers: {
+        ...getAuthHeader(),
+      },
       withCredentials: true
     }
   );
 };
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
+}

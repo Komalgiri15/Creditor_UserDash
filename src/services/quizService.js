@@ -1,14 +1,13 @@
 // Quiz Service for handling quiz-related API calls
+import { getAuthHeader } from './authHeader';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // Helper function to get auth headers
-const getAuthHeaders = () => {
-  // Backend handles authentication via cookies
-  return {
-    'Content-Type': 'application/json',
-  };
-};
+const getAuthHeaders = () => ({
+  'Content-Type': 'application/json',
+  ...getAuthHeader(),
+});
 
 // Get current user ID from localStorage or context
 const getCurrentUserId = () => {

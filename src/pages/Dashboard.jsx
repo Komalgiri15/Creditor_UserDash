@@ -13,7 +13,7 @@ import LiveClasses from "@/components/dashboard/LiveClasses";
 import axios from "axios";
 import { fetchUserCourses, fetchCourseModules } from '../services/courseService';
 import { useUser } from '@/contexts/UserContext';
-
+import { getAuthHeader } from '../services/authHeader'; // adjust path as needed
 
 export function Dashboard() {
   const { userProfile } = useUser();
@@ -85,10 +85,11 @@ export function Dashboard() {
         // Get user courses using the correct endpoint - backend's HttpOnly token cookie will be automatically sent
         const userCoursesResponse = await axios.get(`${API_BASE}/api/course/getCourses`, {
           headers: {
-            'Content-Type': 'application/json'
-          },
-          withCredentials: true
-        });
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+  },
+  credentials: 'include',
+});
         
         if (userCoursesResponse.data && userCoursesResponse.data.data) {
           const courses = userCoursesResponse.data.data;

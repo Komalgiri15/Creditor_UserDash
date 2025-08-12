@@ -1,5 +1,6 @@
 // Service to handle quiz-related API calls
 import axios from 'axios';
+import { getAuthHeader } from './authHeader';
 
 const QUIZ_API_URL = 'http://localhost:9000/api/quiz/Quiz';
 
@@ -80,12 +81,13 @@ export async function fetchQuizzesByModule(moduleId) {
 
 export async function fetchAllQuizzes() {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/getQuiz`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-  });
+      method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+  },
+  credentials: 'include',
+});
   if (!response.ok) {
     throw new Error('Failed to fetch all quizzes');
   }
@@ -208,4 +210,17 @@ export async function updateQuiz(quizId, quizData) {
   }
   
   return responseData;
+}
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
 }

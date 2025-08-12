@@ -1,4 +1,5 @@
 // Lesson Service for handling lesson-related API calls
+import { getAuthHeader } from './authHeader';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -145,6 +146,19 @@ export async function updateLessonMetadata(moduleId, metadata) {
     console.error('Error updating lesson metadata:', error);
     throw error;
   }
+}
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
 }
 
 export default {

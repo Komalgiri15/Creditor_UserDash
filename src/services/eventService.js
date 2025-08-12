@@ -1,5 +1,7 @@
 // Event management service
 
+import { getAuthHeader } from './authHeader';
+
 // Utility functions for authentication
 const getUserRole = () => {
   return localStorage.getItem('userRole') || 'user';
@@ -225,4 +227,17 @@ export const eventValidation = {
     
     return errors;
   }
-}; 
+};
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
+}
