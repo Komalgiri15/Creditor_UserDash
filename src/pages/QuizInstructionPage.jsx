@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ChevronLeft, Clock, BookOpen, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
-import { getQuizById } from "@/services/quizService";
+import { getModuleQuizById, getModuleQuizQuestions } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizInstructionPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
   
@@ -25,8 +26,13 @@ function QuizInstructionPage() {
     const fetchQuizData = async () => {
       try {
         setIsLoading(true);
-        const data = await getQuizById(quizId);
-        setQuizData(data);
+        // Prefer quiz data passed via navigation state
+        if (location.state && location.state.quiz) {
+          setQuizData(location.state.quiz);
+        } else {
+          const data = await getModuleQuizById(moduleId, quizId);
+          setQuizData(data);
+        }
       } catch (err) {
         console.error('Error fetching quiz:', err);
         setError('Failed to load quiz data');
@@ -36,10 +42,10 @@ function QuizInstructionPage() {
       }
     };
 
-    if (quizId) {
+    if (quizId && moduleId) {
       fetchQuizData();
     }
-  }, [quizId]);
+  }, [quizId, moduleId, location.state]);
 
   const instructions = [
     "Read each question carefully before selecting your answer.",
@@ -59,12 +65,19 @@ function QuizInstructionPage() {
     `You have ${quizData?.maxAttempts || 3} attempts to complete this quiz successfully.`
   ];
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
     if (!agreed) {
       toast.error('Please agree to the terms before starting the quiz.');
       return;
     }
-    navigate(`/dashboard/quiz/take/${quizId}?module=${moduleId}&category=${category}`);
+    try {
+      // Fetch quiz questions for this module/quiz
+      const questions = await getModuleQuizQuestions(moduleId, quizId);
+      // Optionally: pass questions to the quiz page via state/context, or just navigate
+      navigate(`/dashboard/quiz/take/${quizId}?module=${moduleId}&category=${category}`, { state: { questions } });
+    } catch (err) {
+      toast.error('Failed to load quiz questions.');
+    }
   };
 
   if (isLoading) {
