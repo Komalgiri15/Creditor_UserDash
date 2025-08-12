@@ -9,7 +9,7 @@ const COURSE_IDS = {
   operatePrivate: "7b798545-6f5f-4028-9b1e-e18c7d2b4c47",
   businessCredit: "199e328d-8366-4af1-9582-9ea545f8b59e",
   privateMerchant: "d8e2e17f-af91-46e3-9a81-6e5b0214bc5e",
-  // sovereignty101: "", // Not available yet
+  sovereignty101: "d5330607-9a45-4298-8ead-976dd8810283",
 };
 
 export default function ClassRecording() {
@@ -69,6 +69,14 @@ export default function ClassRecording() {
       description:
         "Dive into private merchant recordings to master operations, compliance, and best practices.",
       action: () => goToCourseModules(COURSE_IDS.privateMerchant),
+      actionText: "Watch Now",
+    },
+    {
+      courseId: COURSE_IDS.sovereignty101,
+      title: "Sovereignty 101 Recordings",
+      description:
+        "Explore the fundamental principles of digital sovereignty through comprehensive session recordings.",
+      action: () => goToCourseModules(COURSE_IDS.sovereignty101),
       actionText: "Watch Now",
     },
   ];
