@@ -1,3 +1,5 @@
+import { getAuthHeader } from './authHeader';
+
 // SCORM Service for handling backend API calls
 // Replace the base URL with your actual backend API endpoint
 
@@ -8,7 +10,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${moduleId}/scorm`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -28,7 +31,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/progress`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -53,7 +57,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/modules/${moduleId}/complete`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -73,7 +78,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/user-progress`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -93,7 +99,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/session`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -119,7 +126,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/session/${courseId}/${moduleId}`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -139,7 +147,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/courses/${courseId}/analytics`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -216,7 +225,8 @@ class ScormService {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/scorm/deleteScorm/${resourceId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
         },
         credentials: 'include',
       });
@@ -235,4 +245,4 @@ class ScormService {
   }
 }
 
-export default ScormService; 
+export default ScormService;
