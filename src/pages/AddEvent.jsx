@@ -2,11 +2,7 @@ import React, { useState, useEffect } from "react";
 import { currentUserId } from "@/data/currentUser";
 import { getAllEvents } from "@/services/calendarService";
 import { fetchUserProfile } from "@/services/userService";
-<<<<<<< HEAD
-
-=======
 import { getAuthHeader } from "@/services/authHeader";
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
 
 const DEFAULT_TIMEZONE = "America/New_York";
 const AddEvent = () => {
@@ -264,11 +260,7 @@ const AddEvent = () => {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-<<<<<<< HEAD
-            'X-User-Role': getUserRole(), // Add role in header as well
-=======
             ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
           },
           credentials: 'include'
         });
@@ -384,11 +376,7 @@ const AddEvent = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-<<<<<<< HEAD
-          'X-User-Role': getUserRole(),
-=======
           ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         },
         credentials: 'include',
       });
@@ -406,11 +394,7 @@ const AddEvent = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-<<<<<<< HEAD
-          'X-User-Role': getUserRole(),
-=======
           ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         },
         credentials: 'include',
       });
@@ -483,11 +467,8 @@ const AddEvent = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-<<<<<<< HEAD
           "X-User-Role": getUserRole(), // Add role in header as well
-=======
           ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         },
         credentials: "include"
       });
@@ -516,11 +497,8 @@ const AddEvent = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-<<<<<<< HEAD
           "X-User-Role": getUserRole(),
-=======
           ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         },
         credentials: "include",
         body: JSON.stringify({ occurrenceDate: occurrenceStartTime })
@@ -546,11 +524,8 @@ const AddEvent = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-<<<<<<< HEAD
           "X-User-Role": getUserRole(),
-=======
           ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         },
         credentials: "include"
       });
@@ -576,11 +551,8 @@ const AddEvent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-<<<<<<< HEAD
             "X-User-Role": getUserRole(),
-=======
             ...getAuthHeader(),
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
           },
           credentials: "include",
           body: JSON.stringify({ occurrenceDate }),
@@ -732,12 +704,9 @@ const AddEvent = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-<<<<<<< HEAD
-            "X-User-Role": currentRole, // Add role in header as well
-=======
+          
             ...getAuthHeader(),
             "X-User-Role": currentRole, // If your backend still requires this header, keep it
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
           },
           body: JSON.stringify(payload),
           credentials: "include"

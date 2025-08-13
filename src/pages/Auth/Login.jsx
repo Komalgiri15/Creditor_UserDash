@@ -41,10 +41,6 @@ export function Login() {
         // Store accessToken as authToken for future API calls
         localStorage.setItem('authToken', response.data.accessToken);
 
-<<<<<<< HEAD
-      if (response.data.success) {
-=======
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
         // Set default role first
         setUserRole('user');
         // Fetch user profile and set single user role in localStorage

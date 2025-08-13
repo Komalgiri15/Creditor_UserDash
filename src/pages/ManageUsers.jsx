@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
-<<<<<<< HEAD
 import { useSearchParams } from "react-router-dom";
 import UserDetailsModal from "@/components/UserDetailsModal";
-=======
-import UserDetailsModal from "@/components/UserDetailsModal";
-import { getAuthHeader } from "../services/authHeader";
-
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
@@ -45,10 +39,7 @@ const ManageUsers = () => {
   // User details modal state
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
-<<<<<<< HEAD
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
-=======
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1768,17 +1759,9 @@ const ManageUsers = () => {
       {/* User Details Modal */}
       <UserDetailsModal
         isOpen={showUserDetailsModal}
-<<<<<<< HEAD
         onClose={handleCloseUserDetailsModal}
         user={selectedUserForDetails}
         isLoading={loadingUserDetails}
-=======
-        onClose={() => {
-          setShowUserDetailsModal(false);
-          setSelectedUserForDetails(null);
-        }}
-        user={selectedUserForDetails}
->>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
       />
     </div>
   );
