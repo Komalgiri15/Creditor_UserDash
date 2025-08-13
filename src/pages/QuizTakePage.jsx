@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Clock, BookOpen, CheckCircle, XCircle, Loader2, AlertTriangle, ChevronLeft } from "lucide-react";
-import { submitQuiz } from "@/services/quizService";
+import { submitQuiz, saveAnswer } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizTakePage() {
@@ -105,11 +105,22 @@ function QuizTakePage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleAnswer = (questionId, answer) => {
+  const handleAnswer = async (questionId, answer) => {
+    // Update local state immediately for responsive UI
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
     }));
+    
+    // Optionally save answer to backend for auto-save functionality
+    // This can help prevent data loss if the user's session expires
+    try {
+      await saveAnswer(quizId, questionId, answer);
+    } catch (error) {
+      // Don't show error to user for auto-save, just log it
+      console.warn('Failed to auto-save answer:', error);
+      // The answer is still saved locally, so it will be sent on final submit
+    }
   };
 
   const handleNext = () => {
@@ -133,9 +144,20 @@ function QuizTakePage() {
     setIsSubmitting(true);
     try {
       console.log('Submitting quiz with answers:', answers);
+      console.log('Answers count:', Object.keys(answers).length);
+      console.log('Total questions:', totalQuestions);
+      console.log('Quiz ID:', quizId);
       
-      // Call the submit quiz API
-      const result = await submitQuiz(quizId);
+      // Validate that we have answers for most questions
+      const answeredCount = Object.keys(answers).length;
+      const unansweredCount = totalQuestions - answeredCount;
+      
+      if (unansweredCount > 0) {
+        console.log(`Warning: ${unansweredCount} questions are unanswered`);
+      }
+      
+      // Call the submit quiz API with user answers
+      const result = await submitQuiz(quizId, answers);
       console.log('Quiz submission result:', result);
       console.log('Quiz submission result structure:', {
         hasData: !!result.data,
@@ -148,6 +170,12 @@ function QuizTakePage() {
       
       // Extract the response data
       const responseData = result.data || result;
+      
+      // Validate the response contains scoring information
+      if (!responseData.score && responseData.score !== 0) {
+        console.warn('Quiz submitted but no score received from backend');
+        console.warn('Response data:', responseData);
+      }
       
       toast.success('Quiz submitted successfully!');
       
@@ -440,7 +468,13 @@ function QuizTakePage() {
         
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>Question {currentQuestion + 1} of {totalQuestions}</span>
-          <span>{Math.round(progress)}% Complete</span>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              {Object.keys(answers).length} answered
+            </span>
+            <span>{Math.round(progress)}% Complete</span>
+          </div>
         </div>
       </div>
 

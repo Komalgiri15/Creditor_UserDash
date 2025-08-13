@@ -45,15 +45,16 @@ export async function startQuiz(quizId) {
 /**
  * Submit a completed quiz
  * @param {string} quizId - The ID of the quiz to submit
+ * @param {Object} answers - Object containing question IDs and user answers
  * @returns {Promise<Object>} Quiz results and score
  */
-export async function submitQuiz(quizId) {
+export async function submitQuiz(quizId, answers = {}) {
   try {
     const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/submit`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      // No body needed - backend gets attempt data from database
+      body: JSON.stringify({ answers })
     });
 
     if (!response.ok) {
@@ -202,6 +203,35 @@ export async function getQuizProgress(quizId) {
     return data.data || data;
   } catch (error) {
     console.error('Error fetching quiz progress:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save an individual answer for a question
+ * @param {string} quizId - The ID of the quiz
+ * @param {string} questionId - The ID of the question
+ * @param {any} answer - The user's answer
+ * @returns {Promise<Object>} Response indicating success
+ */
+export async function saveAnswer(quizId, questionId, answer) {
+  try {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/answers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ questionId, answer })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to save answer: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data || data;
+  } catch (error) {
+    console.error('Error saving answer:', error);
     throw error;
   }
 }
