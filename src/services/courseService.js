@@ -125,6 +125,7 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   },
   credentials: 'include',
   body: JSON.stringify(moduleData),
@@ -162,6 +163,7 @@ export async function deleteModule(courseId, moduleId, moduleData) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'text/plain',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(moduleData),
