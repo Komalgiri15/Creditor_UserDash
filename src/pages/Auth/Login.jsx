@@ -381,7 +381,7 @@ export function Login() {
                   </div>
 
                   {/* Forgot Password Link */}
-                  <div className="text-right">
+                  {/* <div className="text-right">
                     <button
                       type="button"
                       onClick={() => setShowForgotPassword(true)}
@@ -390,7 +390,7 @@ export function Login() {
                     >
                       Forgot Password?
                     </button>
-                  </div>
+                  </div> */}
 
                   {/* Submit Button */}
                   <Button 
