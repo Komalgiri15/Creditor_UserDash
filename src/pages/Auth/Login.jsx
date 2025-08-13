@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gavel, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, BookOpen, Users, Award } from "lucide-react";
 import axios from "axios";
-import Cookies from "js-cookie";
 import { fetchUserProfile, setUserRole, setUserRoles } from "@/services/userService";
 import logoCreditor from "@/assets/logo_creditor.png";
 
@@ -31,7 +30,6 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      console.log("Attempting login with:", { email, API_BASE });
       const response = await axios.post(`${API_BASE}/api/auth/login`, {
         email,
         password,
@@ -39,21 +37,12 @@ export function Login() {
         withCredentials: true
       });
 
-      console.log('Login response from backend:', response.data);
+      if (response.data.success && response.data.accessToken) {
+        // Store accessToken as authToken for future API calls
+        localStorage.setItem('authToken', response.data.accessToken);
 
-      if (response.data.success && response.data.token) {
-        // Store token in cookies for 7 days
-        // Cookies.set("token", response.data.token, { 
-        //   expires: 7,
-        //   secure: true,
-        //   sameSite: 'strict'
-        // });
-        // Also store token in localStorage for mobile compatibility
-        // localStorage.setItem("token", response.data.token);
-        
         // Set default role first
         setUserRole('user');
-        
         // Fetch user profile and set single user role in localStorage
         try {
           const profile = await fetchUserProfile();

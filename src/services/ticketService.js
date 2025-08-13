@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthHeader } from './authHeader';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 console.log('Ticket Service Base URL:', baseUrl); // Debug: print the base URL being used
@@ -17,9 +18,80 @@ export const createTicket = async (formData) => {
     formData,
     {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        ...getAuthHeader(),
       },
       withCredentials: true
     }
   );
 };
+
+// Fetch all tickets for admin/instructor
+export const getAllTickets = async () => {
+  return axios.get(
+    joinUrl(baseUrl, 'api/support-tickets/'),
+    {
+      headers: {
+        ...getAuthHeader(),
+      },
+      withCredentials: true
+    }
+  );
+};
+
+// Add reply to a ticket (admin only)
+export const addReplyToTicket = async (ticketId, replyData) => {
+  const message = replyData?.message;
+  const commonOptions = {
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    withCredentials: true,
+  };
+
+  // Try variant 1: endpoint with ticketId in the path
+  try {
+    return await axios.post(
+      joinUrl(baseUrl, `api/support-tickets/admin/reply/${ticketId}`),
+      { message },
+      commonOptions
+    );
+  } catch (error) {
+    // If route not found, try variant 2: endpoint without id but with ticket_id in body
+    if (error?.response?.status === 404) {
+      return axios.post(
+        joinUrl(baseUrl, 'api/support-tickets/admin/reply'),
+        { ticket_id: ticketId, message },
+        commonOptions
+      );
+    }
+    throw error;
+  }
+};
+
+// Fetch user's own tickets
+export const getUserTickets = async () => {
+  return axios.get(
+    joinUrl(baseUrl, 'api/support-tickets/user/me'),
+    {
+      headers: {
+        ...getAuthHeader(),
+      },
+      withCredentials: true
+    }
+  );
+};
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
+}

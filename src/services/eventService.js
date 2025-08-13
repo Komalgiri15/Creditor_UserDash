@@ -1,20 +1,16 @@
 // Event management service
 
-// Utility functions for authentication
-const getAuthToken = () => {
-  return localStorage.getItem('token') || document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-};
+import { getAuthHeader } from './authHeader';
 
+// Utility functions for authentication
 const getUserRole = () => {
   return localStorage.getItem('userRole') || 'user';
 };
 
 // Base API call function
 const makeApiCall = async (url, options = {}) => {
-  const token = getAuthToken();
   const defaultHeaders = {
     'Content-Type': 'application/json',
-    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 
   const response = await fetch(url, {
@@ -231,4 +227,17 @@ export const eventValidation = {
     
     return errors;
   }
-}; 
+};
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
+}

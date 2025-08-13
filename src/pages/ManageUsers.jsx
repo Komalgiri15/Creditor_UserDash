@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
+import UserDetailsModal from "@/components/UserDetailsModal";
+import { getAuthHeader } from "../services/authHeader";
+
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
@@ -33,6 +36,10 @@ const ManageUsers = () => {
   const [forceUpdate, setForceUpdate] = useState(0);
   const [enrollmentProgress, setEnrollmentProgress] = useState({ current: 0, total: 0 });
   
+  // User details modal state
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(5);
@@ -61,22 +68,27 @@ const ManageUsers = () => {
     }
   }, [forceUpdate]);
 
+  const getAuthConfig = () => ({
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(getAuthHeader() || {}), // getAuthHeader should return { Authorization: 'Bearer ...' }
+    },
+    credentials: 'include',
+    withCredentials: true,
+  });
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError("");
-      
-      // Record the API call time
       const currentTime = new Date();
       setApiCallTime(currentTime);
-      
-      // Backend's HttpOnly token cookie will be automatically sent with the request
-      const response = await axios.get(`${API_BASE}/api/user/all`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true, // Include cookies in the request
-      });
+
+      const response = await axios.get(
+        `${API_BASE}/api/user/all`,
+        getAuthConfig()
+      );
 
       if (response.data && response.data.code === 200) {
         const fetchedUsers = response.data.data || [];
@@ -106,23 +118,17 @@ const ManageUsers = () => {
 
   const fetchCourses = async () => {
     try {
-      // Backend's HttpOnly token cookie will be automatically sent with the request
-      const response = await axios.get(`${API_BASE}/api/course/getAllCourses`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true, // Include cookies in the request
-      });
+      const response = await axios.get(
+        `${API_BASE}/api/course/getAllCourses`,
+        getAuthConfig()
+      );
 
       if (response.data && response.data.data) {
-        // Filter to only show published courses
         const publishedCourses = response.data.data.filter(course => 
           course.course_status === 'PUBLISHED'
         );
         setCourses(publishedCourses);
       } else if (response.data && Array.isArray(response.data)) {
-        // Handle case where response.data is directly an array
-        // Filter to only show published courses
         const publishedCourses = response.data.filter(course => 
           course.course_status === 'PUBLISHED'
         );
@@ -325,76 +331,19 @@ const ManageUsers = () => {
     try {
       setAddingToCourse(true);
       setError("");
-      
       let response;
-      
-      // Different API endpoints based on the current filter role
-      if (filterRole === "user") {
-        // Add learners to course
-        // console.log('🔄 Adding learners to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
-        
-        // Check if the selected course actually exists
-        const selectedCourseData = courses.find(c => c.id === selectedCourse);
-        if (!selectedCourseData) {
-          throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
-        }
-        
-        response = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
-          course_id: selectedCourse,
-          learnerIds: selectedUsers
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        });
-      } else if (filterRole === "instructor") {
-        // Add instructors to course
-        // console.log('🔄 Adding instructors to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
-        
-        // Check if the selected course actually exists
-        const selectedCourseData = courses.find(c => c.id === selectedCourse);
-        if (!selectedCourseData) {
-          throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
-        }
-        
-        response = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
-          course_id: selectedCourse,
-          learnerIds: selectedUsers
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        });
+      const selectedCourseData = courses.find(c => c.id === selectedCourse);
+      if (!selectedCourseData) {
+        throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
       }
-    
-       else if (filterRole === "admin") {
-        // Add admins to course
-        // console.log('🔄 Adding admins to course:', { course_id: selectedCourse, learnerIds: selectedUsers });
-        // console.log('📋 Available courses:', courses.map(c => ({ id: c.id, title: c.title })));
-        // console.log('🎯 Selected course details:', courses.find(c => c.id === selectedCourse));
-        
-        // Check if the selected course actually exists
-        const selectedCourseData = courses.find(c => c.id === selectedCourse);
-        if (!selectedCourseData) {
-          throw new Error(`Course with ID "${selectedCourse}" not found. Available courses: ${courses.map(c => c.id).join(', ')}`);
-        }
-        
-        response = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
+      response = await axios.post(
+        `${API_BASE}/api/course/addLearnerToCourse`,
+        {
           course_id: selectedCourse,
           learnerIds: selectedUsers
-        }, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        });
-      }
+        },
+        getAuthConfig()
+      );
 
       if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
         // Get the selected course title
@@ -418,12 +367,10 @@ const ManageUsers = () => {
         
         // After successful addition, verify the users are actually in the course
         try {
-          const verifyResponse = await axios.get(`${API_BASE}/api/course/${selectedCourse}/getAllUsersByCourseId`, {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            withCredentials: true,
-          });
+          const verifyResponse = await axios.get(
+            `${API_BASE}/api/course/${selectedCourse}/getAllUsersByCourseId`,
+            getAuthConfig()
+          );
           
           // console.log('✅ Course users verification response:', verifyResponse.data);
           // console.log('📋 Users in course after addition:', verifyResponse.data?.data || []);
@@ -518,14 +465,13 @@ const ManageUsers = () => {
               try {
                 // console.log(`🔄 Attempting to add user ${userId} individually...`);
                 
-                const individualResponse = await axios.post(`${API_BASE}/api/course/addInstructor/${selectedCourse}`, {
-                  instructorIds: [userId]
-                }, {
-                  headers: {
-                    'Content-Type': 'application/json',
+                const individualResponse = await axios.post(
+                  `${API_BASE}/api/course/addInstructor/${selectedCourse}`,
+                  {
+                    instructorIds: [userId]
                   },
-                  withCredentials: true,
-                });
+                  getAuthConfig()
+                );
                 
                 if (individualResponse.status >= 200 && individualResponse.status < 300) {
                   successfulAdds.push(userId);
@@ -607,14 +553,11 @@ const ManageUsers = () => {
       // });
       
       // Make API call to make users instructors using the correct endpoint and payload
-      const response = await axios.post(`${API_BASE}/api/user/make-instructors`, {
-        user_ids: selectedUsers
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        `${API_BASE}/api/user/make-instructors`,
+        { user_ids: selectedUsers },
+        getAuthConfig()
+      );
 
       // Detailed analysis of the response
       // console.log('🔍 Detailed response analysis:', {
@@ -686,15 +629,14 @@ const ManageUsers = () => {
             try {
               // console.log(`🔄 Enrolling instructors in course: ${course.title} (${course.id})`);
               
-              const enrollmentResponse = await axios.post(`${API_BASE}/api/course/addLearnerToCourse`, {
-                course_id: course.id,
-                learnerIds: selectedUsers
-              }, {
-                headers: {
-                  'Content-Type': 'application/json',
+              const enrollmentResponse = await axios.post(
+                `${API_BASE}/api/course/addLearnerToCourse`,
+                {
+                  course_id: course.id,
+                  learnerIds: selectedUsers
                 },
-                withCredentials: true,
-              });
+                getAuthConfig()
+              );
               
               return { course, success: true, response: enrollmentResponse.data };
             } catch (enrollmentError) {
@@ -804,14 +746,11 @@ const ManageUsers = () => {
       // });
       
       // Make API call to make users admins
-      const response = await axios.post(`${API_BASE}/api/user/make-admins`, {
-        user_ids: selectedUsers
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        `${API_BASE}/api/user/make-admins`,
+        { user_ids: selectedUsers },
+        getAuthConfig()
+      );
 
       // Check if the request was successful (HTTP 200-299)
       if (response.status >= 200 && response.status < 300) {
@@ -893,7 +832,7 @@ const ManageUsers = () => {
     if (selectedUsers.length === 0) return;
     
     try {
-      setUpdatingRole(true); // Reuse the same loading state
+      setUpdatingRole(true);
       setError("");
       
       // console.log('🔄 Making user API call:', {
@@ -904,14 +843,11 @@ const ManageUsers = () => {
       // });
       
       // Make API call to make users regular users
-      const response = await axios.post(`${API_BASE}/api/user/make-users`, {
-        user_ids: selectedUsers
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const response = await axios.post(
+        `${API_BASE}/api/user/make-users`,
+        { user_ids: selectedUsers },
+        getAuthConfig()
+      );
 
       // Check if the request was successful (HTTP 200-299)
       if (response.status >= 200 && response.status < 300) {
@@ -1004,12 +940,10 @@ const ManageUsers = () => {
       // });
       
       // Make API call to delete user using the correct endpoint format
-      const response = await axios.delete(`${API_BASE}/api/user/${userToDelete.id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const response = await axios.delete(
+        `${API_BASE}/api/user/${userToDelete.id}`,
+        getAuthConfig()
+      );
 
       if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
         // console.log('✅ User deleted successfully');
@@ -1073,6 +1007,11 @@ const ManageUsers = () => {
     setShowDeleteModal(true);
   };
 
+  const handleUserDetailsClick = (user) => {
+    setSelectedUserForDetails(user);
+    setShowUserDetailsModal(true);
+  };
+
   const handleAddToMoreCourses = () => {
     // Close the success modal
     setShowSuccessModal(false);
@@ -1093,12 +1032,10 @@ const ManageUsers = () => {
     try {
       // console.log('🔍 Manually checking course users for course:', courseId);
       
-      const response = await axios.get(`${API_BASE}/api/course/${courseId}/getAllUsersByCourseId`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      });
+      const response = await axios.get(
+        `${API_BASE}/api/course/${courseId}/getAllUsersByCourseId`,
+        getAuthConfig()
+      );
       
       // console.log('✅ Course users check response:', response.data);
       // console.log('📋 All users in course:', response.data?.data || []);
@@ -1587,7 +1524,11 @@ const ManageUsers = () => {
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div 
+                          className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600 hover:underline transition-colors"
+                          onClick={() => handleUserDetailsClick(user)}
+                          title="Click to view user details"
+                        >
                           {user.first_name} {user.last_name}
                         </div>
                         <div className="text-sm text-gray-500">{user.email}</div>
@@ -1717,8 +1658,18 @@ const ManageUsers = () => {
           </div>
         </div>
       )}
+
+      {/* User Details Modal */}
+      <UserDetailsModal
+        isOpen={showUserDetailsModal}
+        onClose={() => {
+          setShowUserDetailsModal(false);
+          setSelectedUserForDetails(null);
+        }}
+        user={selectedUserForDetails}
+      />
     </div>
   );
 };
 
-export default ManageUsers; 
+export default ManageUsers;

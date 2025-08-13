@@ -1,20 +1,14 @@
+import { getAuthHeader } from './authHeader';
+
 // Catalog Service for handling catalog-related API calls
-import Cookies from 'js-cookie';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  const token = Cookies.get('token');
-  
-  // Try both Authorization header and cookie-based auth
-  const headers = {
+  // Backend handles authentication via cookies
+  return {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   };
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  return headers;
 };
 
 export async function fetchAllCatalogs(params = {}) {
@@ -293,4 +287,4 @@ export async function fetchCourseCategories() {
     console.error('Error fetching course categories:', error);
     throw error;
   }
-} 
+}

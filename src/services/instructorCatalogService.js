@@ -1,21 +1,14 @@
+import { getAuthHeader } from './authHeader';
+
 // Instructor Catalog Service for managing catalogs in the instructor portal
-import Cookies from 'js-cookie';
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  const token = Cookies.get('token');
-  
-  // Try both Authorization header and cookie-based auth
-  const headers = {
+  // Backend handles authentication via cookies
+  return {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   };
-  
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  return headers;
 };
 
 // Helper function to clean up duplicate catalogs
