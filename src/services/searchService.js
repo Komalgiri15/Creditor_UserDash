@@ -1,10 +1,13 @@
 // src/services/searchService.js
+import { getAuthHeader } from './authHeader';
+
 export async function search(query) {
   try {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
       },
       credentials: 'include',
     });

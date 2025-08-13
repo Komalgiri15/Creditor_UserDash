@@ -24,7 +24,11 @@ import {
 } from "lucide-react";
 import { fetchUserCoursesByUserId } from "@/services/userService";
 
+<<<<<<< HEAD
 const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
+=======
+const UserDetailsModal = ({ isOpen, onClose, user }) => {
+>>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
   const [courses, setCourses] = React.useState([]);
   const [loadingCourses, setLoadingCourses] = React.useState(false);
   const [coursesError, setCoursesError] = React.useState(null);
@@ -50,6 +54,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
     }
   };
 
+<<<<<<< HEAD
   if (isLoading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -71,6 +76,8 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
     );
   }
 
+=======
+>>>>>>> 47b8c68cf5a9814aba4d36db72ae9021664cda75
   if (!user) return null;
 
   // Helper function to get user role from user_roles array
