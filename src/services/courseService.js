@@ -53,6 +53,7 @@ export async function createCourse(courseData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(courseData),
@@ -72,6 +73,7 @@ export async function updateCourse(courseId, courseData) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(courseData),
@@ -182,6 +184,7 @@ export async function deleteCourse(courseId) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
   });
