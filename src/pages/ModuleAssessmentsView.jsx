@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronLeft, Clock, GraduationCap, ChevronDown, BookOpen, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { ChevronLeft, Clock, GraduationCap, ChevronDown, BookOpen, Loader2, CheckCircle, XCircle, Award, BarChart2, HelpCircle } from "lucide-react";
 import { fetchCourseModules } from "@/services/courseService";
 import { getModuleQuizzes } from "@/services/quizService";
 
@@ -13,10 +13,10 @@ import { getModuleQuizzes } from "@/services/quizService";
 const assessmentSections = [
   {
     id: "quiz",
-    title: "Quiz Section",
-    icon: <GraduationCap size={20} className="text-blue-500" />,
-    description: "Test your knowledge with various question formats",
-    color: "bg-blue-50 border-blue-200"
+    title: "Module Assessments",
+    icon: <GraduationCap size={20} className="text-indigo-600" />,
+    description: "Test your knowledge with quizzes and track your progress",
+    color: "bg-indigo-50 border-indigo-200"
   }
 ];
 
@@ -24,7 +24,8 @@ function ModuleAssessmentsView() {
   const { moduleId, courseId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [selectedQuizType, setSelectedQuizType] = useState("general");
-  const [openSections, setOpenSections] = useState({});
+  // Set quiz section to be open by default
+  const [openSections, setOpenSections] = useState({ quiz: true });
   const [module, setModule] = useState(null);
   const [quizzes, setQuizzes] = useState([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState([]);
@@ -109,25 +110,26 @@ function ModuleAssessmentsView() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'IN_PROGRESS':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'NOT_ATTEMPTED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-white">
         <main className="flex-1">
           <div className="container py-6 max-w-7xl">
             <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-                <p className="text-muted-foreground">Loading module assessments...</p>
+              <div className="text-center space-y-4">
+                <Loader2 className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto" />
+                <p className="text-muted-foreground text-lg">Loading module assessments...</p>
+                <p className="text-sm text-gray-500">Preparing your learning materials</p>
               </div>
             </div>
           </div>
@@ -138,19 +140,26 @@ function ModuleAssessmentsView() {
 
   if (error) {
     return (
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-white">
         <main className="flex-1">
           <div className="container py-6 max-w-7xl">
             <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="text-red-500 mb-4">
-                  <span className="text-4xl">❌</span>
+              <div className="text-center space-y-4 max-w-md">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                  <XCircle className="h-10 w-10 text-red-600" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">Failed to load assessments</h3>
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <Button onClick={() => window.location.reload()}>
-                  Try Again
-                </Button>
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Failed to load assessments</h3>
+                <p className="text-muted-foreground mb-6">{error}</p>
+                <div className="space-x-3">
+                  <Button onClick={() => window.location.reload()} className="bg-indigo-600 hover:bg-indigo-700">
+                    Try Again
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link to={`/dashboard/courses/${courseId}/modules`}>
+                      Back to Modules
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -162,28 +171,40 @@ function ModuleAssessmentsView() {
   console.log("Rendering with quizzes:", quizzes, "filtered:", filteredQuizzes);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 to-white">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <main className="flex-1">
         <div className="container py-8 max-w-7xl">
-          <div className="flex items-center gap-2 mb-6">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to={`/dashboard/courses/${courseId}/modules`}>
+          <div className="flex items-center gap-4 mb-8">
+            <Button variant="outline" size="sm" asChild className="border-gray-300 hover:bg-gray-100">
+              <Link to={`/dashboard/courses/${courseId}/modules`} className="flex items-center gap-1">
                 <ChevronLeft size={16} />
-                Back to Module
+                <span>Back to Module</span>
               </Link>
             </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-              Module Assessments
-            </Button>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900">Module Assessments</h1>
+              <p className="text-sm text-gray-500">Test your knowledge and track your progress</p>
+            </div>
           </div>
 
           {/* Module Info Card */}
           {module && (
-            <Card className="mb-8 overflow-hidden shadow-xl border-0">
-              <CardContent className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50">
+            <Card className="mb-8 overflow-hidden shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-300">
+              <CardContent className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50">
                 <div className="max-w-4xl">
-                  <h1 className="text-3xl font-bold text-purple-900 mb-4 leading-tight">{module.title}</h1>
-                  <p className="text-gray-700 text-md leading-relaxed">{module.description}</p>
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                      <BookOpen size={24} className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{module.title}</h1>
+                      <p className="text-gray-700 leading-relaxed">{module.description}</p>
+                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                        <Award size={16} className="text-indigo-500" />
+                        <span>Complete all assessments to finish this module</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -195,37 +216,42 @@ function ModuleAssessmentsView() {
               key={section.id}
               open={openSections[section.id]}
               onOpenChange={() => toggleSection(section.id)}
+              className="mb-8"
             >
               <CollapsibleTrigger asChild>
-                <Card className={`cursor-pointer hover:shadow-lg transition-all duration-300 ${section.color} border-2 border-transparent hover:border-blue-300`}>
+                <Card className={`cursor-pointer transition-all duration-300 ${section.color} border-2 ${openSections[section.id] ? 'border-indigo-300 shadow-md' : 'border-transparent hover:border-indigo-200'}`}>
                   <CardHeader className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white rounded-xl shadow-md">
+                        <div className="p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                           {section.icon}
                         </div>
                         <div className="flex-1">
-                          <CardTitle className="text-xl font-bold text-gray-800 mb-2">
+                          <CardTitle className="text-xl font-bold text-gray-800 mb-1">
                             {section.title}
                           </CardTitle>
-                          <p className="text-gray-600">{section.description}</p>
+                          <p className="text-gray-600 text-sm">{section.description}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         {section.id === 'quiz' && openSections[section.id] && (
                           <Select value={selectedQuizType} onValueChange={setSelectedQuizType}>
-                            <SelectTrigger className="w-32" onClick={(e) => e.stopPropagation()}>
-                              <SelectValue />
+                            <SelectTrigger className="w-32 bg-white" onClick={(e) => e.stopPropagation()}>
+                              <SelectValue placeholder="Quiz type" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="general">General Quiz</SelectItem>
-                              <SelectItem value="final">Final Quiz</SelectItem>
+                              <SelectItem value="general" className="flex items-center gap-2">
+                                <HelpCircle size={14} /> General Quiz
+                              </SelectItem>
+                              <SelectItem value="final" className="flex items-center gap-2">
+                                <BarChart2 size={14} /> Final Quiz
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         )}
                         <ChevronDown 
                           size={20} 
-                          className={`transition-transform duration-200 ${
+                          className={`transition-transform duration-200 text-gray-500 ${
                             openSections[section.id] ? 'rotate-180' : ''
                           }`}
                         />
@@ -236,34 +262,42 @@ function ModuleAssessmentsView() {
               </CollapsibleTrigger>
               
               <CollapsibleContent>
-                <Card className="mt-2 border-t-0 rounded-t-none">
+                <Card className="mt-0 border-t-0 rounded-t-none shadow-sm border border-gray-200">
                   <CardContent className="p-6">
                     {section.id === 'quiz' && (
-                      <div>
-                        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm text-blue-700 font-medium">
+                      <div className="space-y-6">
+                        <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 flex items-start gap-3">
+                          <div className="mt-1">
+                            <HelpCircle size={18} className="text-indigo-600" />
+                          </div>
+                          <p className="text-sm text-indigo-800">
                             {selectedQuizType === 'general' 
-                              ? "📋 General Quizzes: Practice questions that won't affect your performance score." 
-                              : "🎯 Final Quizzes: Performance impact quizzes that will affect your progress and grades."
+                              ? "Practice with these quizzes to reinforce your learning. Your scores won't affect your overall progress." 
+                              : "These assessment quizzes will evaluate your understanding and contribute to your course completion."
                             }
                           </p>
                         </div>
                         
-                        <h3 className="font-semibold mb-6 text-xl">Available Quizzes:</h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-lg text-gray-800">Available Quizzes</h3>
+                          <span className="text-sm text-gray-500">
+                            {filteredQuizzes.length} {filteredQuizzes.length === 1 ? 'quiz' : 'quizzes'} available
+                          </span>
+                        </div>
                         
                         {filteredQuizzes.length === 0 ? (
-                          <div className="text-center py-12">
-                            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium">No quizzes available</h3>
-                            <p className="text-muted-foreground mt-1">
+                          <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                            <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-700">No quizzes available</h3>
+                            <p className="text-muted-foreground mt-1 max-w-md mx-auto">
                               {selectedQuizType === 'general' 
-                                ? "No general practice quizzes found for this module." 
-                                : "No final assessment quizzes found for this module."
+                                ? "Check back later for practice quizzes or contact your instructor." 
+                                : "Final assessment quizzes will be made available as you progress through the module."
                               }
                             </p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredQuizzes.map((quiz, index) => {
                               console.log(`Rendering quiz ${index}:`, quiz);
                               return (
@@ -271,46 +305,57 @@ function ModuleAssessmentsView() {
                                   key={quiz.quizId || quiz.id || index}
                                   to={`/dashboard/quiz/instruction/${quiz.quizId || quiz.id}?module=${moduleId}&category=${selectedQuizType}`}
                                   state={{ quiz }}
-                                  className="block"
+                                  className="block group"
                                 >
-                                  <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
+                                  <Card className="h-full transition-all duration-300 hover:shadow-lg cursor-pointer border border-gray-200 group-hover:border-indigo-300 overflow-hidden">
                                     <CardContent className="p-6">
                                       <div className="flex items-center justify-between mb-4">
-                                        <div className={`w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-xl`}>
-                                          <BookOpen size={24} />
+                                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-indigo-600`}>
+                                          {quiz.status === 'COMPLETED' ? (
+                                            <CheckCircle size={24} />
+                                          ) : quiz.status === 'IN_PROGRESS' ? (
+                                            <Clock size={24} />
+                                          ) : (
+                                            <BookOpen size={24} />
+                                          )}
                                         </div>
-                                        <Badge className={getStatusColor(quiz.status)}>
-                                          {quiz.status || 'Available'}
+                                        <Badge className={`${getStatusColor(quiz.status)} transition-colors`}>
+                                          {quiz.status === 'COMPLETED' ? 'Completed' : 
+                                           quiz.status === 'IN_PROGRESS' ? 'In Progress' : 
+                                           'Not Attempted'}
                                         </Badge>
                                       </div>
                                       
-                                      <h4 className="font-bold text-lg mb-2">{quiz.title || `Quiz ${quiz.quizId || quiz.id || index}`}</h4>
-                                      <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                                        {selectedQuizType === 'general' ? 'Practice Quiz' : 'Assessment Quiz'} - Test your knowledge
+                                      <h4 className="font-bold text-lg mb-2 text-gray-800 group-hover:text-indigo-600 transition-colors">
+                                        {quiz.title || `Quiz ${quiz.quizId || quiz.id || index}`}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                                        {selectedQuizType === 'general' ? 'Practice Quiz' : 'Assessment Quiz'} - {quiz.description || 'Test your knowledge on this topic'}
                                       </p>
                                       
                                       {/* Quiz Details */}
-                                      <div className="space-y-2 mb-4">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                          <GraduationCap size={14} />
+                                      <div className="space-y-2 mb-4 text-sm">
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                          <Award size={14} className="text-indigo-500" />
                                           <span>Max Score: {quiz.maxScore || 100}</span>
                                         </div>
                                         {quiz.score !== null && quiz.score !== undefined && (
-                                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <CheckCircle size={14} />
+                                          <div className="flex items-center gap-2 text-gray-600">
+                                            <BarChart2 size={14} className="text-indigo-500" />
                                             <span>Your Score: {quiz.score}</span>
                                           </div>
                                         )}
                                         {quiz.attemptDate && (
-                                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Clock size={14} />
+                                          <div className="flex items-center gap-2 text-gray-600">
+                                            <Clock size={14} className="text-indigo-500" />
                                             <span>Attempted: {new Date(quiz.attemptDate).toLocaleDateString()}</span>
                                           </div>
                                         )}
                                       </div>
                                       
-                                      <div className="mt-4 flex items-center text-primary text-sm font-medium">
-                                        Start Quiz <ChevronLeft className="w-4 h-4 ml-1 rotate-180" />
+                                      <div className="mt-4 flex items-center text-indigo-600 text-sm font-medium group-hover:text-indigo-700 transition-colors">
+                                        <span>Start Quiz</span>
+                                        <ChevronLeft className="w-4 h-4 ml-1 rotate-180 transition-transform group-hover:translate-x-1" />
                                       </div>
                                     </CardContent>
                                   </Card>

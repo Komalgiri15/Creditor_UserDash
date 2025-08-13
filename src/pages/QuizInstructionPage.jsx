@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Clock, BookOpen, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
+import { ChevronLeft, Clock, BookOpen, AlertTriangle, Loader2, CheckCircle, Award, BarChart2 } from "lucide-react";
 import { getModuleQuizById, startQuiz } from "@/services/quizService";
 import { toast } from "sonner";
 
@@ -48,22 +48,14 @@ function QuizInstructionPage() {
     }
   }, [quizId, moduleId, location.state]);
 
+  // Consolidated instructions
   const instructions = [
-    "Read each question carefully before selecting your answer.",
-    `You have ${quizData?.timeLimit || 25} minutes to complete all ${quizData?.questionCount || 'questions'}.`,
-    "Each question has different scoring based on its type and difficulty.",
-    "Multiple Choice Questions (MCQ) - Select the best answer from given options.",
-    "Single Choice Questions (SCQ) - Choose only one correct answer.",
-    "True/False Questions - Determine if the statement is correct or incorrect.",
-    "Fill-up Questions - Complete the sentence with appropriate words.",
-    "Matching Questions - Connect related items from two columns.",
-    "One Word Questions - Provide a single word answer.",
-    "Descriptive Questions - Write detailed explanations in your own words.",
-    "You can navigate between questions using Next/Previous buttons.",
-    "Your progress will be saved automatically.",
-    "Once submitted, you cannot change your answers.",
-    `You must score at least ${quizData?.passingScore || 70}% to pass this quiz.`,
-    `You have ${quizData?.maxAttempts || 3} attempts to complete this quiz successfully.`
+    ` Time Limit: ${quizData?.timeLimit || 25} minutes`,
+    ` Questions: ${quizData?.questionCount || 'Multiple'} questions of various types`,
+    ` Passing Score: ${quizData?.passingScore || 70}% required`,
+    ` Attempts: ${quizData?.maxAttempts || 3} attempts allowed`,
+    " Your progress will be saved automatically",
+    " No changes allowed after submission"
   ];
 
   const handleStartQuiz = async () => {
@@ -154,9 +146,10 @@ function QuizInstructionPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading quiz instructions...</p>
+        <div className="text-center space-y-4">
+          <Loader2 className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto" />
+          <p className="text-gray-600 text-lg">Loading quiz instructions...</p>
+          <p className="text-sm text-gray-500">Preparing your assessment</p>
         </div>
       </div>
     );
@@ -165,65 +158,79 @@ function QuizInstructionPage() {
   if (error || !quizData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Failed to load quiz</h3>
-          <p className="text-gray-600 mb-4">{error || 'Quiz not found'}</p>
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        <div className="text-center space-y-4 max-w-md">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4 mx-auto">
+            <AlertTriangle className="h-10 w-10 text-red-600" />
+          </div>
+          <h3 className="text-xl font-medium text-gray-900">Failed to load quiz</h3>
+          <p className="text-gray-600 mb-6">{error || 'Quiz not found'}</p>
+          <div className="space-x-3">
+            <Button onClick={() => navigate(-1)}>Go Back</Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-6 max-w-4xl mx-auto">
+    <div className="container py-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ChevronLeft size={16} />
+      <div className="flex items-center justify-between mb-8">
+        <Button variant="outline" onClick={() => navigate(-1)} className="border-gray-300">
+          <ChevronLeft className="mr-2 h-4 w-4" />
           Back to Assessments
         </Button>
-        <Badge variant={category === 'general' ? 'outline' : 'default'}>
+        <Badge variant={category === 'general' ? 'outline' : 'default'} className="px-4 py-1.5">
           {category === 'general' ? 'Practice Quiz' : 'Assessment Quiz'}
         </Badge>
       </div>
 
       {/* Quiz Info Card */}
-      <Card className="mb-8 overflow-hidden shadow-xl border-0">
-        <CardContent className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-md">
+      <Card className="mb-6 overflow-hidden shadow-sm border border-gray-200">
+        <CardContent className="p-6 bg-gradient-to-r from-indigo-50 to-blue-50">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm flex items-center justify-center">
               <BookOpen className="h-8 w-8 text-white" />
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-3 leading-tight">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {quizData.title || `Quiz ${quizId}`}
               </h1>
-              <p className="text-gray-700 text-lg leading-relaxed mb-4">
+              <p className="text-gray-700 mb-4">
                 {quizData.description || 'Test your knowledge with this comprehensive quiz'}
               </p>
               
               {/* Quiz Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center gap-2 p-3 bg-white/70 rounded-lg">
-                  <Clock className="h-5 w-5 text-blue-600" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <Clock className="h-5 w-5 text-indigo-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Duration</p>
-                    <p className="text-lg font-bold text-gray-900">{quizData.timeLimit || 25} min</p>
+                    <p className="text-sm text-gray-600">Duration</p>
+                    <p className="font-bold">{quizData.timeLimit || 25} min</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-white/70 rounded-lg">
-                  <BookOpen className="h-5 w-5 text-green-600" />
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Questions</p>
-                    <p className="text-lg font-bold text-gray-900">{quizData.questionCount || 'Multiple'}</p>
+                    <p className="text-sm text-gray-600">Questions</p>
+                    <p className="font-bold">{quizData.questionCount || 'Multiple'}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-white/70 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-purple-600" />
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <Award className="h-5 w-5 text-green-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Passing Score</p>
-                    <p className="text-lg font-bold text-gray-900">{quizData.passingScore || 70}%</p>
+                    <p className="text-sm text-gray-600">Passing</p>
+                    <p className="font-bold">{quizData.passingScore || 70}%</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <BarChart2 className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Attempts</p>
+                    <p className="font-bold">{quizData.maxAttempts || 3}</p>
                   </div>
                 </div>
               </div>
@@ -233,21 +240,21 @@ function QuizInstructionPage() {
       </Card>
 
       {/* Instructions */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-blue-600" />
-            Quiz Instructions
+      <Card className="mb-6 border border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-indigo-600" />
+            Quick Instructions
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {instructions.map((instruction, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
+              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                   {index + 1}
                 </div>
-                <p className="text-gray-700 leading-relaxed">{instruction}</p>
+                <p className="text-gray-700 text-sm">{instruction}</p>
               </div>
             ))}
           </div>
@@ -255,27 +262,26 @@ function QuizInstructionPage() {
       </Card>
 
       {/* Terms Agreement */}
-      <Card className="mb-8">
+      <Card className="mb-6 border border-gray-200">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
             <Checkbox
               id="terms"
               checked={agreed}
               onCheckedChange={(checked) => setAgreed(checked)}
-              className="mt-1"
+              className="mt-0.5"
             />
             <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
-              I have read and understood all the instructions above. I agree to follow the quiz rules and understand that 
-              once submitted, I cannot change my answers. I also confirm that I will complete this quiz independently 
-              without any external assistance.
+              I agree to complete this quiz independently without any external assistance and understand 
+              that my answers cannot be changed after submission.
             </Label>
           </div>
         </CardContent>
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={() => navigate(-1)}>
+      <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-4">
+        <Button variant="outline" onClick={() => navigate(-1)} className="w-full md:w-auto">
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back to Assessments
         </Button>
@@ -283,16 +289,16 @@ function QuizInstructionPage() {
         <Button 
           onClick={handleStartQuiz}
           disabled={!agreed || isStarting}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-semibold"
+          className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-3 font-medium shadow-sm"
         >
           {isStarting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Starting Quiz...
             </>
           ) : (
             <>
-              <BookOpen className="mr-2 h-5 w-5" />
+              <BookOpen className="mr-2 h-4 w-4" />
               Start Quiz Now
             </>
           )}
@@ -301,11 +307,9 @@ function QuizInstructionPage() {
 
       {/* Warning */}
       {!agreed && (
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center gap-2 text-yellow-800">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="font-medium">Please read and agree to the terms before starting the quiz.</span>
-          </div>
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">Please agree to the terms before starting the quiz.</span>
         </div>
       )}
     </div>

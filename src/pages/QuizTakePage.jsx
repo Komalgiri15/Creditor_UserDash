@@ -402,11 +402,22 @@ function QuizTakePage() {
         </div>
         
         {/* Timer */}
-        <div className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-          <Clock className="h-5 w-5 text-red-600" />
-          <span className="font-mono font-bold text-red-700">
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
+          timeRemaining <= 300 // 5 minutes in seconds
+            ? "bg-red-50 border-red-300 animate-pulse"
+            : "bg-blue-50 border-blue-200"
+        }`}>
+          <Clock className={`h-4 w-4 ${
+            timeRemaining <= 300 ? "text-red-600" : "text-blue-600"
+          }`} />
+          <span className={`font-mono font-medium text-sm ${
+            timeRemaining <= 300 ? "text-red-700" : "text-blue-700"
+          }`}>
             {formatTime(timeRemaining)}
           </span>
+          {timeRemaining <= 300 && (
+            <span className="ml-1 text-xs font-medium text-red-600">HURRY!</span>
+          )}
         </div>
       </div>
 
