@@ -221,26 +221,6 @@ export function DashboardHeader() {
 
           {/* Right - Enhanced Icons and Profile */}
           <div className="flex items-center gap-3">
-            {/* Notification Bell */}
-            <button
-              onClick={() => setNotificationModalOpen(true)}
-              className={`relative p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 group ${
-                unreadNotifications > 0 ? 'animate-pulse' : ''
-              }`}
-              aria-label="Notifications"
-            >
-              <BellDot className={`h-5 w-5 transition-colors duration-200 ${
-                unreadNotifications > 0 ? 'text-blue-600' : 'text-gray-600 group-hover:text-blue-600'
-              }`} />
-              {/* Notification Badge */}
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">
-                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                  </span>
-                </span>
-              )}
-            </button>
             
             {/* Profile Dropdown */}
             <div className="ml-2">
