@@ -22,6 +22,7 @@ export function DashboardHeader() {
   const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
   const [showEnrollmentAlert, setShowEnrollmentAlert] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(2); // Default count
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -120,6 +121,11 @@ export function DashboardHeader() {
     setSelectedCourseId(null);
   };
 
+  // Handle notification updates
+  const handleNotificationUpdate = (newCount) => {
+    setUnreadNotifications(newCount);
+  };
+
   return (
     <>
       <header className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 shadow-sm backdrop-blur-md bg-white/95">
@@ -215,6 +221,27 @@ export function DashboardHeader() {
 
           {/* Right - Enhanced Icons and Profile */}
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <button
+              onClick={() => setNotificationModalOpen(true)}
+              className={`relative p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 group ${
+                unreadNotifications > 0 ? 'animate-pulse' : ''
+              }`}
+              aria-label="Notifications"
+            >
+              <BellDot className={`h-5 w-5 transition-colors duration-200 ${
+                unreadNotifications > 0 ? 'text-blue-600' : 'text-gray-600 group-hover:text-blue-600'
+              }`} />
+              {/* Notification Badge */}
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                </span>
+              )}
+            </button>
+            
             {/* Profile Dropdown */}
             <div className="ml-2">
               <ProfileDropdown />
@@ -231,7 +258,8 @@ export function DashboardHeader() {
         {/* Notification Modal */}
         <NotificationModal 
           open={notificationModalOpen} 
-          onOpenChange={setNotificationModalOpen} 
+          onOpenChange={setNotificationModalOpen}
+          onNotificationUpdate={handleNotificationUpdate}
         />
         
         {/* Inbox Modal */}

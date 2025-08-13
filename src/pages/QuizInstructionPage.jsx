@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ChevronLeft, Clock, BookOpen, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
-import { getQuizById } from "@/services/quizService";
+import { getModuleQuizById, startQuiz } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizInstructionPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
   
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
   const [quizData, setQuizData] = useState(null);
   const [error, setError] = useState("");
 
@@ -25,8 +27,13 @@ function QuizInstructionPage() {
     const fetchQuizData = async () => {
       try {
         setIsLoading(true);
-        const data = await getQuizById(quizId);
-        setQuizData(data);
+        // Prefer quiz data passed via navigation state
+        if (location.state && location.state.quiz) {
+          setQuizData(location.state.quiz);
+        } else {
+          const data = await getModuleQuizById(moduleId, quizId);
+          setQuizData(data);
+        }
       } catch (err) {
         console.error('Error fetching quiz:', err);
         setError('Failed to load quiz data');
@@ -36,10 +43,10 @@ function QuizInstructionPage() {
       }
     };
 
-    if (quizId) {
+    if (quizId && moduleId) {
       fetchQuizData();
     }
-  }, [quizId]);
+  }, [quizId, moduleId, location.state]);
 
   const instructions = [
     "Read each question carefully before selecting your answer.",
@@ -59,12 +66,89 @@ function QuizInstructionPage() {
     `You have ${quizData?.maxAttempts || 3} attempts to complete this quiz successfully.`
   ];
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
     if (!agreed) {
       toast.error('Please agree to the terms before starting the quiz.');
       return;
     }
-    navigate(`/dashboard/quiz/take/${quizId}?module=${moduleId}&category=${category}`);
+    try {
+      setIsStarting(true);
+      
+      // Start the quiz session - this should return quiz data including questions
+      const startResponse = await startQuiz(quizId);
+      console.log('Quiz started - Full response:', startResponse);
+      console.log('Response structure:', {
+        hasQuestions: !!startResponse.questions,
+        hasQuiz: !!startResponse.quiz,
+        hasData: !!startResponse.data,
+        keys: Object.keys(startResponse || {}),
+        questionsType: typeof startResponse?.questions,
+        questionsLength: startResponse?.questions?.length
+      });
+      
+      // Try to get questions from multiple possible sources
+      let questions = [];
+      
+      // 1. Check if questions are in the start response
+      if (startResponse.questions && Array.isArray(startResponse.questions)) {
+        questions = startResponse.questions;
+        console.log('Questions found in start response');
+      } else if (startResponse.quiz && startResponse.quiz.questions) {
+        questions = startResponse.quiz.questions;
+        console.log('Questions found in start response.quiz');
+      } else if (startResponse.data && startResponse.data.questions) {
+        questions = startResponse.data.questions;
+        console.log('Questions found in start response.data');
+      }
+      
+      // 2. If no questions in start response, try to get from existing quiz data
+      if (questions.length === 0 && quizData?.questions) {
+        questions = quizData.questions;
+        console.log('Questions found in existing quiz data');
+      }
+      
+      // 3. If still no questions, try to fetch them from the module quiz endpoint
+      if (questions.length === 0) {
+        try {
+          console.log('Attempting to fetch questions from module quiz endpoint...');
+          const moduleQuizData = await getModuleQuizById(moduleId, quizId);
+          if (moduleQuizData?.questions) {
+            questions = moduleQuizData.questions;
+            console.log('Questions found in module quiz data');
+          }
+        } catch (moduleError) {
+          console.log('Module quiz endpoint failed:', moduleError);
+        }
+      }
+      
+      // 4. Final check - if we still have no questions, show error
+      if (questions.length === 0) {
+        console.error('No questions found in any source:', {
+          startResponse,
+          quizData,
+          moduleId,
+          quizId
+        });
+        toast.error('Unable to load quiz questions. Please contact support or try again later.');
+        return;
+      }
+      
+      console.log('Quiz questions loaded successfully:', questions.length, 'questions');
+      
+      // Navigate to quiz take page with questions data
+      navigate(`/dashboard/quiz/take/${quizId}?module=${moduleId}&category=${category}`, { 
+        state: { 
+          questions,
+          quizSession: startResponse,
+          startedAt: new Date().toISOString()
+        } 
+      });
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      toast.error('Failed to start quiz. Please try again.');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   if (isLoading) {
@@ -198,11 +282,20 @@ function QuizInstructionPage() {
         
         <Button 
           onClick={handleStartQuiz}
-          disabled={!agreed}
+          disabled={!agreed || isStarting}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-semibold"
         >
-          <BookOpen className="mr-2 h-5 w-5" />
-          Start Quiz Now
+          {isStarting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Starting Quiz...
+            </>
+          ) : (
+            <>
+              <BookOpen className="mr-2 h-5 w-5" />
+              Start Quiz Now
+            </>
+          )}
         </Button>
       </div>
 

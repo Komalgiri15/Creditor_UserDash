@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, XCircle, Clock, BookOpen, Trophy, AlertTriangle, Loader2 } from "lucide-react";
-import { getQuizResults, getQuizById } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizResultsPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
-  const score = parseInt(searchParams.get('score') || '0');
-  const answered = parseInt(searchParams.get('answered') || '0');
+  
+  // Get results data from navigation state
+  const { quizResults, answers, quizSession, startedAt } = location.state || {};
   
   const [isLoading, setIsLoading] = useState(true);
   const [quizData, setQuizData] = useState(null);
@@ -23,20 +24,35 @@ function QuizResultsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchResults = async () => {
+    const initializeResults = async () => {
       try {
         setIsLoading(true);
         
-        // Fetch quiz data and results in parallel
-        const [quizResponse, resultsResponse] = await Promise.all([
-          getQuizById(quizId),
-          getQuizResults(quizId)
-        ]);
+        // Check if we have results data from navigation state
+        if (!quizResults) {
+          console.error('No quiz results found in navigation state');
+          setError('No quiz results found. Please complete the quiz first.');
+          return;
+        }
         
-        setQuizData(quizResponse);
-        setResults(resultsResponse);
+        // Set the data from navigation state
+        setQuizData(quizSession);
+        setResults(quizResults);
+        
+        console.log('Quiz results loaded:', {
+          quizResults,
+          answers,
+          quizSession,
+          startedAt
+        });
+        
+        // Validate that we have the expected data
+        if (!quizResults.score && !quizResults.data?.score) {
+          console.warn('Quiz results missing score data:', quizResults);
+        }
+        
       } catch (err) {
-        console.error('Error fetching results:', err);
+        console.error('Error initializing results:', err);
         setError('Failed to load quiz results');
         toast.error('Failed to load quiz results');
       } finally {
@@ -44,10 +60,8 @@ function QuizResultsPage() {
       }
     };
 
-    if (quizId) {
-      fetchResults();
-    }
-  }, [quizId]);
+    initializeResults();
+  }, [quizResults, quizSession, answers, startedAt]);
 
   const getScoreColor = (score) => {
     if (score >= 90) return 'text-green-600';
@@ -70,7 +84,45 @@ function QuizResultsPage() {
     return "Keep practicing! You'll do better next time.";
   };
 
-  const isPassed = score >= (quizData?.passingScore || 70);
+  // Extract score and other data from results
+  let score = 0;
+  let grade = 'N/A';
+  
+  if (results?.score) {
+    // Backend returns score as "85 (B)" format
+    const scoreMatch = results.score.toString().match(/(\d+)\s*\(([A-Z])\)/);
+    if (scoreMatch) {
+      score = parseInt(scoreMatch[1]);
+      grade = scoreMatch[2];
+    } else {
+      // Try to extract just the number
+      const numMatch = results.score.toString().match(/(\d+)/);
+      if (numMatch) {
+        score = parseInt(numMatch[1]);
+      }
+    }
+  }
+  
+  const remarks = results?.remarks || '';
+  const passed = results?.passed || false;
+  const answered = Object.keys(answers || {}).length;
+  
+  // Debug logging to see what we received
+  console.log('Quiz Results Page - Data received:', {
+    quizResults: results,
+    answers: answers,
+    quizSession: quizData,
+    startedAt: startedAt,
+    extractedData: {
+      score,
+      grade,
+      remarks,
+      passed,
+      answered
+    }
+  });
+  
+  const isPassed = passed || score >= (quizData?.passingScore || 70);
 
   if (isLoading) {
     return (
@@ -109,12 +161,16 @@ function QuizResultsPage() {
         </Badge>
       </div>
 
-      {/* Results Header */}
-      <Card className="mb-8 overflow-hidden shadow-xl border-0">
-        <CardContent className="p-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+      {/* Quiz Results Card */}
+      <Card className="mb-8">
+        <CardContent className="p-8">
           <div className="text-center">
             <div className="flex justify-center mb-4">
-              {getScoreIcon(score)}
+              {isPassed ? (
+                <CheckCircle className="h-8 w-8 text-green-500" />
+              ) : (
+                <XCircle className="h-8 w-8 text-red-500" />
+              )}
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Quiz Results
@@ -131,7 +187,21 @@ function QuizResultsPage() {
               <div className="text-lg text-gray-600">
                 {isPassed ? 'PASSED' : 'NOT PASSED'}
               </div>
+              {grade && grade !== 'N/A' && (
+                <div className="text-2xl font-bold text-yellow-600 mt-2">
+                  Grade: {grade}
+                </div>
+              )}
             </div>
+            
+            {/* Remarks Display */}
+            {remarks && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-lg font-medium text-blue-800">
+                  {remarks}
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -151,7 +221,7 @@ function QuizResultsPage() {
                 <BookOpen className="h-5 w-5 text-blue-600" />
                 <div>
                   <p className="text-sm font-medium text-gray-600">Quiz Title</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.title || `Quiz ${quizId}`}</p>
+                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.title || quizData?.title || `Quiz ${quizId}`}</p>
                 </div>
               </div>
               
@@ -159,7 +229,7 @@ function QuizResultsPage() {
                 <Clock className="h-5 w-5 text-green-600" />
                 <div>
                   <p className="text-sm font-medium text-gray-600">Duration</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.timeLimit || 25} minutes</p>
+                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.time_limit || quizData?.timeLimit || 25} minutes</p>
                 </div>
               </div>
               
@@ -167,7 +237,7 @@ function QuizResultsPage() {
                 <CheckCircle className="h-5 w-5 text-purple-600" />
                 <div>
                   <p className="text-sm font-medium text-gray-600">Passing Score</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.passingScore || 70}%</p>
+                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.min_score || quizData?.passingScore || 70}%</p>
                 </div>
               </div>
             </div>
@@ -202,6 +272,28 @@ function QuizResultsPage() {
                   </p>
                 </div>
               </div>
+              
+              {/* Grade Display */}
+              {grade && grade !== 'N/A' && (
+                <div className="flex items-center gap-3">
+                  <Trophy className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Grade</p>
+                    <p className="text-lg font-semibold text-yellow-600">{grade}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Remarks Display */}
+              {remarks && (
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Remarks</p>
+                    <p className="text-lg font-semibold text-blue-600">{remarks}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -231,6 +323,54 @@ function QuizResultsPage() {
                   <Progress value={score} className="h-2" />
                 </div>
               </div>
+              
+              {/* Question Review */}
+              {quizData?.questions && (
+                <div>
+                  <h4 className="font-semibold mb-3">Question Review</h4>
+                  <div className="space-y-4">
+                    {quizData.questions.map((question, index) => {
+                      const userAnswer = answers?.[question.id];
+                      const isCorrect = score > 0; // This is simplified - you might want to add correct answer tracking
+                      
+                      return (
+                        <div key={question.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium mb-2">{question.text}</p>
+                              <div className="space-y-2">
+                                {question.options?.map((option) => (
+                                  <div key={option.id} className={`flex items-center gap-2 p-2 rounded ${
+                                    userAnswer === option.id ? 'bg-blue-50 border border-blue-200' : ''
+                                  }`}>
+                                    <input
+                                      type="radio"
+                                      checked={userAnswer === option.id}
+                                      disabled
+                                      className="w-4 h-4"
+                                    />
+                                    <span className={userAnswer === option.id ? 'font-medium' : ''}>
+                                      {option.text}
+                                    </span>
+                                    {userAnswer === option.id && (
+                                      <span className="text-sm text-gray-500">(Your answer)</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               
               {/* Time Analysis */}
               {results.timeSpent && (

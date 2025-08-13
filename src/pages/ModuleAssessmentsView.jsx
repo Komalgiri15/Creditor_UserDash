@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronLeft, Clock, GraduationCap, ChevronDown, BookOpen, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { fetchCourseModules } from "@/services/courseService";
-import { getUserQuizzes } from "@/services/quizService";
+import { getModuleQuizzes } from "@/services/quizService";
 
 // Assessment sections - only Quiz for now
 const assessmentSections = [
@@ -40,7 +40,7 @@ function ModuleAssessmentsView() {
         // Fetch both module and quizzes in parallel
         const [modules, quizzesResponse] = await Promise.all([
           fetchCourseModules(courseId),
-          getUserQuizzes()
+          getModuleQuizzes(moduleId)
         ]);
         
         console.log("Modules response:", modules);
@@ -55,17 +55,11 @@ function ModuleAssessmentsView() {
           console.log("Module not found for ID:", moduleId);
         }
         
-        // Handle quiz data from API response
-        if (quizzesResponse && quizzesResponse.data && Array.isArray(quizzesResponse.data)) {
-          console.log("Quizzes received from data array:", quizzesResponse.data);
-          setQuizzes(quizzesResponse.data);
-          setFilteredQuizzes(quizzesResponse.data);
-        } else if (quizzesResponse && Array.isArray(quizzesResponse)) {
-          console.log("Quizzes received (direct array):", quizzesResponse);
+        // quizzesResponse is now always an array
+        if (Array.isArray(quizzesResponse)) {
           setQuizzes(quizzesResponse);
           setFilteredQuizzes(quizzesResponse);
         } else {
-          console.log("No quizzes found or invalid response:", quizzesResponse);
           setQuizzes([]);
           setFilteredQuizzes([]);
         }
@@ -173,7 +167,7 @@ function ModuleAssessmentsView() {
         <div className="container py-8 max-w-7xl">
           <div className="flex items-center gap-2 mb-6">
             <Button variant="ghost" size="sm" asChild>
-              <Link to={`/dashboard/courses/${courseId}/modules/${moduleId}/view`}>
+              <Link to={`/dashboard/courses/${courseId}/modules`}>
                 <ChevronLeft size={16} />
                 Back to Module
               </Link>
@@ -257,12 +251,6 @@ function ModuleAssessmentsView() {
                         
                         <h3 className="font-semibold mb-6 text-xl">Available Quizzes:</h3>
                         
-                        {/* Debug info */}
-                        <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
-                          <p>Debug: Found {quizzes.length} total quizzes, {filteredQuizzes.length} filtered</p>
-                          <p>Quizzes data: {JSON.stringify(quizzes.slice(0, 2))}</p>
-                        </div>
-                        
                         {filteredQuizzes.length === 0 ? (
                           <div className="text-center py-12">
                             <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -282,6 +270,7 @@ function ModuleAssessmentsView() {
                                 <Link 
                                   key={quiz.quizId || quiz.id || index}
                                   to={`/dashboard/quiz/instruction/${quiz.quizId || quiz.id}?module=${moduleId}&category=${selectedQuizType}`}
+                                  state={{ quiz }}
                                   className="block"
                                 >
                                   <Card className="h-full hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer border-2 border-transparent hover:border-primary/20">
