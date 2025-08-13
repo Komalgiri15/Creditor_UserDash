@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchUserProfile } from '@/services/userService';
 import Cookies from 'js-cookie';
+import { refreshAvatarFromBackend } from '@/lib/avatar-utils';
 
 const UserContext = createContext();
 
@@ -72,6 +73,14 @@ export const UserProvider = ({ children }) => {
 
       const data = await fetchUserProfile();
       setUserProfile(data);
+      
+      // Also load the user's avatar
+      try {
+        await refreshAvatarFromBackend();
+      } catch (error) {
+        console.warn('Failed to load avatar:', error);
+      }
+      
     } catch (err) {
       console.error('Failed to load user profile:', err);
       setError(err.message);
@@ -83,6 +92,10 @@ export const UserProvider = ({ children }) => {
 
   const updateUserProfile = (updatedProfile) => {
     setUserProfile(updatedProfile);
+    
+    // Also update localStorage for consistency
+    localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    
     // Dispatch a custom event to notify other components
     window.dispatchEvent(new CustomEvent('userProfileUpdated', { 
       detail: updatedProfile 
