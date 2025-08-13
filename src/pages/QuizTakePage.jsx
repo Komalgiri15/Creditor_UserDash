@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Clock, BookOpen, CheckCircle, XCircle, Loader2, AlertTriangle } from "lucide-react";
-import { startQuiz, submitQuiz, getQuizQuestions, getQuizById } from "@/services/quizService";
+import { Clock, BookOpen, CheckCircle, XCircle, Loader2, AlertTriangle, ChevronLeft } from "lucide-react";
+import { submitQuiz } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizTakePage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
+  
+  // Get quiz data from navigation state
+  const { questions: initialQuestions, quizSession, startedAt } = location.state || {};
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -29,23 +33,35 @@ function QuizTakePage() {
   const totalQuestions = questions.length;
   const progress = totalQuestions > 0 ? ((currentQuestion + 1) / totalQuestions) * 100 : 0;
 
-  // Initialize quiz session
+  // Initialize quiz session from passed data
   useEffect(() => {
     const initializeQuiz = async () => {
       try {
         setIsLoading(true);
         
-        // Start the quiz session
-        const startResponse = await startQuiz(quizId);
-        setQuizData(startResponse);
+        // Check if we have the required data from navigation state
+        if (!initialQuestions || !quizSession) {
+          toast.error('Quiz session not found. Please start the quiz again.');
+          navigate(-1);
+          return;
+        }
         
-        // Get quiz questions
-        const questionsData = await getQuizQuestions(quizId);
-        setQuestions(questionsData);
+        // Set quiz data and questions from navigation state
+        setQuizData(quizSession);
+        setQuestions(initialQuestions);
+        
+        // Debug logging to see what data we received
+        console.log('Quiz initialized with:', {
+          quizSession,
+          initialQuestions,
+          questionsCount: initialQuestions?.length,
+          firstQuestion: initialQuestions?.[0],
+          allQuestions: initialQuestions
+        });
         
         // Set time limit if available
-        if (startResponse.timeLimit) {
-          setTimeRemaining(startResponse.timeLimit * 60); // Convert minutes to seconds
+        if (quizSession.timeLimit) {
+          setTimeRemaining(quizSession.timeLimit * 60); // Convert minutes to seconds
         } else {
           setTimeRemaining(25 * 60); // Default 25 minutes
         }
@@ -53,7 +69,7 @@ function QuizTakePage() {
         setQuizStarted(true);
       } catch (error) {
         console.error('Error initializing quiz:', error);
-        toast.error('Failed to start quiz. Please try again.');
+        toast.error('Failed to initialize quiz. Please try again.');
         navigate(-1);
       } finally {
         setIsLoading(false);
@@ -63,7 +79,7 @@ function QuizTakePage() {
     if (quizId) {
       initializeQuiz();
     }
-  }, [quizId, navigate]);
+  }, [quizId, navigate, initialQuestions, quizSession]);
 
   // Timer effect
   useEffect(() => {
@@ -116,15 +132,49 @@ function QuizTakePage() {
 
     setIsSubmitting(true);
     try {
-      const result = await submitQuiz(quizId, answers);
+      console.log('Submitting quiz with answers:', answers);
+      
+      // Call the submit quiz API
+      const result = await submitQuiz(quizId);
+      console.log('Quiz submission result:', result);
+      console.log('Quiz submission result structure:', {
+        hasData: !!result.data,
+        hasScore: !!result.score,
+        hasGrade: !!result.grade,
+        hasRemarks: !!result.remarks,
+        hasPassed: !!result.passed,
+        fullResult: result
+      });
+      
+      // Extract the response data
+      const responseData = result.data || result;
       
       toast.success('Quiz submitted successfully!');
       
-      // Redirect to results page
-      navigate(`/dashboard/quiz/results/${quizId}?module=${moduleId}&category=${category}&score=${result.score || 0}&answered=${Object.keys(answers).length}`);
+      // Navigate to results page with the data from backend
+      const navigationState = { 
+        quizResults: responseData,
+        answers: answers,
+        quizSession: quizData,
+        startedAt: startedAt
+      };
+      
+      console.log('Navigating to results page with state:', navigationState);
+      
+      navigate(`/dashboard/quiz/results/${quizId}?module=${moduleId}&category=${category}`, { 
+        state: navigationState
+      });
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      toast.error('Failed to submit quiz. Please try again.');
+      
+      // Handle specific error cases
+      if (error.message?.includes('NO_PENDING_ATTEMPT')) {
+        toast.error('No active quiz attempt found. Please start the quiz again.');
+      } else if (error.message?.includes('NO_QUESTION_RESPONSES_FOUND')) {
+        toast.error('No answers found. Please answer some questions before submitting.');
+      } else {
+        toast.error('Failed to submit quiz. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -136,8 +186,69 @@ function QuizTakePage() {
     const question = questions[currentQuestion];
     const userAnswer = answers[question.id];
 
-    switch (question.type) {
+    // Debug logging to see what the backend is sending
+    console.log('Rendering question:', {
+      id: question.id,
+      type: question.type,
+      question: question.question,
+      questionText: question.questionText,
+      text: question.text,
+      content: question.content,
+      questionField: question.question,
+      allFields: Object.keys(question),
+      fullQuestion: question
+    });
+
+    // Helper function to render option text
+    const renderOptionText = (option) => {
+      if (typeof option === 'string') {
+        return option;
+      } else if (option && typeof option === 'object') {
+        return option.text || option.label || option.value || JSON.stringify(option);
+      }
+      return String(option);
+    };
+
+    // Helper function to get option value
+    const getOptionValue = (option, index) => {
+      if (typeof option === 'string') {
+        return option;
+      } else if (option && typeof option === 'object') {
+        return option.id || option.value || index;
+      }
+      return index;
+    };
+
+    // Handle missing question type
+    if (!question.type) {
+      console.warn('Question type is missing, defaulting to MCQ');
+      // Default to MCQ if type is missing
+      if (question.options && Array.isArray(question.options)) {
+        return (
+          <div className="space-y-3">
+            {question.options.map((option, index) => (
+              <label key={index} className="flex items-center space-x-3 cursor-pointer p-3 rounded-lg border hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name={`question-${question.id}`}
+                  value={getOptionValue(option, index)}
+                  checked={userAnswer === getOptionValue(option, index)}
+                  onChange={() => handleAnswer(question.id, getOptionValue(option, index))}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-gray-700">{renderOptionText(option)}</span>
+              </label>
+            ))}
+          </div>
+        );
+      }
+    }
+
+    switch (question.type?.toLowerCase()) {
       case 'mcq':
+      case 'multiple_choice':
+      case 'multiple choice':
+      case 'multiplechoice':
         return (
           <div className="space-y-3">
             {question.options?.map((option, index) => (
@@ -145,18 +256,21 @@ function QuizTakePage() {
                 <input
                   type="radio"
                   name={`question-${question.id}`}
-                  value={option}
-                  checked={userAnswer === option}
-                  onChange={() => handleAnswer(question.id, option)}
+                  value={getOptionValue(option, index)}
+                  checked={userAnswer === getOptionValue(option, index)}
+                  onChange={() => handleAnswer(question.id, getOptionValue(option, index))}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-gray-700">{option}</span>
+                <span className="text-gray-700">{renderOptionText(option)}</span>
               </label>
             ))}
           </div>
         );
 
       case 'scq':
+      case 'single_choice':
+      case 'single choice':
+      case 'singlechoice':
         return (
           <div className="space-y-3">
             {question.options?.map((option, index) => (
@@ -164,18 +278,21 @@ function QuizTakePage() {
                 <input
                   type="radio"
                   name={`question-${question.id}`}
-                  value={option}
-                  checked={userAnswer === option}
-                  onChange={() => handleAnswer(question.id, option)}
+                  value={getOptionValue(option, index)}
+                  checked={userAnswer === getOptionValue(option, index)}
+                  onChange={() => handleAnswer(question.id, getOptionValue(option, index))}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="text-gray-700">{option}</span>
+                <span className="text-gray-700">{renderOptionText(option)}</span>
               </label>
             ))}
           </div>
         );
 
       case 'truefalse':
+      case 'true_false':
+      case 'true-false':
+      case 'true false':
         return (
           <div className="space-y-3">
             {['true', 'false'].map((option) => (
@@ -195,6 +312,10 @@ function QuizTakePage() {
         );
 
       case 'descriptive':
+      case 'text':
+      case 'essay':
+      case 'long_answer':
+      case 'long answer':
         return (
           <div>
             <textarea
@@ -207,10 +328,34 @@ function QuizTakePage() {
           </div>
         );
 
-      default:
+      case 'fill_blank':
+      case 'fill_blank':
+      case 'fill in the blank':
+      case 'fillintheblank':
         return (
-          <div className="text-gray-500 italic">
-            Question type not supported: {question.type}
+          <div>
+            <input
+              type="text"
+              value={userAnswer || ''}
+              onChange={(e) => handleAnswer(question.id, e.target.value)}
+              placeholder="Type your answer here..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        );
+
+      default:
+        console.warn('Unsupported question type:', question.type, 'Question data:', question);
+        return (
+          <div className="text-gray-500 italic p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="font-medium text-yellow-800 mb-2">Question type not supported: {question.type}</p>
+            <p className="text-sm text-yellow-700">Please contact support. Question ID: {question.id}</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-sm text-yellow-700">Show question data</summary>
+              <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-auto">
+                {JSON.stringify(question, null, 2)}
+              </pre>
+            </details>
           </div>
         );
     }
@@ -297,7 +442,27 @@ function QuizTakePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-lg font-medium leading-relaxed">{currentQ?.question}</p>
+          {/* Question Text - try multiple possible field names */}
+          {(() => {
+            const questionText = currentQ?.question || currentQ?.questionText || currentQ?.text || currentQ?.content || currentQ?.title;
+            if (questionText) {
+              return <p className="text-lg font-medium leading-relaxed">{questionText}</p>;
+            } else {
+              console.warn('No question text found in question object:', currentQ);
+              return (
+                <div className="text-red-500 italic p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="font-medium">Question text is missing</p>
+                  <p className="text-sm">Available fields: {Object.keys(currentQ || {}).join(', ')}</p>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm">Show full question data</summary>
+                    <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-auto">
+                      {JSON.stringify(currentQ, null, 2)}
+                    </pre>
+                  </details>
+                </div>
+              );
+            }
+          })()}
           {renderQuestion()}
         </CardContent>
       </Card>

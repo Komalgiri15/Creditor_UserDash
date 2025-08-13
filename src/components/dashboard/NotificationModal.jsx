@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
-export function NotificationModal({ open, onOpenChange }) {
+export function NotificationModal({ open, onOpenChange, onNotificationUpdate }) {
   const [notifications, setNotifications] = useState([
     {
       id: "1",
@@ -56,15 +56,34 @@ export function NotificationModal({ open, onOpenChange }) {
     groupActivities: false
   });
 
+  // Initialize unread count when modal opens
+  useEffect(() => {
+    if (open && onNotificationUpdate) {
+      const unreadCount = notifications.filter(n => !n.read).length;
+      onNotificationUpdate(unreadCount);
+    }
+  }, [open, notifications, onNotificationUpdate]);
+
   const markAsRead = (id) => {
     setNotifications(notifications.map(n => 
       n.id === id ? { ...n, read: true } : n
     ));
+    
+    // Update unread count
+    const newUnreadCount = notifications.filter(n => !n.read && n.id !== id).length;
+    if (onNotificationUpdate) {
+      onNotificationUpdate(newUnreadCount);
+    }
   };
 
   const handleMarkAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
     toast.success("All notifications marked as read");
+    
+    // Update unread count to 0
+    if (onNotificationUpdate) {
+      onNotificationUpdate(0);
+    }
   };
 
   return (

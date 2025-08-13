@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createQuiz, bulkUploadQuestions, updateQuiz } from '@/services/quizServices';
+import { createQuiz, bulkUploadQuestions } from '@/services/quizServices';
 
 const QUIZ_TYPES = [
   { label: 'Final', value: 'FINAL' },
@@ -13,7 +13,7 @@ const QUESTION_TYPES = [
   { label: 'Matching', value: 'MATCHING' },
 ];
 
-const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQuizUpdated, isAddingQuestions }) => {
+const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated }) => {
   const [form, setForm] = useState({
     title: '',
     type: 'FINAL',
@@ -38,62 +38,6 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
     },
   ]);
 
-  // Reset questions each time the modal opens to avoid keeping previous session state
-  useEffect(() => {
-    if (isOpen) {
-      setQuestions([
-        {
-          text: '',
-          type: 'MCQ',
-          correctAnswer: '',
-          options: [{ text: '', isCorrect: false }],
-          matchPairs: [{ text: '', matchWith: '' }],
-        },
-      ]);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (editingQuiz) {
-      if (isAddingQuestions) {
-        // If adding questions to existing quiz, go directly to step 2 and reset builder to blank
-        setStep(2);
-        setCreatedQuiz(editingQuiz);
-        setQuestions([
-          {
-            text: '',
-            type: 'MCQ',
-            correctAnswer: '',
-            options: [{ text: '', isCorrect: false }],
-            matchPairs: [{ text: '', matchWith: '' }],
-          },
-        ]);
-      } else {
-        // If editing quiz details, populate form and stay on step 1
-        setForm({
-          title: editingQuiz.title || '',
-          type: editingQuiz.type || 'FINAL',
-          maxAttempts: editingQuiz.maxAttempts || 5,
-          time_estimate: editingQuiz.time_estimate || 30,
-          max_score: editingQuiz.max_score || 100,
-          min_score: editingQuiz.min_score || 40,
-        });
-        setStep(1);
-      }
-    } else {
-      // Reset form when not editing
-      setForm({
-        title: '',
-        type: 'FINAL',
-        maxAttempts: 5,
-        time_estimate: 30,
-        max_score: 100,
-        min_score: 40,
-      });
-      setStep(1);
-    }
-  }, [editingQuiz, isAddingQuestions]);
-
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -117,26 +61,14 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
         max_score: Number(form.max_score),
         min_score: Number(form.min_score),
       };
-      let created;
-      if (editingQuiz) {
-        // Many backends disallow changing module_id during update. Send only editable fields.
-        const { module_id: _omitModuleId, ...updatableFields } = quizData;
-        created = await updateQuiz(editingQuiz.id, updatableFields);
-      } else {
-        created = await createQuiz(quizData);
-      }
+      const created = await createQuiz(quizData);
       // Extract quiz id from possible response shapes
       let quizId = created?.data?.id || created?.data?._id || created?.id || created?._id;
       setCreatedQuiz({ ...created, id: quizId });
-      if (editingQuiz) {
-        if (onQuizUpdated) onQuizUpdated(created);
-        onClose();
-      } else {
-        setStep(2);
-        if (onQuizCreated) onQuizCreated(created);
-      }
+      setStep(2);
+      if (onQuizCreated) onQuizCreated(created);
     } catch (err) {
-      setError(editingQuiz ? 'Failed to update quiz. Please try again.' : 'Failed to create quiz. Please try again.');
+      setError('Failed to create quiz. Please try again           .');
     } finally {
       setLoading(false);
     }
@@ -246,9 +178,7 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
-          <h2 className="text-xl font-semibold mb-4">
-            {isAddingQuestions ? `Add Questions to "${editingQuiz?.title}"` : 'Add Questions'}
-          </h2>
+          <h2 className="text-xl font-semibold mb-4">Add Questions</h2>
           {questions.map((q, qIdx) => (
             <div key={qIdx} className="mb-6 border-b pb-4">
               <div className="flex items-center gap-2 mb-2">
@@ -324,9 +254,7 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
           {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
           <div className="flex justify-end gap-2 mt-6">
             <Button onClick={onClose} variant="outline" disabled={loading}>Cancel</Button>
-            <Button onClick={handleBulkUpload} loading={loading} disabled={loading}>
-              {isAddingQuestions ? 'Add Questions' : 'Submit Questions'}
-            </Button>
+            <Button onClick={handleBulkUpload} loading={loading} disabled={loading}>Submit Questions</Button>
           </div>
         </div>
       </div>
@@ -338,15 +266,8 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">
-            {isAddingQuestions ? 'Questions Added!' : 'Quiz Created!'}
-          </h2>
-          <p className="mb-4 text-gray-600">
-            {isAddingQuestions 
-              ? `Questions have been successfully added to "${editingQuiz?.title}".`
-              : 'Your quiz and questions have been successfully created.'
-            }
-          </p>
+          <h2 className="text-xl font-semibold mb-4">Quiz Created!</h2>
+          <p className="mb-4 text-gray-600">Your quiz and questions have been successfully created.</p>
           <Button onClick={() => {
             if (onQuizCreated) onQuizCreated();
             onClose();
@@ -360,7 +281,7 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">{editingQuiz ? 'Edit Quiz' : 'Create Quiz'}</h2>
+        <h2 className="text-xl font-semibold mb-4">Create Quiz</h2>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Module ID</label>
@@ -400,9 +321,7 @@ const QuizModal = ({ isOpen, onClose, moduleId, onQuizCreated, editingQuiz, onQu
         </div>
         <div className="flex justify-end gap-2 mt-6">
           <Button onClick={onClose} variant="outline" disabled={loading}>Cancel</Button>
-          <Button onClick={handleNext} loading={loading} disabled={loading || !form.title}>
-            {editingQuiz ? 'Update Quiz' : 'Next'}
-          </Button>
+          <Button onClick={handleNext} loading={loading} disabled={loading || !form.title}>Next</Button>
         </div>
       </div>
     </div>

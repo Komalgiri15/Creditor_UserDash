@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Search, Filter, Mail, AlertCircle, CheckCircle, Clock, ChevronDown, ChevronUp, Send, User, MessageSquare } from 'lucide-react';
-import { getAllTickets, addReplyToTicket } from '@/services/ticketService';
+import { getAllTickets, addReplyToTicket, updateTicketStatus } from '@/services/ticketService';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -26,16 +26,15 @@ const SupportTicketsPage = () => {
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [activeTicketId, setActiveTicketId] = useState(null);
-  const [statusDraft, setStatusDraft] = useState('open');
+  const [statusDraft, setStatusDraft] = useState('PENDING');
 
   // Fetch tickets from backend
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        const response = await getAllTickets();
-        
-        // Transform the data to match our component's expected format
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllTickets();
+      
+              // Transform the data to match our component's expected format
         const transformedTickets = response.data.data.map(ticket => ({
           id: ticket.id,
           userId: ticket.student_id,
@@ -43,31 +42,32 @@ const SupportTicketsPage = () => {
           userEmail: ticket.student?.email || 'No email',
           subject: ticket.subject,
           message: ticket.description || ticket.message, // Use description field from backend
-          status: ticket.status?.toLowerCase() || 'pending',
+          status: mapToFrontendStatus(ticket.status), // Map backend status to frontend format
           priority: ticket.priority?.toLowerCase() || 'medium',
           createdAt: ticket.created_at,
           updatedAt: ticket.updated_at,
           attachments: ticket.attachments ? JSON.parse(ticket.attachments) : [],
           replies: ticket.replies || []
         }));
-        
-        // Sort tickets by creation date (newest first)
-        const sortedTickets = transformedTickets.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        setTickets(sortedTickets);
-      } catch (error) {
-        console.error('Error fetching tickets:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch support tickets. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+      
+      // Sort tickets by creation date (newest first)
+      const sortedTickets = transformedTickets.sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setTickets(sortedTickets);
+    } catch (error) {
+      console.error('Error fetching tickets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch support tickets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTickets();
   }, [toast]);
 
@@ -154,29 +154,55 @@ const SupportTicketsPage = () => {
 
   const openStatusDialog = (ticketId, currentStatus) => {
     setActiveTicketId(ticketId);
-    setStatusDraft(currentStatus || 'open');
+    // Map frontend status to backend status format
+    const backendStatus = mapToBackendStatus(currentStatus);
+    setStatusDraft(backendStatus);
     setIsStatusDialogOpen(true);
   };
 
-  // For now, perform an optimistic in-memory status update to match the UI
-  const applyStatusChange = () => {
+  // Update ticket status via backend API
+  const applyStatusChange = async () => {
     if (!activeTicketId) return;
-    setTickets((prev) =>
-      prev.map((t) => (t.id === activeTicketId ? { ...t, status: statusDraft } : t))
-    );
-    setIsStatusDialogOpen(false);
-    toast({ title: 'Status updated', description: `Ticket status changed to ${statusDraft}.` });
+    
+    try {
+      setSubmittingReply(true);
+      await updateTicketStatus(activeTicketId, statusDraft);
+      
+      // Refresh tickets list to get updated data from backend
+      await fetchTickets();
+      
+      setIsStatusDialogOpen(false);
+      toast({ 
+        title: 'Status updated', 
+        description: `Ticket status changed to ${statusDraft}.` 
+      });
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case 'open':
       case 'pending':
+      case 'PENDING':
         return <Badge variant="destructive">Open</Badge>;
       case 'in-progress':
+      case 'IN_PROGRESS':
         return <Badge variant="warning">In Progress</Badge>;
       case 'resolved':
+      case 'RESOLVED':
         return <Badge variant="success">Resolved</Badge>;
+      case 'closed':
+      case 'CLOSED':
+        return <Badge variant="secondary">Closed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -203,6 +229,39 @@ const SupportTicketsPage = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Map frontend status to backend status format
+  const mapToBackendStatus = (frontendStatus) => {
+    switch (frontendStatus?.toLowerCase()) {
+      case 'open':
+      case 'pending':
+        return 'PENDING';
+      case 'in-progress':
+        return 'IN_PROGRESS';
+      case 'resolved':
+        return 'RESOLVED';
+      case 'closed':
+        return 'CLOSED';
+      default:
+        return 'PENDING';
+    }
+  };
+
+  // Map backend status to frontend display format
+  const mapToFrontendStatus = (backendStatus) => {
+    switch (backendStatus?.toUpperCase()) {
+      case 'PENDING':
+        return 'open';
+      case 'IN_PROGRESS':
+        return 'in-progress';
+      case 'RESOLVED':
+        return 'resolved';
+      case 'CLOSED':
+        return 'closed';
+      default:
+        return 'pending';
+    }
   };
 
   return (
@@ -234,10 +293,10 @@ const SupportTicketsPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
+                  <SelectItem value="PENDING">Open</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="RESOLVED">Resolved</SelectItem>
+                  <SelectItem value="CLOSED">Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -372,7 +431,7 @@ const SupportTicketsPage = () => {
                                       </div>
                                       <div>
                                         <span className="text-gray-500">Status: </span>
-                                        <span className="capitalize">{ticket.status}</span>
+                                        <span className="capitalize">{mapToBackendStatus(ticket.status)}</span>
                                       </div>
                                       <div>
                                         <span className="text-gray-500">Priority: </span>
@@ -469,16 +528,21 @@ const SupportTicketsPage = () => {
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-              </SelectContent>
+                              <SelectContent>
+                  <SelectItem value="PENDING">Open</SelectItem>
+                  <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                  <SelectItem value="RESOLVED">Resolved</SelectItem>
+                  <SelectItem value="CLOSED">Closed</SelectItem>
+                </SelectContent>
             </Select>
           </div>
           <DialogFooter>
-            <Button onClick={applyStatusChange}>Apply</Button>
+            <Button 
+              onClick={applyStatusChange} 
+              disabled={submittingReply}
+            >
+              {submittingReply ? 'Updating...' : 'Apply'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

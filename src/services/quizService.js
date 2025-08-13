@@ -23,8 +23,7 @@ const getCurrentUserId = () => {
  */
 export async function startQuiz(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/start`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/start`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -46,17 +45,15 @@ export async function startQuiz(quizId) {
 /**
  * Submit a completed quiz
  * @param {string} quizId - The ID of the quiz to submit
- * @param {Object} answers - User's answers to the quiz questions
  * @returns {Promise<Object>} Quiz results and score
  */
-export async function submitQuiz(quizId, answers) {
+export async function submitQuiz(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/submit`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/submit`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify({ answers }),
+      // No body needed - backend gets attempt data from database
     });
 
     if (!response.ok) {
@@ -112,8 +109,7 @@ export async function getModuleQuizzes(moduleId) {
  */
 export async function getQuizById(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -139,8 +135,7 @@ export async function getQuizById(quizId) {
  */
 export async function getQuizQuestions(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/questions`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/questions`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -166,8 +161,7 @@ export async function getQuizQuestions(quizId) {
  */
 export async function getQuizResults(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/results`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/results`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -193,8 +187,7 @@ export async function getQuizResults(quizId) {
  */
 export async function getQuizProgress(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/progress`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/progress`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
