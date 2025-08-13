@@ -9,8 +9,10 @@ import { Gavel, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, BookOpen, Users, Aw
 import axios from "axios";
 import { fetchUserProfile, setUserRole, setUserRoles } from "@/services/userService";
 import logoCreditor from "@/assets/logo_creditor.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Login() {
+  const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,31 +40,42 @@ export function Login() {
       });
 
       if (response.data.success && response.data.accessToken) {
-        // Store accessToken as authToken for future API calls
+        // Store tokens
         localStorage.setItem('authToken', response.data.accessToken);
+        localStorage.setItem('token', response.data.accessToken); // For backward compatibility
+        
+        // Set authentication state
+        setAuth(response.data.accessToken);
 
         // Set default role first
         setUserRole('user');
-        // Fetch user profile and set single user role in localStorage
+        
+        // Fetch user profile and set roles
         try {
           const profile = await fetchUserProfile();
           console.log('Fetched user profile after login:', profile);
-          if (profile && Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
-            // Extract role names and use the highest priority role (admin > instructor > user)
-            const roles = profile.user_roles.map(roleObj => roleObj.role);
-            const priorityRoles = ['admin', 'instructor', 'user'];
-            const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+          
+          if (profile) {
+            // Store user ID if available
+            if (profile.id) {
+              localStorage.setItem('userId', profile.id);
+            }
             
-            // Set single role (enforces single role system)
-            setUserRoles([highestRole]);
-            console.log('Set user single role to:', highestRole);
-          } else {
-            // If no roles found, set default user role
-            setUserRoles(['user']);
+            // Handle user roles
+            if (Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
+              const roles = profile.user_roles.map(roleObj => roleObj.role);
+              const priorityRoles = ['admin', 'instructor', 'user'];
+              const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+              
+              // Set single role (enforces single role system)
+              setUserRoles([highestRole]);
+              console.log('Set user single role to:', highestRole);
+            } else {
+              setUserRoles(['user']);
+            }
           }
         } catch (profileErr) {
           console.warn("Could not fetch user profile:", profileErr);
-          // Keep default 'user' role
           setUserRoles(['user']);
         }
         
@@ -73,16 +86,16 @@ export function Login() {
       }
     } catch (err) {
       console.error("Login error:", err);
+      // Clear any partial auth state on error
+      setAuth(null);
+      
       if (err.response) {
         const errorMessage = err.response.data?.message || "Login failed";
         toast.error(errorMessage);
-        console.error("Server error details:", err.response.data);
       } else if (err.request) {
         toast.error("Network error. Please check your connection.");
-        console.error("Network error details:", err.request);
       } else {
         toast.error("An unexpected error occurred.");
-        console.error("Other error details:", err.message);
       }
     } finally {
       setIsLoading(false);
