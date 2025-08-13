@@ -349,26 +349,7 @@ export function Dashboard() {
   ];
 
   const recommendedCourses = [
-    {
-      id: "4",
-      title: "Road Map Series",
-      description: "Guides you through the essentials of private living, from sovereignty to business credit, with tools and expert support.",
-      image: "https://static.vecteezy.com/system/resources/previews/036/115/246/non_2x/ai-generated-handsome-businessman-working-with-laptop-in-cafe-businessman-working-on-laptop-in-cafe-business-professional-working-on-laptop-in-office-lobby-ai-generated-free-photo.jpg",
-      progress: 0,
-      lessonsCount: 38,
-      category: "Business Law",
-      duration: "28 hours"
-    },
-    // {
-    //   id: "5",
-    //   title: "Legal Research and Writing",
-    //   description: "Develop essential skills for conducting legal research and preparing legal documents.",
-    //   image: "https://images.unsplash.com/photo-1562564055-71e051d33c19?q=80&w=1000",
-    //   progress: 0,
-    //   lessonsCount: 32,
-    //   category: "Legal Skills",
-    //   duration: "20 hours"
-    // }
+    // No upcoming courses at the moment
   ];
 
   // Carousel state for My Courses
@@ -605,10 +586,13 @@ export function Dashboard() {
               </div> */}
             </div>
           </div>
-              {/* Latest Updates Section - now full width */}
+              {/* Catalog Banner Section */}
           <div className="w-full bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-800">Latest Updates</h3>
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Featured Courses</h3>
+              <p className="text-gray-600 text-sm max-w-2xl mx-auto">
+                Discover our comprehensive range of private education courses designed to empower your journey
+              </p>
             </div>
             <DashboardCarousel />
           </div>
@@ -694,24 +678,28 @@ export function Dashboard() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedCourses.map((course) => (
-                <div key={course.id} className="transform transition-all duration-300 hover:scale-105">
-                  <CourseCard {...course} isUpcoming={true} />
+              {recommendedCourses.length > 0 ? (
+                recommendedCourses.map((course) => (
+                  <div key={course.id} className="transform transition-all duration-300 hover:scale-105">
+                    <CourseCard {...course} isUpcoming={true} />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-6 md:p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
+                    <BookOpen size={20} className="text-white" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2 text-gray-800">No Upcoming Courses</h3>
+                  <p className="text-gray-600 text-sm mb-4 max-w-sm">
+                    We're working on new courses. In the meantime, explore our current catalog to continue your learning journey.
+                  </p>
+                  <Button asChild size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md">
+                    <Link to="/dashboard/catalog">
+                      Browse Current Courses
+                    </Link>
+                  </Button>
                 </div>
-              ))}
-              
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-300">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-                  <BookOpen size={28} className="text-white" />
-                </div>
-                <h3 className="font-bold text-lg mb-2 text-gray-800">Explore More Courses</h3>
-                <p className="text-gray-600 text-sm mb-6">Discover courses tailored to your private education goals and career aspirations.</p>
-                <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
-                  <Link to="/dashboard/catalog">
-                    Browse Catalog
-                  </Link>
-                </Button>
-              </div>
+              )}
             </div>
           </div>
         </div>
