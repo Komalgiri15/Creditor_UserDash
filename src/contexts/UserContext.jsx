@@ -18,7 +18,7 @@ export const UserProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch user profile on mount and when authentication changes
+  // Fetch user profile on mount
   useEffect(() => {
     loadUserProfile();
   }, []);
@@ -26,35 +26,23 @@ export const UserProvider = ({ children }) => {
   // Listen for authentication changes
   useEffect(() => {
     const handleAuthChange = () => {
-      // Check if there's a valid token
-      const token = Cookies.get("token") || localStorage.getItem("token");
-      if (token) {
-        // User is logged in, refresh profile
-        loadUserProfile();
-      } else {
-        // User is logged out, clear profile
-        setUserProfile(null);
-        setIsLoading(false);
-      }
-    };
-
-    // Listen for storage changes (when token is set/removed)
-    const handleStorageChange = (e) => {
-      if (e.key === 'token' || e.key === null) {
-        handleAuthChange();
-      }
+      // Always try to refresh profile when auth changes
+      loadUserProfile();
     };
 
     // Listen for custom events
     window.addEventListener('userRoleChanged', handleAuthChange);
-    window.addEventListener('storage', handleStorageChange);
-
-    // Initial check
-    handleAuthChange();
+    window.addEventListener('userLoggedOut', () => {
+      setUserProfile(null);
+      setIsLoading(false);
+    });
 
     return () => {
       window.removeEventListener('userRoleChanged', handleAuthChange);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLoggedOut', () => {
+        setUserProfile(null);
+        setIsLoading(false);
+      });
     };
   }, []);
 
@@ -63,14 +51,7 @@ export const UserProvider = ({ children }) => {
       setIsLoading(true);
       setError(null);
       
-      // Check if user is authenticated
-      const token = Cookies.get("token") || localStorage.getItem("token");
-      if (!token) {
-        setUserProfile(null);
-        setIsLoading(false);
-        return;
-      }
-
+      // Try to fetch user profile - backend will determine if user is authenticated
       const data = await fetchUserProfile();
       setUserProfile(data);
       

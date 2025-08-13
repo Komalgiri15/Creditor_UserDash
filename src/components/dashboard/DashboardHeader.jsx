@@ -2,15 +2,17 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Calendar, Mail, BellDot, BookOpen, Loader2, Lock, AlertCircle } from "lucide-react";
+import { Search, Calendar, Mail, BellDot, BookOpen, Loader2, Lock, AlertCircle, Users, User } from "lucide-react";
 import ProfileDropdown from "./ProfileDropdown";
 import NotificationModal from "./NotificationModal";
 import InboxModal from "./InboxModal";
 import CalendarModal from "./CalendarModal";
 import { search } from "@/services/searchService";
 import { fetchUserCourses } from "@/services/courseService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function DashboardHeader() {
+  const { isInstructorOrAdmin } = useAuth();
   const [notificationModalOpen, setNotificationModalOpen] = useState(false);
   const [inboxModalOpen, setInboxModalOpen] = useState(false);
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
@@ -22,6 +24,8 @@ export function DashboardHeader() {
   const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
   const [showEnrollmentAlert, setShowEnrollmentAlert] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(2); // Default count
+  const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -92,6 +96,55 @@ export function DashboardHeader() {
     };
   }, [showDropdown]);
 
+  // Handle keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showDropdown || !searchResults) return;
+
+    const totalResults = (searchResults.results?.courses?.length || 0) + 
+                        (isInstructorOrAdmin() ? (searchResults.results?.users?.length || 0) : 0);
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedResultIndex(prev => 
+          prev < totalResults - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedResultIndex(prev => 
+          prev > 0 ? prev - 1 : totalResults - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedResultIndex >= 0) {
+          // Navigate to the selected result
+          const courses = searchResults.results?.courses || [];
+          const users = searchResults.results?.users || [];
+          
+          if (selectedResultIndex < courses.length) {
+            handleCourseClick(courses[selectedResultIndex].id);
+          } else if (isInstructorOrAdmin()) {
+            const userIndex = selectedResultIndex - courses.length;
+            if (userIndex < users.length) {
+              handleUserClick(users[userIndex].id);
+            }
+          }
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setSelectedResultIndex(-1);
+        break;
+    }
+  };
+
+  // Reset selected index when search results change
+  useEffect(() => {
+    setSelectedResultIndex(-1);
+  }, [searchResults]);
+
   const handleCourseClick = (courseId) => {
     // Check if user is enrolled in this course
     const isEnrolled = enrolledCourses.some(course => course.id === courseId);
@@ -108,6 +161,15 @@ export function DashboardHeader() {
     }
   };
 
+  const handleUserClick = (userId) => {
+    // Only instructors/admins can access user profiles
+    if (isInstructorOrAdmin()) {
+      setShowDropdown(false);
+      setSearchQuery("");
+      navigate(`/dashboard/manage-users?userId=${userId}`);
+    }
+  };
+
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim() !== "" && searchResults) {
@@ -118,6 +180,11 @@ export function DashboardHeader() {
   const closeEnrollmentAlert = () => {
     setShowEnrollmentAlert(false);
     setSelectedCourseId(null);
+  };
+
+  // Handle notification updates
+  const handleNotificationUpdate = (newCount) => {
+    setUnreadNotifications(newCount);
   };
 
   return (
@@ -153,9 +220,10 @@ export function DashboardHeader() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search courses..."
+                placeholder="Search courses and users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="pl-12 pr-4 py-3 w-full bg-gray-50 border-0 rounded-2xl text-gray-800 text-sm h-12 shadow-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus-visible:ring-2 focus-visible:ring-offset-0 transition-all duration-200"
                 style={{ outline: 'none' }}
               />
@@ -167,20 +235,38 @@ export function DashboardHeader() {
                 ref={dropdownRef}
                 className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-96 overflow-y-auto z-50"
               >
-                {searchResults.results?.courses?.length > 0 ? (
-                  <div className="p-4">
+                {/* Total Results Header */}
+                {((searchResults.results?.courses?.length > 0) || (searchResults.results?.users?.length > 0)) && (
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <div className="text-sm font-medium text-gray-700">
+                      Found {searchResults.results?.courses?.length || 0} course{(searchResults.results?.courses?.length || 0) !== 1 ? 's' : ''}
+                      {isInstructorOrAdmin() && searchResults.results?.users?.length > 0 && (
+                        <span> and {searchResults.results.users.length} user{(searchResults.results.users.length !== 1) ? 's' : ''}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Courses Section */}
+                {searchResults.results?.courses?.length > 0 && (
+                  <div className="p-4 border-b border-gray-100">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
                       Courses ({searchResults.results.courses.length})
                     </h3>
                     <div className="space-y-2">
-                      {searchResults.results.courses.map((course) => {
+                      {searchResults.results.courses.map((course, index) => {
                         const isEnrolled = enrolledCourses.some(ec => ec.id === course.id);
+                        const isSelected = selectedResultIndex === index;
                         return (
                           <button
                             key={course.id}
                             onClick={() => handleCourseClick(course.id)}
-                            className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center gap-3"
+                            onMouseEnter={() => setSelectedResultIndex(index)}
+                            onMouseLeave={() => setSelectedResultIndex(-1)}
+                            className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center gap-3 ${
+                              isSelected ? 'bg-blue-50' : ''
+                            }`}
                           >
                             <BookOpen className="h-4 w-4 text-blue-600" />
                             <div className="flex-1">
@@ -204,9 +290,88 @@ export function DashboardHeader() {
                       })}
                     </div>
                   </div>
-                ) : (
+                )}
+
+                {/* Users Section - Only show for instructors/admins */}
+                {isInstructorOrAdmin() && searchResults.results?.users?.length > 0 && (
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Users ({searchResults.results.users.length})
+                    </h3>
+                    <div className="space-y-2">
+                      {searchResults.results.users.map((user, index) => {
+                        const userRole = user.user_roles?.[0]?.role || 'user';
+                        const roleColor = userRole === 'admin' ? 'bg-red-100 text-red-800' : 
+                                        userRole === 'instructor' ? 'bg-blue-100 text-blue-800' : 
+                                        'bg-gray-100 text-gray-600';
+                        const isSelected = selectedResultIndex === searchResults.results.courses.length + index;
+                        
+                        return (
+                          <button
+                            key={user.id}
+                            onClick={() => handleUserClick(user.id)}
+                            onMouseEnter={() => setSelectedResultIndex(searchResults.results.courses.length + index)}
+                            onMouseLeave={() => setSelectedResultIndex(-1)}
+                            className={`w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 flex items-center gap-3 ${
+                              isSelected ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <User className="h-4 w-4 text-green-600" />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">
+                                {user.first_name} {user.last_name}
+                              </div>
+                              <div className="text-sm text-gray-500 flex items-center gap-2">
+                                {user.email}
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleColor}`}>
+                                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Show message for non-instructors when users exist in search results */}
+                {!isInstructorOrAdmin() && searchResults.results?.users?.length > 0 && (
+                  <div className="p-4 border-t border-gray-100">
+                    <div className="text-sm text-gray-500 text-center">
+                      <Users className="h-4 w-4 mx-auto mb-2 text-gray-400" />
+                      <p>User search results are available for instructors and administrators only.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* No Results Message */}
+                {(!searchResults.results?.courses?.length && !searchResults.results?.users?.length) && (
                   <div className="p-4 text-center text-gray-500">
-                    No courses found for "{searchQuery}"
+                    <Search className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                    <p className="font-medium">No results found for "{searchQuery}"</p>
+                    <p className="text-sm text-gray-400 mt-1">Try different keywords or check your spelling</p>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {isSearching && (
+                  <div className="p-4 text-center text-gray-500">
+                    <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin text-blue-500" />
+                    <p>Searching...</p>
+                  </div>
+                )}
+
+                {/* Keyboard Navigation Hints */}
+                {showDropdown && searchResults && !isSearching && 
+                 ((searchResults.results?.courses?.length > 0) || (searchResults.results?.users?.length > 0)) && (
+                  <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+                    <div className="flex items-center justify-center gap-4">
+                      <span>↑↓ Navigate</span>
+                      <span>Enter Select</span>
+                      <span>Esc Close</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -215,6 +380,27 @@ export function DashboardHeader() {
 
           {/* Right - Enhanced Icons and Profile */}
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <button
+              onClick={() => setNotificationModalOpen(true)}
+              className={`relative p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 group ${
+                unreadNotifications > 0 ? 'animate-pulse' : ''
+              }`}
+              aria-label="Notifications"
+            >
+              <BellDot className={`h-5 w-5 transition-colors duration-200 ${
+                unreadNotifications > 0 ? 'text-blue-600' : 'text-gray-600 group-hover:text-blue-600'
+              }`} />
+              {/* Notification Badge */}
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                </span>
+              )}
+            </button>
+            
             {/* Profile Dropdown */}
             <div className="ml-2">
               <ProfileDropdown />
@@ -231,7 +417,8 @@ export function DashboardHeader() {
         {/* Notification Modal */}
         <NotificationModal 
           open={notificationModalOpen} 
-          onOpenChange={setNotificationModalOpen} 
+          onOpenChange={setNotificationModalOpen}
+          onNotificationUpdate={handleNotificationUpdate}
         />
         
         {/* Inbox Modal */}

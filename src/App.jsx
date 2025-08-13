@@ -68,6 +68,7 @@ import ScormPage from "@/pages/ScormPage";
 import { allowedScormUserIds } from "@/data/allowedScormUsers";
 import { currentUserId } from "@/data/currentUser";
 import Instructorpage from "@/pages/Instructorpage";
+import InstructorCourseModulesPage from "@/pages/InstructorCourseModulesPage";
 import LandingPage from "@/pages/LandingPage";
 import AdminModal from "@/components/AdminModal";
 import Scrompack from "@/pages/Scrompack";
@@ -92,6 +93,7 @@ import AddUsersPage from "@/pages/AddUsersPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { UserProvider } from "./contexts/UserContext";
 import  ModuleView  from "@/pages/ModuleView";
+     
 
 function ProtectedScormRoute() {
   if (!allowedScormUserIds.includes(currentUserId)) {
@@ -124,6 +126,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Instructorpage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/instructor/courses/:courseId/modules"
+            element={
+              <ProtectedRoute>
+                <InstructorCourseModulesPage />
               </ProtectedRoute>
             }
           />
@@ -165,6 +175,7 @@ function App() {
                 } />
                 <Route path="modules" element={<ModulesList />} />
                 <Route path="modules/:moduleId/view" element={<ModuleView />} />
+                <Route path="modules/:moduleId/assessments" element={<ModuleAssessmentsView />} />
                 <Route path="module/:moduleId">
                   <Route index element={<ModuleDetail />} />
                   <Route path="lessons" element={<ModuleLessonsView />} />

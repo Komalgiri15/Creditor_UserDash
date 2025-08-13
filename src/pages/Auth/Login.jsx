@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gavel, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, BookOpen, Users, Award } from "lucide-react";
 import axios from "axios";
-import Cookies from "js-cookie";
 import { fetchUserProfile, setUserRole, setUserRoles } from "@/services/userService";
 import logoCreditor from "@/assets/logo_creditor.png";
 
@@ -41,14 +40,7 @@ export function Login() {
 
       console.log('Login response from backend:', response.data);
 
-      if (response.data.success && response.data.token) {
-        // Store token in cookies for 7 days
-        Cookies.set("token", response.data.token, { 
-          expires: 7,
-          secure: true,
-          sameSite: 'None'
-        }); 
-        
+      if (response.data.success) {
         // Set default role first
         setUserRole('user');
         
