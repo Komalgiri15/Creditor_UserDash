@@ -1,3 +1,5 @@
+import { getAuthHeader } from './authHeader';
+
 // Centralized calendar API service
 
 // Utility function to generate occurrences from recurrence rule
@@ -136,6 +138,7 @@ export async function getAllEvents(params = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeader(),
       },
       credentials: 'include', // send cookies if needed for auth
     });
@@ -164,6 +167,7 @@ export async function getAllUpcomingEvents(params = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeader(),
       },
       credentials: 'include',
     });
@@ -180,4 +184,4 @@ export async function getAllUpcomingEvents(params = {}) {
     console.error('Error in getAllUpcomingEvents:', error);
     throw error;
   }
-} 
+}

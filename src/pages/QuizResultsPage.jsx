@@ -149,7 +149,7 @@ function QuizResultsPage() {
   }
 
   return (
-    <div className="container py-6 max-w-4xl mx-auto">
+    <div className="container py-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -161,139 +161,115 @@ function QuizResultsPage() {
         </Badge>
       </div>
 
-      {/* Quiz Results Card */}
-      <Card className="mb-8">
-        <CardContent className="p-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              {isPassed ? (
-                <CheckCircle className="h-8 w-8 text-green-500" />
-              ) : (
-                <XCircle className="h-8 w-8 text-red-500" />
-              )}
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Quiz Results
-            </h1>
-            <p className="text-xl text-gray-700 mb-6">
-              {getScoreMessage(score)}
-            </p>
-            
-            {/* Score Display */}
-            <div className="inline-block bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
-              <div className="text-6xl font-bold mb-2">
-                <span className={getScoreColor(score)}>{score}%</span>
-              </div>
-              <div className="text-lg text-gray-600">
-                {isPassed ? 'PASSED' : 'NOT PASSED'}
-              </div>
-              {grade && grade !== 'N/A' && (
-                <div className="text-2xl font-bold text-yellow-600 mt-2">
-                  Grade: {grade}
+      {/* Main Results Card - Quiz Info Left, Score Right */}
+      <Card className="mb-8 shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[400px]">
+            {/* Left Side - Quiz Information */}
+            <div className="p-8 border-r border-gray-200">
+              <div className="flex items-center gap-3 mb-6">
+                
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Quiz Results</h1>
+                  <p className="text-lg text-gray-600">{getScoreMessage(score)}</p>
                 </div>
-              )}
-            </div>
-            
-            {/* Remarks Display */}
-            {remarks && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-lg font-medium text-blue-800">
-                  {remarks}
-                </p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Quiz Details */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-blue-600" />
-            Quiz Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Quiz Title</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.title || quizData?.title || `Quiz ${quizId}`}</p>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <BookOpen className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Quiz Title</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.title || quizData?.title || `Quiz ${quizId}`}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <Clock className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Duration</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.time_limit || quizData?.timeLimit || 25} minutes</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <CheckCircle className="h-6 w-6 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Passing Score</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.min_score || quizData?.passingScore || 70}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <BookOpen className="h-6 w-6 text-indigo-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Questions Answered</p>
+                      <p className="text-lg font-semibold text-gray-900">{answered}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Duration</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.time_limit || quizData?.timeLimit || 25} minutes</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Passing Score</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.min_score || quizData?.passingScore || 70}%</p>
-                </div>
+
+                {/* Remarks Display */}
+                {remarks && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-lg font-medium text-blue-800">
+                      {remarks}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Questions Answered</p>
-                  <p className="text-lg font-semibold text-gray-900">{answered}</p>
+
+            {/* Right Side - Score Display */}
+            <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col justify-center items-center">
+              <div className="text-center">
+                {/* Score Circle */}
+                <div className="relative mb-6">
+                  <div className="w-48 h-48 rounded-full bg-white shadow-xl border-8 border-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className={`text-5xl font-bold mb-2 ${getScoreColor(score)}`}>
+                        {score}%
+                      </div>
+                      <div className="text-lg text-gray-600 font-medium">
+                        {isPassed ? 'PASSED' : 'NOT PASSED'}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Status Icon Overlay */}
+                  
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Trophy className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Your Score</p>
-                  <p className={`text-lg font-semibold ${getScoreColor(score)}`}>{score}%</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {isPassed ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+
+                {/* Grade Display */}
+                {grade && grade !== 'N/A' && (
+                  <div className="mb-4">
+                    <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold text-xl">
+                      Grade: {grade}
+                    </div>
+                  </div>
                 )}
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <p className={`text-lg font-semibold ${isPassed ? 'text-green-600' : 'text-red-600'}`}>
+
+                {/* Status Badge */}
+                <div className="mb-4">
+                  <Badge 
+                    variant={isPassed ? "default" : "destructive"}
+                    className={`text-lg px-6 py-2 ${isPassed ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                  >
                     {isPassed ? 'PASSED' : 'FAILED'}
-                  </p>
+                  </Badge>
+                </div>
+
+                {/* Score Breakdown */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-600">Correct Answers</span>
+                    <span className="font-semibold text-green-600">
+                      {Math.round((score / 100) * answered)} / {answered}
+                    </span>
+                  </div>
+                  <Progress value={score} className="h-3" />
                 </div>
               </div>
-              
-              {/* Grade Display */}
-              {grade && grade !== 'N/A' && (
-                <div className="flex items-center gap-3">
-                  <Trophy className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Grade</p>
-                    <p className="text-lg font-semibold text-yellow-600">{grade}</p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Remarks Display */}
-              {remarks && (
-                <div className="flex items-center gap-3">
-                  <BookOpen className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Remarks</p>
-                    <p className="text-lg font-semibold text-blue-600">{remarks}</p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
@@ -310,20 +286,6 @@ function QuizResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {/* Score Breakdown */}
-              <div>
-                <h4 className="font-semibold mb-3">Score Breakdown</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Correct Answers</span>
-                    <span className="font-semibold text-green-600">
-                      {Math.round((score / 100) * answered)} / {answered}
-                    </span>
-                  </div>
-                  <Progress value={score} className="h-2" />
-                </div>
-              </div>
-              
               {/* Question Review */}
               {quizData?.questions && (
                 <div>

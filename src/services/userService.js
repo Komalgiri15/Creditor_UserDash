@@ -81,29 +81,24 @@ export function clearUserData() {
 
 export async function fetchUserProfile() {
   try {
-    console.log("🔍 userService: Fetching profile from:", `${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`);
-    
+    const token = localStorage.getItem('authToken');
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       credentials: 'include',
     });
-    
-    console.log("🔍 userService: Response status:", response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ userService: Fetch profile failed:", response.status, errorText);
       throw new Error(`Failed to fetch user profile: ${response.status} ${errorText}`);
     }
-    
+
     const result = await response.json();
-    console.log("✅ userService: Fetch profile success:", result);
-    return result.data; // Return only the user object
+    return result.data;
   } catch (error) {
-    console.error("❌ userService: Fetch profile error:", error);
     throw error;
   }
 }
@@ -199,5 +194,29 @@ export async function fetchUserCoursesByUserId(userId) {
   } catch (error) {
     console.error("❌ userService: Fetch user courses error:", error);
     throw error;
+  }
+}
+
+export async function logoutUser() {
+  try {
+    const response = await fetch('https://creditor-backend-1-iijy.onrender.com/api/auth/logout', {
+      method: 'GET',
+      credentials: 'include', // Important for sending cookies
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to logout');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Even if the API call fails, we should still clear local data
+    return false;
   }
 }
