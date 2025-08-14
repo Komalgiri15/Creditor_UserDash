@@ -486,10 +486,8 @@ const CatelogCourses = () => {
                      </div>
                    </div>
                  );
-                 return isAccessible ? (
-                   <Link to={`/dashboard/courses/${course.id}`} key={course.id || idx} className="relative">{cardContent}</Link>
-                 ) : (
-                   <div key={course.id || idx} className="relative">{cardContent}</div>
+                 return (
+                   <Link to={`/dashboard/courses/${course.id}`} state={{ isAccessible }} key={course.id || idx} className="relative">{cardContent}</Link>
                  );
                })}
              </div>

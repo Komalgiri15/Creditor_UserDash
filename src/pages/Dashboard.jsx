@@ -669,38 +669,148 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Live Classes Section */}
-          
-          
-          {/* Upcoming Courses */}
+          {/* Upcoming Features */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Upcoming Courses</h2>
+              <h2 className="text-2xl font-bold text-gray-800">Upcoming Features In Athena</h2>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-blue-600 font-medium">Coming Soon</span>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendedCourses.length > 0 ? (
-                recommendedCourses.map((course) => (
-                  <div key={course.id} className="transform transition-all duration-300 hover:scale-105">
-                    <CourseCard {...course} isUpcoming={true} />
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl bg-gradient-to-br from-gray-50 to-white p-6 md:p-8 text-center hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-300">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
-                    <BookOpen size={20} className="text-white" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2 text-gray-800">No Upcoming Courses</h3>
-                  <p className="text-gray-600 text-sm mb-4 max-w-sm">
-                    We're working on new courses. In the meantime, explore our current catalog to continue your learning journey.
-                  </p>
-                  <Button asChild size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md">
-                    <Link to="/dashboard/catalog">
-                      Browse Current Courses
-                    </Link>
-                  </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Group Message Feature */}
+              <div className="group relative bg-white rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden h-80">
+                {/* Banner Image - Always visible, fades on hover */}
+                <div className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-0">
+                  <img 
+                    src="https://lesson-banners.s3.us-east-1.amazonaws.com/Recording-banners/Upcoming-Features/Group_messages.jpeg"
+                    alt="Group Messages Feature"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                 </div>
-              )}
+                
+                {/* Content - Appears on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-center p-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-3">Group Message</h3>
+                    <p className="text-gray-200 text-sm leading-relaxed">
+                      Connect and collaborate effortlessly with multiple users in a single conversation.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Default overlay with title */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <h3 className="text-white font-semibold text-lg">Group Message</h3>
+                </div>
+              </div>
+
+              {/* Private Message Feature */}
+              <div className="group relative bg-white rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden h-80">
+                {/* Banner Image - Always visible, fades on hover */}
+                <div className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-0">
+                  <img 
+                    src="https://lesson-banners.s3.us-east-1.amazonaws.com/Recording-banners/Upcoming-Features/Private_messages.jpeg"
+                    alt="Private Messages Feature"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                </div>
+                
+                {/* Content - Appears on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-center p-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-3">Private Message</h3>
+                    <p className="text-gray-200 text-sm leading-relaxed">
+                      Communicate one-on-one with complete privacy and security.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Default overlay with title */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <h3 className="text-white font-semibold text-lg">Private Message</h3>
+                </div>
+              </div>
+
+              {/* Profile Picture Feature */}
+              <div className="group relative bg-white rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden h-80">
+                {/* Banner Image - Always visible, fades on hover */}
+                <div className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-0">
+                  <img 
+                    src="https://lesson-banners.s3.us-east-1.amazonaws.com/Recording-banners/Upcoming-Features/Profile_picture.jpeg"
+                    alt="Profile Picture Feature"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                </div>
+                
+                {/* Content - Appears on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-center p-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-3">Profile Picture</h3>
+                    <p className="text-gray-200 text-sm leading-relaxed">
+                      Personalize your account with a custom profile photo for easy recognition.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Default overlay with title */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <h3 className="text-white font-semibold text-lg">Profile Picture</h3>
+                </div>
+            </div>
+            
+              {/* Notifications Feature */}
+              <div className="group relative bg-white rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 overflow-hidden h-80">
+                {/* Banner Image - Always visible, fades on hover */}
+                <div className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-0">
+                  <img 
+                    src="https://lesson-banners.s3.us-east-1.amazonaws.com/Recording-banners/Upcoming-Features/Notifications.jpeg"
+                    alt="Notifications Feature"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                  </div>
+                
+                {/* Content - Appears on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-center p-6">
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.19 4.19A2 2 0 004 6v10a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-1.81 1.19zM4 6h16M4 10h16M4 14h16" />
+                      </svg>
+                  </div>
+                    <h3 className="text-xl font-bold text-white mb-3">Notifications</h3>
+                    <p className="text-gray-200 text-sm leading-relaxed">
+                      Stay updated in real time with instant alerts on important activities.
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Default overlay with title */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                  <h3 className="text-white font-semibold text-lg">Notifications</h3>
+                </div>
+                </div>
             </div>
           </div>
         </div>

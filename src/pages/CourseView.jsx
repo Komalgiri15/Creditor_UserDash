@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { fetchCourseModules, fetchCourseById } from "@/services/courseService";
 
 export function CourseView() {
   const { courseId } = useParams();
+  const location = useLocation();
+  const hasAccess = location.state?.isAccessible ?? true;
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [courseDetails, setCourseDetails] = useState(null);
@@ -214,15 +216,15 @@ export function CourseView() {
               {filteredModules.map((module) => {
                 return (
                   <div key={module.id} className="module-card h-full">
-                    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full ${!module.resource_url ? 'opacity-75' : ''}`}>
+                    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full ${(!hasAccess || !module.resource_url) ? 'opacity-75' : ''}`}>
                       <div className="aspect-video relative overflow-hidden">
                         <img 
                           src={module.thumbnail || "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000"} 
                           alt={module.title}
                           className="w-full h-full object-cover"
                         />
-                        {/* Lock overlay for modules without content */}
-                        {!module.resource_url && (
+                        {/* Lock overlay for locked modules (non-enrolled or no content) */}
+                        {((!hasAccess) || !module.resource_url) && (
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                             <div className="bg-white/95 rounded-full p-4 shadow-xl">
                               <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,7 +256,7 @@ export function CourseView() {
                       {/* Footer always at the bottom */}
                       <div className="mt-auto px-6 pb-4">
                         <CardFooter className="p-0 flex flex-col gap-2">
-                          {module.resource_url ? (
+                          {hasAccess && module.resource_url ? (
                             <>
                               <Link to={`/dashboard/courses/${courseId}/modules/${module.id}/view`} className="w-full">
                                 <Button className="w-full">
