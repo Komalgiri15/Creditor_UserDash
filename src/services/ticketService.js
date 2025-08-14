@@ -25,11 +25,10 @@ export const getAllTickets = async () => {
 // Add a new support ticket
 export const createSupportTicket = async (ticketData) => {
   return axios.post(
-    joinUrl(baseUrl, 'api/support-tickets/'),
+    joinUrl(baseUrl, 'api/support-tickets/create'),
     ticketData,
     {
       headers: {
-        'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
       withCredentials: true
