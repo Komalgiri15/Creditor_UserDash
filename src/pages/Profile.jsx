@@ -12,7 +12,7 @@ import NotificationPreferences from "@/components/profile/NotificationPreference
 import ProfileSecurity from "@/components/profile/ProfileSecurity";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Bell, Shield, Camera } from "lucide-react";
-import { getUserAvatarUrl } from "@/lib/avatar-utils";
+import { getUserAvatarUrl, getUserAvatarUrlSync, refreshAvatarFromBackend } from "@/lib/avatar-utils";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { fetchUserProfile, updateUserProfile } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
@@ -23,6 +23,7 @@ function Profile() {
   const [userRole, setUserRole] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentAvatar, setCurrentAvatar] = useState(getUserAvatarUrlSync());
 
   const form = useForm({
     defaultValues: {
@@ -82,6 +83,36 @@ function Profile() {
     }
   }, [userProfile, form]);
 
+  // Load avatar from backend on component mount
+  useEffect(() => {
+    const loadAvatarFromBackend = async () => {
+      try {
+        const avatarUrl = await refreshAvatarFromBackend();
+        setCurrentAvatar(avatarUrl);
+      } catch (error) {
+        console.warn('Failed to load avatar from backend:', error);
+        // Keep using localStorage fallback
+      }
+    };
+
+    loadAvatarFromBackend();
+  }, []);
+
+  // Listen for avatar changes and update the display
+  useEffect(() => {
+    const updateAvatar = () => {
+      setCurrentAvatar(getUserAvatarUrlSync());
+    };
+    
+    window.addEventListener("storage", updateAvatar);
+    window.addEventListener("user-avatar-updated", updateAvatar);
+    
+    return () => {
+      window.removeEventListener("storage", updateAvatar);
+      window.removeEventListener("user-avatar-updated", updateAvatar);
+    };
+  }, []);
+
   // Update user profile on submit
   const onSubmit = async (values) => {
     setIsUpdating(true);
@@ -138,24 +169,8 @@ function Profile() {
   };
 
   const handleAvatarClick = () => {
-    navigate('/avatar-picker?redirect=/profile');
+    navigate('/dashboard/avatar-picker?redirect=/dashboard/profile');
   };
-
-  useEffect(() => {
-    const updateAvatar = () => {
-      // This useEffect is no longer needed as avatarUrl is removed.
-      // Keeping it for now in case it's re-added or for future context.
-    };
-    
-    window.addEventListener("storage", updateAvatar);
-    window.addEventListener("user-avatar-updated", updateAvatar);
-    updateAvatar();
-    
-    return () => {
-      window.removeEventListener("storage", updateAvatar);
-      window.removeEventListener("user-avatar-updated", updateAvatar);
-    };
-  }, []);
 
   // Show loading state while user profile is being loaded
   if (isLoading) {
@@ -164,8 +179,10 @@ function Profile() {
         <div className="flex items-center gap-6">
           <div className="relative group">
             <Avatar className="w-24 h-24 border-4 border-primary/20">
-              <AvatarImage src="/default-avatar.png" alt="Profile avatar" />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-400 text-white">AJ</AvatarFallback>
+              <AvatarImage src={currentAvatar} alt="Profile avatar" />
+              <AvatarFallback className="bg-gradient-to-br from-primary to-purple-400 text-white">
+                {userProfile ? `${userProfile.first_name?.[0] || ''}${userProfile.last_name?.[0] || ''}`.toUpperCase() : 'U'}
+              </AvatarFallback>
             </Avatar>
           </div>
           <div className="flex flex-col gap-1 sm:gap-2">
@@ -190,19 +207,21 @@ function Profile() {
       <div className="flex items-center gap-6">
         <div className="relative group">
           <Avatar className="w-24 h-24 border-4 border-primary/20">
-            <AvatarImage src="/default-avatar.png" alt="Profile avatar" />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-400 text-white">AJ</AvatarFallback>
+            <AvatarImage src={currentAvatar} alt="Profile avatar" />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-purple-400 text-white">
+              {userProfile ? `${userProfile.first_name?.[0] || ''}${userProfile.last_name?.[0] || ''}`.toUpperCase() : 'U'}
+            </AvatarFallback>
           </Avatar>
           
-          {/* <Button 
+          <Button 
             size="icon"
             variant="secondary" 
-            className="absolute bottom-0 right-0 rounded-full w-8 h-8 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute bottom-0 right-0 rounded-full w-8 h-8 shadow-md opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-gray-50 border-2 border-primary/30"
             onClick={handleAvatarClick}
           >
-            <Camera size={15} />
+            <Camera size={15} className="text-primary" />
             <span className="sr-only">Change avatar</span>
-          </Button> */}
+          </Button>
         </div>
 
         <div className="flex flex-col gap-1 sm:gap-2">

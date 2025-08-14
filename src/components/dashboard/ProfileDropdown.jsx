@@ -11,26 +11,37 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Book, Library, GraduationCap } from "lucide-react";
-import { getUserAvatarUrl } from "@/lib/avatar-utils";
+import { getUserAvatarUrl, getUserAvatarUrlSync, refreshAvatarFromBackend, validateAvatarImage } from "@/lib/avatar-utils";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { fetchUserProfile, clearUserData } from "@/services/userService";
+import { fetchUserProfile, clearUserData, updateProfilePicture } from "@/services/userService";
 import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export function ProfileDropdown() {
-  const [userAvatar, setUserAvatar] = useState(getUserAvatarUrl());
-  const { userProfile } = useUser();
+  const [userAvatar, setUserAvatar] = useState(getUserAvatarUrlSync());
+  const { userProfile, setUserProfile } = useUser();
   const { logout: logoutAuth } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Load avatar from localStorage if available
-    setUserAvatar(getUserAvatarUrl());
+    // Load avatar from backend on component mount
+    const loadAvatarFromBackend = async () => {
+      try {
+        const avatarUrl = await refreshAvatarFromBackend();
+        setUserAvatar(avatarUrl);
+      } catch (error) {
+        console.warn('Failed to load avatar from backend:', error);
+        // Keep using localStorage fallback
+      }
+    };
+
+    loadAvatarFromBackend();
     
     // Set up event listener for avatar changes
     const handleAvatarChange = () => {
-      setUserAvatar(getUserAvatarUrl());
+      setUserAvatar(getUserAvatarUrlSync());
     };
     
     window.addEventListener("storage", handleAvatarChange);
@@ -53,6 +64,39 @@ export function ProfileDropdown() {
       console.error('Logout error:', error);
       // Even if there's an error, redirect to home
       window.location.href = '/';
+    }
+  };
+
+  const handlePictureUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const validation = validateAvatarImage(file);
+    if (!validation.valid) {
+      toast.error(validation.message);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('profilePicture', file);
+
+    try {
+      const result = await updateProfilePicture(formData);
+      if (result.success) {
+        const newImageUrl = result.data.imageUrl;
+        localStorage.setItem('userAvatar', newImageUrl);
+        window.dispatchEvent(new Event('user-avatar-updated'));
+        toast.success("Profile picture updated!")
+        if (setUserProfile) {
+            setUserProfile(prev => ({...prev, image: newImageUrl}));
+        }
+      } else {
+        console.error("Failed to upload profile picture:", result.message);
+        toast.error("Failed to upload profile picture.")
+      }
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      toast.error("Error uploading profile picture.")
     }
   };
   
@@ -95,6 +139,13 @@ export function ProfileDropdown() {
               <span className="transition-all duration-200">Profile</span>
             </Link>
           </DropdownMenuItem>
+          {/* <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="w-full cursor-pointer transition-colors duration-300 hover:text-primary hover:bg-primary/5 group/menu rounded-md"> */}
+            {/* <label htmlFor="profile-picture-upload" className="w-full cursor-pointer flex items-center"> */}
+              {/* <User className="mr-2 h-4 w-4 transition-all duration-300 group-hover/menu:text-primary group-hover/menu:scale-110" /> */}
+              {/* <span>Change Picture</span> */}
+            {/* </label> */}
+            {/* <input id="profile-picture-upload" type="file" accept="image/*" className="hidden" onChange={handlePictureUpload} /> */}
+          {/* </DropdownMenuItem> */}
         </DropdownMenuGroup>
         <DropdownMenuSeparator className="bg-primary/10" />
         <DropdownMenuItem 

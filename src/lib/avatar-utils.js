@@ -10,12 +10,118 @@ export const notifyAvatarChange = () => {
   window.dispatchEvent(new Event('user-avatar-updated'));
 };
 
+import { getAuthHeader } from '../services/authHeader';
+
 /**
- * Gets the user's current avatar URL
- * @returns The URL of the current avatar
+ * Updates the user's avatar on the backend
+ * @param {string} imageUrl - The new avatar URL
+ * @returns {Promise<Object>} The response from the backend
  */
-export const getUserAvatarUrl = () => {
+export const updateProfileAvatar = async (imageUrl) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/updateProfileAvatar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      credentials: 'include',
+      body: JSON.stringify({ imageUrl })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update avatar: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update localStorage with the new avatar URL
+      localStorage.setItem('userAvatar', imageUrl);
+      
+      // Update user profile in localStorage if available
+      const currentProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+      const updatedProfile = {
+        ...currentProfile,
+        image: imageUrl
+      };
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+      
+      // Notify other components about the avatar change
+      notifyAvatarChange();
+      
+      return result;
+    } else {
+      throw new Error(result.message || 'Failed to update avatar');
+    }
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gets the user's current avatar URL from backend or localStorage fallback
+ * @returns {Promise<string>} The URL of the current avatar
+ */
+export const getUserAvatarUrl = async () => {
+  try {
+    // First try to get from backend
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getProfileAvatar`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+      },
+      credentials: 'include', // Include cookies for authentication
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      
+      if (result.success && result.data.hasAvatar && result.data.imageUrl) {
+        // User has a custom avatar, save to localStorage and return
+        localStorage.setItem('userAvatar', result.data.imageUrl);
+        return result.data.imageUrl;
+      } else {
+        // User doesn't have a custom avatar, use default
+        const defaultAvatar = '/default-avatar.png';
+        localStorage.setItem('userAvatar', defaultAvatar);
+        return defaultAvatar;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to fetch avatar from backend, using localStorage fallback:', error);
+  }
+  
+  // Fallback to localStorage or default
   return localStorage.getItem('userAvatar') || '/default-avatar.png';
+};
+
+/**
+ * Gets the user's avatar URL synchronously (for immediate display)
+ * @returns {string} The URL of the current avatar
+ */
+export const getUserAvatarUrlSync = () => {
+  return localStorage.getItem('userAvatar') || '/default-avatar.png';
+};
+
+/**
+ * Updates the user's avatar URL in localStorage
+ * @param {string} avatarUrl - The new avatar URL
+ */
+export const setUserAvatarUrl = (avatarUrl) => {
+  localStorage.setItem('userAvatar', avatarUrl);
+  notifyAvatarChange();
+};
+
+/**
+ * Fetches and updates the avatar from backend
+ * @returns {Promise<string>} The updated avatar URL
+ */
+export const refreshAvatarFromBackend = async () => {
+  const avatarUrl = await getUserAvatarUrl();
+  setUserAvatarUrl(avatarUrl);
+  return avatarUrl;
 };
 
 /**

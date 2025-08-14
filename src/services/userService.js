@@ -79,6 +79,8 @@ export function clearUserData() {
   window.dispatchEvent(new Event('userRoleChanged'));
 }
 
+import { getAuthHeader } from './authHeader';
+
 export async function fetchUserProfile() {
   try {
     const token = localStorage.getItem('authToken');
@@ -177,7 +179,11 @@ export async function fetchUserCoursesByUserId(userId) {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json',
+        ...getAuthHeader()
+      },
       credentials: 'include',
       body: JSON.stringify({ userId }),
     });
@@ -196,6 +202,62 @@ export async function fetchUserCoursesByUserId(userId) {
     throw error;
   }
 }
+
+export async function updateProfilePicture(formData) {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/updateProfilePictureS3`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeader(),
+      },
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to update profile picture: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("❌ userService: Update profile picture error:", error);
+    throw error;
+  }
+}
+
+export async function fetchDetailedUserProfile(userId) {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/instructor/getUserAllData`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId: userId
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success && data.code === 200) {
+      return data.data;
+    } else {
+      throw new Error(data.message || 'Failed to fetch user profile');
+    }
+  } catch (error) {
+    console.error('Error fetching detailed user profile:', error);
+    throw error;
+  }
+}
+
 
 export async function logoutUser() {
   try {

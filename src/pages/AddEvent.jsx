@@ -467,6 +467,7 @@ const AddEvent = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          "X-User-Role": getUserRole(), // Add role in header as well
           ...getAuthHeader(),
         },
         credentials: "include"
@@ -496,6 +497,7 @@ const AddEvent = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-User-Role": getUserRole(),
           ...getAuthHeader(),
         },
         credentials: "include",
@@ -522,6 +524,7 @@ const AddEvent = () => {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
+          "X-User-Role": getUserRole(),
           ...getAuthHeader(),
         },
         credentials: "include"
@@ -548,6 +551,7 @@ const AddEvent = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            "X-User-Role": getUserRole(),
             ...getAuthHeader(),
           },
           credentials: "include",
@@ -700,6 +704,7 @@ const AddEvent = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+          
             ...getAuthHeader(),
             "X-User-Role": currentRole, // If your backend still requires this header, keep it
           },

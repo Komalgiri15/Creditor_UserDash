@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAuthHeader } from './authHeader';
+// import { getAuthHeader } from './authHeader';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -70,21 +71,6 @@ export const addReplyToTicket = async (ticketId, replyData) => {
   }
 };
 
-// Update ticket status (admin only)
-export const updateTicketStatus = async (ticketId, status) => {
-  return axios.patch(
-    joinUrl(baseUrl, `api/support-tickets/status/${ticketId}`),
-    { status },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader(),
-      },
-      withCredentials: true
-    }
-  );
-};
-
 // Fetch user's own tickets
 export const getUserTickets = async () => {
   return axios.get(
@@ -110,3 +96,31 @@ export const getTicketById = async (ticketId) => {
     }
   );
 };
+
+// Update ticket status
+export const updateTicketStatus = async (ticketId, status) => {
+  return axios.patch(
+    joinUrl(baseUrl, `api/support-tickets/${ticketId}/status`),
+    { status },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      withCredentials: true
+    }
+  );
+};
+
+// Example usage in a fetch call:
+export async function someApiFunction() {
+  const response = await fetch(`${API_BASE}/api/someEndpoint`, {
+    method: 'GET', // or 'POST', etc.
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(),
+    },
+    credentials: 'include',
+  });
+  // ...existing code...
+}
