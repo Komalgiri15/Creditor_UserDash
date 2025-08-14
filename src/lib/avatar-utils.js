@@ -10,6 +10,8 @@ export const notifyAvatarChange = () => {
   window.dispatchEvent(new Event('user-avatar-updated'));
 };
 
+import { getAuthHeader } from '../services/authHeader';
+
 /**
  * Updates the user's avatar on the backend
  * @param {string} imageUrl - The new avatar URL
@@ -21,6 +23,7 @@ export const updateProfileAvatar = async (imageUrl) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeader(),
       },
       credentials: 'include',
       body: JSON.stringify({ imageUrl })
@@ -66,6 +69,9 @@ export const getUserAvatarUrl = async () => {
     // First try to get from backend
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getProfileAvatar`, {
       method: 'GET',
+      headers: {
+        ...getAuthHeader(),
+      },
       credentials: 'include', // Include cookies for authentication
     });
     

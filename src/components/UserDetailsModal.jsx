@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { fetchUserCoursesByUserId } from "@/services/userService";
 
-const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
+const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false, error }) => {
   const [courses, setCourses] = React.useState([]);
   const [loadingCourses, setLoadingCourses] = React.useState(false);
   const [coursesError, setCoursesError] = React.useState(null);
@@ -71,7 +71,29 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              User Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-8">
+            {error ? (
+              <div className="p-4 bg-red-50 border border-red-200 rounded">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">No user data to display.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   // Helper function to get user role from user_roles array
   const getUserRole = (user) => {
@@ -178,6 +200,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
 
   const userRole = getUserRole(user);
   const lastVisited = getLastVisited(user);
+  const lastActiveLabel = user.last_login ? formatDate(user.last_login) : (lastVisited || 'Never');
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -239,6 +262,28 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                   </div>
                 )}
 
+                {user.dob && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Date of Birth:</span>
+                    <span className="text-sm font-medium">
+                      {new Date(user.dob).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {user.gender && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Gender:</span>
+                    <span className="text-sm font-medium capitalize">{user.gender}</span>
+                  </div>
+                )}
+
                 {user.website && (
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-gray-500" />
@@ -252,6 +297,40 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                       {user.website}
                     </a>
                   </div>
+                )}
+
+                {/* Social Handles */}
+                {user.social_handles && (
+                  <>
+                    {user.social_handles.instagram && (
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Instagram:</span>
+                        <a 
+                          href={user.social_handles.instagram} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 hover:underline"
+                        >
+                          {user.social_handles.instagram}
+                        </a>
+                      </div>
+                    )}
+                    {user.social_handles.facebook && (
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">Facebook:</span>
+                        <a 
+                          href={user.social_handles.facebook} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-blue-600 hover:underline"
+                        >
+                          {user.social_handles.facebook}
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </CardContent>
@@ -271,7 +350,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-gray-600">Joined:</span>
                   <span className="text-sm font-medium">
-                    {formatDate(user.createdAt)}
+                    {formatDate(user.created_at)}
                   </span>
                 </div>
 
@@ -279,15 +358,15 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                   <Clock className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-gray-600">Last Active:</span>
                   <span className="text-sm font-medium">
-                    {lastVisited || 'Never'}
+                    {lastActiveLabel}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Activity className="h-4 w-4 text-gray-500" />
                   <span className="text-sm text-gray-600">Status:</span>
-                  <Badge variant={user.is_active ? "default" : "secondary"}>
-                    {user.is_active ? 'Active' : 'Inactive'}
+                  <Badge variant="default">
+                    Active
                   </Badge>
                 </div>
 
@@ -298,6 +377,14 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                     <span className="text-sm font-medium">
                       {formatDate(user.last_login)}
                     </span>
+                  </div>
+                )}
+
+                {user.timezone && (
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">Timezone:</span>
+                    <span className="text-sm font-medium">{user.timezone}</span>
                   </div>
                 )}
               </div>
@@ -352,18 +439,10 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
               <CardContent>
                 <div className="space-y-3 max-h-40 overflow-y-auto">
                   {courses.map((course, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {course.title}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {course.description}
-                        </p>
-                      </div>
-                      <Badge variant="outline">
-                        {course.status}
-                      </Badge>
+                    <div key={course.id || index} className="p-2 bg-gray-50 rounded-lg">
+                      <p className="text-sm font-medium text-gray-900">
+                        {course.title}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -371,7 +450,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
             </Card>
           )}
           {/* Payment Status Section */}
-          {(user.payments || user.subscriptions || true) && (
+          {(Array.isArray(user?.payments) && user.payments.length > 0) || (Array.isArray(user?.subscriptions) && user.subscriptions.length > 0) ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -467,7 +546,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
           {/* Activity Information */}
           {user.activity_log && user.activity_log.length > 0 && (
             <Card>
@@ -564,7 +643,7 @@ const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
                 </div>
                 <div>
                   <span className="text-gray-600">Updated:</span>
-                  <span className="ml-2">{formatDate(user.updatedAt)}</span>
+                  <span className="ml-2">{formatDate(user.updated_at)}</span>
                 </div>
                 {user.email_verified && (
                   <div>

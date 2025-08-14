@@ -22,11 +22,11 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-9upi.onrender.com'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://sharebackend-sdkp.onrender.com'),
   },
 }));
 
-// https://creditor-backend-testing-branch.onrender.com
+// https://sharebackend-sdkp.onrender.com
 // https://creditor-backend-1-iijy.onrender.com
 // https://creditor-backend-9upi.onrender.com
 

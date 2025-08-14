@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, ChevronLeft, Upload, Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateProfileAvatar, getUserAvatarUrl, notifyAvatarChange } from "@/lib/avatar-utils";
+import { updateProfileAvatar, getUserAvatarUrl, notifyAvatarChange, validateAvatarImage } from "@/lib/avatar-utils";
+import { updateProfilePicture } from "@/services/userService";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -104,6 +105,8 @@ function AvatarPickerPage() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [saving, setSaving] = useState(false);
   
   useEffect(() => {
     // Reset loading state when component mounts
@@ -141,16 +144,9 @@ function AvatarPickerPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      toast.error("File must be an image");
-      return;
-    }
-    
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error("Image must be smaller than 5MB");
+    const validation = validateAvatarImage(file);
+    if (!validation.valid) {
+      toast.error(validation.message);
       return;
     }
 
@@ -160,6 +156,7 @@ function AvatarPickerPage() {
       setCustomImage(result);
       setSelectedAvatar(result);
       setActiveTab("photo");
+      setUploadedImage(result);
     };
     reader.readAsDataURL(file);
   };
@@ -208,6 +205,7 @@ function AvatarPickerPage() {
         
         setCustomImage(imageData);
         setSelectedAvatar(imageData);
+        setUploadedImage(imageData);
         stopCamera();
         toast.success("Photo captured successfully!");
       }
@@ -246,34 +244,64 @@ function AvatarPickerPage() {
   const handleUsePhoto = () => {
     setCustomImage(capturedPhoto);
     setSelectedAvatar(capturedPhoto);
+    setUploadedImage(capturedPhoto);
     setShowCameraModal(false);
     toast.success("Photo captured successfully!");
   };
 
   const handleSaveAvatar = async () => {
-    if (!selectedAvatar) {
-      toast.error("Please select an avatar first");
-      return;
-    }
-
-    setIsUpdating(true);
+    setSaving(true);
     try {
-      // Update avatar on backend
-      const result = await updateProfileAvatar(selectedAvatar);
-      
-      if (result.success) {
+      let result;
+      let newImageUrl;
+
+      if (uploadedImage) {
+        // Handle custom uploaded image (from file upload or camera)
+        const res = await fetch(uploadedImage);
+        const blob = await res.blob();
+        const file = new File([blob], "profile-picture.png", { type: blob.type });
+
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        
+        result = await updateProfilePicture(formData);
+        if (result.success) {
+          newImageUrl = result.data.imageUrl;
+        }
+      } else if (selectedAvatar) {
+        // Handle pre-made avatar selection
+        result = await updateProfileAvatar(selectedAvatar);
+        if (result.success) {
+          newImageUrl = selectedAvatar;
+        }
+      } else {
+        toast.warning("Please select or upload an avatar.");
+        setSaving(false);
+        return;
+      }
+
+      if (result.success && newImageUrl) {
         toast.success("Avatar updated successfully!");
         
-        // Navigate back to the redirect URL
-        navigate(redirectTo);
+        // Update localStorage and notify components
+        localStorage.setItem('userAvatar', newImageUrl);
+        notifyAvatarChange();
+
+        // Navigate back
+        if (searchParams.get("source")) {
+          navigate(searchParams.get("source"));
+        } else {
+          navigate("/dashboard/profile");
+        }
       } else {
-        toast.error(result.message || "Failed to update avatar");
+        throw new Error(result.message || "An unknown error occurred.");
       }
+
     } catch (error) {
-      console.error('Error updating avatar:', error);
-      toast.error("Failed to update avatar. Please try again.");
+      console.error("Error updating avatar:", error);
+      toast.error(`Failed to update avatar: ${error.message}`);
     } finally {
-      setIsUpdating(false);
+      setSaving(false);
     }
   };
 

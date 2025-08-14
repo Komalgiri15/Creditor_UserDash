@@ -7,8 +7,10 @@ import ProfileDropdown from "./ProfileDropdown";
 import NotificationModal from "./NotificationModal";
 import InboxModal from "./InboxModal";
 import CalendarModal from "./CalendarModal";
+import UserDetailsModal from "@/components/UserDetailsModal";
 import { search } from "@/services/searchService";
 import { fetchUserCourses } from "@/services/courseService";
+import { fetchDetailedUserProfile } from "@/services/userService";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function DashboardHeader() {
@@ -26,6 +28,10 @@ export function DashboardHeader() {
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [unreadNotifications, setUnreadNotifications] = useState(2); // Default count
   const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
+  const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetailsLoading, setUserDetailsLoading] = useState(false);
+  const [userDetailsError, setUserDetailsError] = useState(null);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -161,12 +167,24 @@ export function DashboardHeader() {
     }
   };
 
-  const handleUserClick = (userId) => {
+  const handleUserClick = async (userId) => {
     // Only instructors/admins can access user profiles
     if (isInstructorOrAdmin()) {
       setShowDropdown(false);
       setSearchQuery("");
-      navigate(`/dashboard/manage-users?userId=${userId}`);
+      setUserDetailsError(null);
+      setUserDetailsLoading(true);
+      setShowUserDetailsModal(true);
+      
+      try {
+        const userData = await fetchDetailedUserProfile(userId);
+        setSelectedUser(userData);
+      } catch (error) {
+        console.error('Failed to fetch user details:', error);
+        setUserDetailsError(error?.message || 'Failed to fetch user details');
+      } finally {
+        setUserDetailsLoading(false);
+      }
     }
   };
 
@@ -405,6 +423,18 @@ export function DashboardHeader() {
         <InboxModal 
           open={inboxModalOpen} 
           onOpenChange={setInboxModalOpen} 
+        />
+        
+        {/* User Details Modal */}
+        <UserDetailsModal
+          isOpen={showUserDetailsModal}
+          onClose={() => {
+            setShowUserDetailsModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          isLoading={userDetailsLoading}
+          error={userDetailsError}
         />
       </header>
 
