@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
@@ -58,6 +58,8 @@ const ManageUsers = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(5);
+  // Sorting state
+  const [sortOption, setSortOption] = useState("alpha_asc");
 
   useEffect(() => {
     fetchUsers();
@@ -316,6 +318,29 @@ const ManageUsers = () => {
     }
   };
 
+  // Helper to get last visited timestamp (ms) for sorting
+  const getLastVisitedTimestamp = (user) => {
+    if (user?.activity_log && user.activity_log.length > 0) {
+      const latest = user.activity_log.reduce((latestLog, log) => {
+        const t = new Date(log.createdAt || log.created_at || log.timestamp || log.time).getTime();
+        return t > latestLog ? t : latestLog;
+      }, 0);
+      return latest || null;
+    }
+    return null;
+  };
+
+  // Helper to get createdAt timestamp (ms) for sorting "just added"
+  const getCreatedAtTimestamp = (user) => {
+    const created = user?.createdAt || user?.created_at || user?.created_on || user?.createdDate;
+    if (!created) return null;
+    const t = new Date(created).getTime();
+    return isNaN(t) ? null : t;
+  };
+
+  // Helper to get full name for alphabetical sorting
+  const getFullName = (user) => `${user.first_name || ""} ${user.last_name || ""}`.trim().toLowerCase();
+
   // Helper function to get last visited from activity_log
   const getLastVisited = (user) => {
     if (user.activity_log && user.activity_log.length > 0) {
@@ -354,16 +379,52 @@ const ManageUsers = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Sort users based on selected option (applied after filter, before pagination)
+  const sortedUsers = useMemo(() => {
+    const arr = [...filteredUsers];
+    switch (sortOption) {
+      case "alpha_asc":
+        arr.sort((a, b) => getFullName(a).localeCompare(getFullName(b)));
+        break;
+      case "alpha_desc":
+        arr.sort((a, b) => getFullName(b).localeCompare(getFullName(a)));
+        break;
+      case "never_visited":
+        arr.sort((a, b) => {
+          const aVisited = getLastVisitedTimestamp(a);
+          const bVisited = getLastVisitedTimestamp(b);
+          if (aVisited === null && bVisited !== null) return -1;
+          if (aVisited !== null && bVisited === null) return 1;
+          // fallback alphabetical
+          return getFullName(a).localeCompare(getFullName(b));
+        });
+        break;
+      case "just_added":
+        arr.sort((a, b) => {
+          const aCreated = getCreatedAtTimestamp(a);
+          const bCreated = getCreatedAtTimestamp(b);
+          if (aCreated === null && bCreated === null) return 0;
+          if (aCreated === null) return 1;
+          if (bCreated === null) return -1;
+          return bCreated - aCreated; // newest first
+        });
+        break;
+      default:
+        break;
+    }
+    return arr;
+  }, [filteredUsers, sortOption]);
+
   // Pagination logic
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const currentUsers = sortedUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(sortedUsers.length / usersPerPage);
 
   // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterRole]);
+  }, [searchTerm, filterRole, sortOption]);
 
   // Modified handleSelectAll to accumulate selections across pages
   const handleSelectAll = () => {
@@ -1384,6 +1445,18 @@ const ManageUsers = () => {
             >
               Admin
             </button>
+            {/* Sort dropdown */}
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Sort users"
+            >
+              <option value="alpha_asc">Alphabetical (A → Z)</option>
+              <option value="alpha_desc">Alphabetical (Z → A)</option>
+              <option value="never_visited">Never Visited (Top)</option>
+              <option value="just_added">Just Added (Newest)</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1451,7 +1524,7 @@ const ManageUsers = () => {
                   </button> */}
                 </div>
               )}
-              {filterRole === "admin" && (
+              {/* {filterRole === "admin" && (
                 <button
                   onClick={handleMakeUser}
                   disabled={updatingRole}
@@ -1463,7 +1536,7 @@ const ManageUsers = () => {
                   </svg>
                   {updatingRole ? 'Updating...' : 'Make User'}
                 </button>
-              )}
+              )} */}
               <button
                 onClick={() => setShowPasswordModal(true)}
                 className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"

@@ -366,11 +366,11 @@ const CatelogCourses = () => {
                       />
                       
                       {/* Course Level and Price Badges */}
-                      <div className="absolute bottom-3 left-3 flex gap-2">
+                      {/* <div className="absolute bottom-3 left-3 flex gap-2">
                         <Badge key={`${course.id}-level`} variant="secondary" className="bg-white/95 backdrop-blur-sm text-gray-800 shadow-lg border border-gray-200 font-medium">
                           {formatCourseLevel(course.course_level || course.level || course.difficulty)}
                         </Badge>
-                      </div>
+                      </div> */}
                       
                       {/* Category Badge */}
                       {course.category && (
@@ -443,7 +443,7 @@ const CatelogCourses = () => {
                         </div>
                         
                         {/* Course Status */}
-                        {course.course_status && (
+                        {/* {course.course_status && (
                           <div className="text-xs text-gray-500 mb-3">
                             <span className="font-medium">Status:</span> 
                             <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -454,7 +454,7 @@ const CatelogCourses = () => {
                               {course.course_status}
                             </span>
                           </div>
-                        )}
+                        )} */}
                         
                         {/* Max Students */}
                         {course.maxStudents && (
@@ -486,10 +486,8 @@ const CatelogCourses = () => {
                      </div>
                    </div>
                  );
-                 return isAccessible ? (
-                   <Link to={`/dashboard/courses/${course.id}`} key={course.id || idx} className="relative">{cardContent}</Link>
-                 ) : (
-                   <div key={course.id || idx} className="relative">{cardContent}</div>
+                 return (
+                   <Link to={`/dashboard/courses/${course.id}`} state={{ isAccessible }} key={course.id || idx} className="relative">{cardContent}</Link>
                  );
                })}
              </div>
