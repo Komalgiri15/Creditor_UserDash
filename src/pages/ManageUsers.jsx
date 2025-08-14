@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import UserDetailsModal from "@/components/UserDetailsModal";
 import { getAuthHeader } from "../services/authHeader";
 
@@ -8,6 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-
 
 const ManageUsers = () => {
   const { userRole, hasRole } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,6 +53,7 @@ const ManageUsers = () => {
   // User details modal state
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -60,6 +63,102 @@ const ManageUsers = () => {
     fetchUsers();
     fetchCourses();
   }, []);
+
+  // Handle userId from search navigation
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    console.log('🔍 Search navigation - userId:', userId);
+    console.log('🔍 Search navigation - users.length:', users.length);
+    
+    if (userId && users.length > 0) {
+      const user = users.find(u => u.id === userId);
+      console.log('🔍 Search navigation - found user:', user);
+      
+      if (user) {
+        // Fetch detailed user profile data before opening modal
+        fetchDetailedUserProfile(userId);
+        // Clear the query parameter after processing
+        setSearchParams({});
+      } else {
+        console.warn('⚠️ Search navigation - User not found in users array');
+        // Try to refresh users list to see if the user appears
+        console.log('🔄 Refreshing users list to find the user...');
+        fetchUsers();
+      }
+    } else if (userId && users.length === 0) {
+      console.log('🔍 Search navigation - Waiting for users to load...');
+    }
+  }, [searchParams, users, setSearchParams]);
+
+  // Handle case where user might be found after users list is refreshed
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    if (userId && users.length > 0 && !showUserDetailsModal) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        console.log('🔍 User found after refresh, opening modal...');
+        fetchDetailedUserProfile(userId);
+        setSearchParams({});
+      }
+    }
+  }, [users, searchParams, showUserDetailsModal, setSearchParams]);
+
+  // Function to fetch detailed user profile and open modal
+  const fetchDetailedUserProfile = async (userId) => {
+    try {
+      setLoadingUserDetails(true);
+      console.log('🔍 Searching for user with ID:', userId);
+      console.log('🔍 Available users:', users);
+      console.log('🔍 User IDs in users array:', users.map(u => u.id));
+      
+      // Since the users array from /api/user/all should already contain detailed data,
+      // we can use that directly. If we need to refresh the data, we can do so here.
+      const user = users.find(u => u.id === userId);
+      console.log('🔍 Found user:', user);
+      
+      if (user) {
+        console.log('🔍 User data for modal:', {
+          id: user.id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          phone: user.phone,
+          location: user.location,
+          website: user.website,
+          createdAt: user.createdAt,
+          is_active: user.is_active,
+          last_login: user.last_login,
+          activity_log: user.activity_log
+        });
+        setSelectedUserForDetails(user);
+        setShowUserDetailsModal(true);
+      } else {
+        console.warn('⚠️ User not found in users array, userId:', userId);
+        // If user is not found, we might need to refresh the users list
+        // or the user ID from search might not match the user ID from /api/user/all
+      }
+    } catch (error) {
+      console.error('❌ Error processing user profile:', error);
+      // Fallback to basic user data if processing fails
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        setSelectedUserForDetails(user);
+        setShowUserDetailsModal(true);
+      }
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
+  // Function to close user details modal and clear search params
+  const handleCloseUserDetailsModal = () => {
+    setShowUserDetailsModal(false);
+    setSelectedUserForDetails(null);
+    // Clear any remaining search params
+    if (searchParams.get('userId')) {
+      setSearchParams({});
+    }
+  };
 
   // Update time differences every minute to keep them current
   useEffect(() => {
@@ -2014,11 +2113,9 @@ const ManageUsers = () => {
       {/* User Details Modal */}
       <UserDetailsModal
         isOpen={showUserDetailsModal}
-        onClose={() => {
-          setShowUserDetailsModal(false);
-          setSelectedUserForDetails(null);
-        }}
+        onClose={handleCloseUserDetailsModal}
         user={selectedUserForDetails}
+        isLoading={loadingUserDetails}
       />
     </div>
   );

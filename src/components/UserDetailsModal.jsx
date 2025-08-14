@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { fetchUserCoursesByUserId } from "@/services/userService";
 
-const UserDetailsModal = ({ isOpen, onClose, user }) => {
+const UserDetailsModal = ({ isOpen, onClose, user, isLoading = false }) => {
   const [courses, setCourses] = React.useState([]);
   const [loadingCourses, setLoadingCourses] = React.useState(false);
   const [coursesError, setCoursesError] = React.useState(null);
@@ -49,6 +49,27 @@ const UserDetailsModal = ({ isOpen, onClose, user }) => {
       setLoadingCourses(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              User Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading user details...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!user) return null;
 

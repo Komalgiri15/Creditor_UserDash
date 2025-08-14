@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, ChevronLeft, Upload, Camera, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getUserAvatarUrl, notifyAvatarChange } from "@/lib/avatar-utils";
+import { updateProfileAvatar, getUserAvatarUrl, notifyAvatarChange } from "@/lib/avatar-utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -103,6 +103,7 @@ function AvatarPickerPage() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   useEffect(() => {
     // Reset loading state when component mounts
@@ -249,13 +250,31 @@ function AvatarPickerPage() {
     toast.success("Photo captured successfully!");
   };
 
-  const handleSaveAvatar = () => {
-    // Save to localStorage to persist across sessions
-    localStorage.setItem("userAvatar", selectedAvatar);
-    
-    notifyAvatarChange();
-    toast.success("Avatar updated successfully");
-    navigate(redirectTo);
+  const handleSaveAvatar = async () => {
+    if (!selectedAvatar) {
+      toast.error("Please select an avatar first");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      // Update avatar on backend
+      const result = await updateProfileAvatar(selectedAvatar);
+      
+      if (result.success) {
+        toast.success("Avatar updated successfully!");
+        
+        // Navigate back to the redirect URL
+        navigate(redirectTo);
+      } else {
+        toast.error(result.message || "Failed to update avatar");
+      }
+    } catch (error) {
+      console.error('Error updating avatar:', error);
+      toast.error("Failed to update avatar. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleCancel = () => {
