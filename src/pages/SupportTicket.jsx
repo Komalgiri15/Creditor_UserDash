@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import Cookies from "js-cookie";
+import { getAuthHeader } from "@/services/authHeader";
 import axios from "axios";
 import { createTicket } from "@/services/ticketService";
 
@@ -85,7 +85,7 @@ function SupportTicket() {
         }
       }
 
-      const response = await createTicket(formDataToSend);
+      const response = await createTicket(formDataToSend, getAuthHeader());
       
       // Extract ticket ID from response if available
       if (response?.data?.data?.id) {
