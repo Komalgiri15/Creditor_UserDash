@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserRole, getUserRoles, setUserRole as setUserRoleUtil, setUserRoles as setUserRolesUtil, setSingleRole, clearUserData, isInstructorOrAdmin as checkInstructorOrAdmin, logoutUser } from '@/services/userService';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getUserRole, getUserRoles, setUserRole as setUserRoleUtil, setUserRoles as setUserRolesUtil, clearUserData, isInstructorOrAdmin as checkInstructorOrAdmin, logoutUser } from '@/services/userService';
+import { setupTokenRefresh, clearTokenRefresh, saveLoginTime, isAuthenticated } from '@/services/tokenService';
+import Cookies from 'js-cookie';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -15,116 +18,103 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRoleState] = useState('user');
   const [userRoles, setUserRolesState] = useState(['user']);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Check for token on initial load
-    return !!localStorage.getItem('token');
-  });
+  const [isAuth, setIsAuth] = useState(false);
 
   useEffect(() => {
-    // Initialize user roles on mount
-    const role = getUserRole();
-    const roles = getUserRoles();
-    const hasToken = !!localStorage.getItem('token');
-    
-    setUserRoleState(role);
-    setUserRolesState(roles);
-    setIsAuthenticated(hasToken);
-    setIsLoading(false);
-
-    // Listen for role changes
-    const handleRoleChange = () => {
-      const newRole = getUserRole();
-      const newRoles = getUserRoles();
-      setUserRoleState(newRole);
-      setUserRolesState(newRoles);
+    const checkAuth = async () => {
+      const authStatus = isAuthenticated();
+      setIsAuth(authStatus);
+      
+      if (authStatus) {
+        const role = getUserRole();
+        const roles = getUserRoles();
+        setUserRoleState(role);
+        setUserRolesState(roles);
+        
+        setupTokenRefresh(
+          () => {
+            console.log('Token refresh successful');
+          },
+          (error) => {
+            console.error('Token refresh failed:', error);
+            logout();
+          }
+        );
+      }
+      
+      setIsLoading(false);
     };
-
-    window.addEventListener('userRoleChanged', handleRoleChange);
-
+    
+    checkAuth();
+    
     return () => {
-      window.removeEventListener('userRoleChanged', handleRoleChange);
+      clearTokenRefresh();
     };
   }, []);
 
-  const setUserRole = (role) => {
-    setUserRoleUtil(role);
-    setUserRoleState(role);
-  };
-
-  const setUserRoles = (roles) => {
-    setUserRolesUtil(roles);
-    setUserRolesState(roles);
-    // Update primary role as well
-    if (Array.isArray(roles) && roles.length > 0) {
-      setUserRoleState(roles[0]);
-    }
-  };
-
-  const setSingleRole = (role) => {
-    setSingleRole(role);
-    setUserRoleState(role);
-    setUserRolesState([role]);
-  };
-
-  const setAuth = (token) => {
+  const setAuth = useCallback((token) => {
     if (token) {
       localStorage.setItem('token', token);
-      setIsAuthenticated(true);
+      saveLoginTime();
+      setIsAuth(true);
     } else {
+      clearTokenRefresh();
       localStorage.removeItem('token');
-      setIsAuthenticated(false);
+      setIsAuth(false);
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const login = useCallback(async (credentials) => {
     try {
-      // Call the logout API
+      const response = await axios.post('https://creditor-backend-1-iijy.onrender.com/api/auth/login', credentials, {
+        withCredentials: true
+      });
+      
+      if (response.data.accessToken) {
+        setAuth(response.data.accessToken);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
+  }, [setAuth]);
+
+  const logout = useCallback(async () => {
+    try {
       await logoutUser();
     } catch (error) {
       console.error('Logout error:', error);
-      // Continue with local logout even if API call fails
     } finally {
-      // Clear all local data
       clearUserData();
+      clearTokenRefresh();
       localStorage.removeItem('token');
       localStorage.removeItem('userId');
       Cookies.remove('token');
       Cookies.remove('userId');
       
-      // Reset state
       setUserRoleState('user');
       setUserRolesState(['user']);
-      setIsAuthenticated(false);
+      setIsAuth(false);
       
-      // Notify other components
       window.dispatchEvent(new Event('userRoleChanged'));
       window.dispatchEvent(new CustomEvent('userLoggedOut'));
       
-      // Force a hard redirect to login page to ensure all state is cleared
       window.location.href = '/login';
     }
-  };
-
-  const isInstructorOrAdmin = () => {
-    return checkInstructorOrAdmin();
-  };
-
-  const hasRole = (roleToCheck) => {
-    return userRoles.includes(roleToCheck);
-  };
+  }, []);
 
   const value = {
     userRole,
     userRoles,
-    isAuthenticated,
+    isAuthenticated: isAuth,
     isLoading,
-    setUserRole,
-    setUserRoles,
-    setSingleRole,
-    setAuth,
+    login,
     logout,
-    isInstructorOrAdmin,
-    hasRole
+    setAuth,
+    isInstructorOrAdmin: checkInstructorOrAdmin,
+    hasRole: (role) => userRoles.includes(role)
   };
 
   return (
@@ -132,4 +122,4 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-}; 
+};
