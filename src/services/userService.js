@@ -196,3 +196,27 @@ export async function fetchUserCoursesByUserId(userId) {
     throw error;
   }
 }
+
+export async function logoutUser() {
+  try {
+    const response = await fetch('https://creditor-backend-1-iijy.onrender.com/api/auth/logout', {
+      method: 'GET',
+      credentials: 'include', // Important for sending cookies
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to logout');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Even if the API call fails, we should still clear local data
+    return false;
+  }
+}

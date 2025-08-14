@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSearchParams } from "react-router-dom";
 import UserDetailsModal from "@/components/UserDetailsModal";
+import { getAuthHeader } from "../services/authHeader";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
@@ -28,6 +29,19 @@ const ManageUsers = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState({ courseTitle: "", addedUsers: [] });
+  
+  // Password change modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccessData, setPasswordSuccessData] = useState({ 
+    changedUsers: [], 
+    newPassword: "", 
+    failedUpdates: [] 
+  });
+  const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [updatingRole, setUpdatingRole] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,19 +54,6 @@ const ManageUsers = () => {
   const [showUserDetailsModal, setShowUserDetailsModal] = useState(false);
   const [selectedUserForDetails, setSelectedUserForDetails] = useState(null);
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
-  
-  // Password change modal state
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [passwordSuccessData, setPasswordSuccessData] = useState({ 
-    changedUsers: [], 
-    newPassword: "", 
-    failedUpdates: [] 
-  });
-  const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -1137,95 +1138,6 @@ const ManageUsers = () => {
     // console.log('📋 Selected users for additional courses:', selectedUsers);
   };
 
-  const handleChangePassword = async () => {
-    // Validate password fields
-    if (!newPassword || !confirmPassword) {
-      setPasswordError("Both password fields are required.");
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
-      return;
-    }
-    
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters long.");
-      return;
-    }
-    
-    try {
-      setChangingPassword(true);
-      setPasswordError("");
-      
-      // Get the selected users data
-      const selectedUsersData = users.filter(user => selectedUsers.includes(user.id));
-      
-      // Call the backend API to reset passwords for each selected user
-      const passwordUpdatePromises = selectedUsersData.map(async (user) => {
-        try {
-          const response = await axios.post(`${API_BASE}/api/auth/reset-password`, {
-            email: user.email,
-            password: newPassword
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            withCredentials: true,
-          });
-          
-          if (response.data && response.data.message === "Password updated successfully") {
-            return { user, success: true };
-          } else {
-            return { user, success: false, error: response.data?.message || 'Unknown error' };
-          }
-        } catch (error) {
-          console.error(`Error updating password for ${user.email}:`, error);
-          return { 
-            user, 
-            success: false, 
-            error: error.response?.data?.message || error.message || 'API call failed' 
-          };
-        }
-      });
-      
-      // Wait for all password updates to complete
-      const results = await Promise.all(passwordUpdatePromises);
-      const successfulUpdates = results.filter(result => result.success);
-      const failedUpdates = results.filter(result => !result.success);
-      
-      // Set success data
-      setPasswordSuccessData({
-        changedUsers: successfulUpdates.map(result => result.user),
-        newPassword: newPassword,
-        failedUpdates: failedUpdates
-      });
-      
-      // Show success modal
-      setShowPasswordSuccessModal(true);
-      
-      // Close password modal and reset fields
-      setShowPasswordModal(false);
-      setNewPassword("");
-      setConfirmPassword("");
-      setSelectedUsers([]);
-      
-      // Log results for debugging
-      if (successfulUpdates.length > 0) {
-        console.log('✅ Successfully updated passwords for:', successfulUpdates.map(r => r.user.email));
-      }
-      if (failedUpdates.length > 0) {
-        console.log('❌ Failed to update passwords for:', failedUpdates.map(r => ({ email: r.user.email, error: r.error })));
-      }
-      
-    } catch (error) {
-      console.error('Error in password change process:', error);
-      setPasswordError('Failed to change password. Please try again.');
-    } finally {
-      setChangingPassword(false);
-    }
-  };
-
   // Function to manually check course users
   const checkCourseUsers = async (courseId) => {
     try {
@@ -1257,6 +1169,102 @@ const ManageUsers = () => {
     } catch (error) {
       console.error('❌ Error checking course users:', error);
       alert(`Error checking course users: ${error.message}`);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match. Please try again.');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      setPasswordError("");
+      
+      // console.log('🔄 Changing password API call:', {
+      //   url: `${API_BASE}/api/user/change-password`,
+      //   payload: { user_ids: selectedUsers, new_password: newPassword },
+      //   selectedUsers
+      // });
+      
+      // Make API call to change password for users
+      const response = await axios.post(
+        `${API_BASE}/api/user/change-password`,
+        { user_ids: selectedUsers, new_password: newPassword },
+        getAuthConfig()
+      );
+
+      if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
+        // console.log('✅ Password changed successfully');
+        
+        // Get the selected users data
+        const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+        
+        // Set success data and show success modal
+        setPasswordSuccessData({
+          changedUsers: updatedUsers,
+          newPassword: newPassword,
+          failedUpdates: []
+        });
+        setShowPasswordSuccessModal(true);
+        
+        // Close password change modal and reset
+        setShowPasswordModal(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        
+        // Send email to users with new password information
+        // console.log('📨 Sending email to users with new password information...');
+        try {
+          const emailResponse = await axios.post(
+            `${API_BASE}/api/user/send-password-email`,
+            { user_ids: selectedUsers, new_password: newPassword },
+            getAuthConfig()
+          );
+          
+          // console.log('✅ Email sent successfully:', emailResponse.data);
+        } catch (emailError) {
+          console.error('❌ Error sending email:', emailError);
+          // console.error('❌ Email error details:', {
+          //   status: emailError.response?.status,
+          //   statusText: emailError.response?.statusText,
+          //   data: emailError.response?.data,
+          //   message: emailError.message,
+          //   url: emailError.config?.url,
+          //   method: emailError.config?.method,
+          //   payload: emailError.config?.data
+          // });
+        }
+      } else {
+        throw new Error(response.data?.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      console.error('❌ Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        payload: error.config?.data
+      });
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        setPasswordError('Invalid request. Please check your selection and try again.');
+      } else if (error.response?.status === 401) {
+        setPasswordError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setPasswordError('You do not have permission to perform this action.');
+      } else if (error.response?.status === 500) {
+        setPasswordError(`Server error: ${error.response?.data?.message || 'Internal server error occurred. Please try again.'}`);
+      } else {
+        setPasswordError('Failed to change password. Please try again.');
+      }
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -1469,7 +1477,7 @@ const ManageUsers = () => {
               </button>
               <button
                 onClick={() => setShowCourseModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
