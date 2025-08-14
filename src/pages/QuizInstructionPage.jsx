@@ -113,6 +113,40 @@ function QuizInstructionPage() {
         }
       }
       
+      // Normalize question objects to ensure consistent fields (id, type, options)
+      const normalizeQuestion = (q, index) => {
+        const normalizedId =
+          q?.id || q?._id || q?.question_id || q?.questionId || `${index + 1}`;
+        // Derive type from common fields or infer from structure
+        const rawType =
+          q?.type || q?.question_type || q?.questionType || q?.kind || "";
+        let inferredType = String(rawType).toLowerCase();
+        if (!inferredType || inferredType === "unknown") {
+          if (Array.isArray(q?.options)) inferredType = "mcq";
+          else if (Array.isArray(q?.matchPairs)) inferredType = "matching";
+          else if (
+            Array.isArray(q?.choices) || Array.isArray(q?.answers)
+          )
+            inferredType = "mcq";
+          else inferredType = "descriptive";
+        }
+        // Prefer a unified options array if present under different keys
+        const unifiedOptions =
+          q?.options || q?.choices || q?.answerOptions || null;
+
+        return {
+          ...q,
+          id: normalizedId,
+          type: inferredType,
+          options: unifiedOptions ?? q?.options,
+        };
+      };
+
+      if (questions.length > 0) {
+        questions = questions.map((q, idx) => normalizeQuestion(q, idx));
+        console.log("Normalized questions:", questions);
+      }
+
       // 4. Final check - if we still have no questions, show error
       if (questions.length === 0) {
         console.error('No questions found in any source:', {

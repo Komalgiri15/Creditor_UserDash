@@ -1,14 +1,21 @@
 // Service to handle quiz-related API calls
 import axios from 'axios';
+import { getAuthHeader } from './authHeader';
 
 const QUIZ_API_URL = 'http://localhost:9000/api/quiz/Quiz';
+
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  return {
+    'Content-Type': 'application/json',
+    ...getAuthHeader(),
+  };
+};
 
 export async function createQuiz(quizData) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/Quiz`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(quizData),
     credentials: 'include',
   });
@@ -22,9 +29,7 @@ export async function createQuiz(quizData) {
 export async function bulkUploadQuestions(quizId, questionsPayload) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}/questions/bulk-upload`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(questionsPayload),
     credentials: 'include',
   });
@@ -51,9 +56,7 @@ export async function fetchQuizzesByModule(moduleId) {
       `${import.meta.env.VITE_API_BASE_URL}/api/quiz/modules/${moduleId}/quizzes`,
       {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         credentials: 'include',
       }
     );
@@ -81,9 +84,7 @@ export async function fetchQuizzesByModule(moduleId) {
 export async function fetchAllQuizzes() {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/getQuiz`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -96,9 +97,7 @@ export async function fetchAllQuizzes() {
 export async function getQuizById(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/getQuizById`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -112,9 +111,7 @@ export async function getQuizById(quizId) {
 export async function fetchQuizScores(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/scores`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -127,9 +124,7 @@ export async function fetchQuizScores(quizId) {
 export async function fetchUserQuizAttempts(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/attempts`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -142,9 +137,7 @@ export async function fetchUserQuizAttempts(quizId) {
 export async function fetchQuizAnalytics(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/analytics`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -157,9 +150,7 @@ export async function fetchQuizAnalytics(quizId) {
 export async function fetchQuizAdminAnalytics(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}/analytics`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -172,9 +163,7 @@ export async function fetchQuizAdminAnalytics(quizId) {
 export async function fetchQuizAdminScores(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}/scores`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -187,9 +176,7 @@ export async function fetchQuizAdminScores(quizId) {
 export async function deleteQuiz(quizId) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}`, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -202,9 +189,7 @@ export async function deleteQuiz(quizId) {
 export async function updateQuiz(quizId, quizData) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/${quizId}/updateQuizz`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(quizData),
     credentials: 'include',
   });
@@ -228,9 +213,7 @@ export async function updateQuiz(quizId, quizData) {
 export async function updateQuestion(quizId, questionId, questionData) {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/quiz/admin/quizzes/${quizId}/questions/${questionId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(questionData),
     credentials: 'include',
   });

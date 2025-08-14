@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, XCircle, Clock, BookOpen, Trophy, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+// Results are derived from the submit response passed via navigation state
 
 function QuizResultsPage() {
   const { quizId } = useParams();
@@ -37,6 +38,7 @@ function QuizResultsPage() {
         
         // Set the data from navigation state
         setQuizData(quizSession);
+        // Use results from navigation state directly (no fallback fetch)
         setResults(quizResults);
         
         console.log('Quiz results loaded:', {
@@ -46,9 +48,9 @@ function QuizResultsPage() {
           startedAt
         });
         
-        // Validate that we have the expected data
-        if (!quizResults.score && !quizResults.data?.score) {
-          console.warn('Quiz results missing score data:', quizResults);
+        // Validate that we have the expected data for logs only
+        if (!quizResults?.score && !quizResults?.data?.score && !Array.isArray(quizResults?.answers) && !Array.isArray(quizResults?.data?.answers)) {
+          console.warn('Quiz results possibly missing score/answers:', quizResults);
         }
         
       } catch (err) {
@@ -85,26 +87,37 @@ function QuizResultsPage() {
   };
 
   // Extract score and other data from results
+  // score here represents percentage to display
   let score = 0;
-  let grade = 'N/A';
+  let totalQuestions = 0;
+  let correctAnswers = 0;
+  let attemptId = '';
+  let detailedAnswers = [];
   
-  if (results?.score) {
-    // Backend returns score as "85 (B)" format
-    const scoreMatch = results.score.toString().match(/(\d+)\s*\(([A-Z])\)/);
-    if (scoreMatch) {
-      score = parseInt(scoreMatch[1]);
-      grade = scoreMatch[2];
-    } else {
-      // Try to extract just the number
-      const numMatch = results.score.toString().match(/(\d+)/);
-      if (numMatch) {
-        score = parseInt(numMatch[1]);
-      }
+  // Support both wrapped and unwrapped result shapes
+  const dataShape = results?.data ?? results;
+  if (dataShape) {
+    attemptId = dataShape.attempt_id || dataShape.attemptId || '';
+    totalQuestions = dataShape.total_questions || dataShape.totalQuestions || 0;
+    detailedAnswers = dataShape.answers || dataShape.answerDetails || [];
+    // Prefer computing percent from detailed answers
+    correctAnswers = Array.isArray(detailedAnswers)
+      ? detailedAnswers.filter(a => a?.isCorrect === true || a?.correct === true).length
+      : 0;
+    if (totalQuestions > 0 && correctAnswers >= 0) {
+      score = Math.round((correctAnswers / totalQuestions) * 100);
+    } else if (typeof dataShape.score === 'number' && totalQuestions > 0) {
+      // If we only have a numeric score and total, derive percent defensively
+      const numericScore = dataShape.score;
+      // If score seems already like percent, clamp; else estimate percent
+      score = numericScore <= 100 ? Math.round(numericScore) : Math.round((numericScore / totalQuestions) * 100);
+      correctAnswers = Math.round((score / 100) * totalQuestions);
     }
   }
   
-  const remarks = results?.remarks || '';
-  const passed = results?.passed || false;
+  const remarks = results?.message || '';
+  const passingScore = quizData?.quiz?.min_score || quizData?.passingScore || quizData?.min_score || 70;
+  const passed = score >= passingScore;
   const answered = Object.keys(answers || {}).length;
   
   // Debug logging to see what we received
@@ -115,14 +128,17 @@ function QuizResultsPage() {
     startedAt: startedAt,
     extractedData: {
       score,
-      grade,
-      remarks,
+      totalQuestions,
+      correctAnswers,
+      attemptId,
+      detailedAnswers,
       passed,
-      answered
+      answered,
+      passingScore
     }
   });
   
-  const isPassed = passed || score >= (quizData?.passingScore || 70);
+  const isPassed = passed;
 
   if (isLoading) {
     return (
@@ -197,7 +213,7 @@ function QuizResultsPage() {
                     <CheckCircle className="h-6 w-6 text-purple-600" />
                     <div>
                       <p className="text-sm font-medium text-gray-600">Passing Score</p>
-                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.min_score || quizData?.passingScore || 70}%</p>
+                      <p className="text-lg font-semibold text-gray-900">{passingScore}%</p>
                     </div>
                   </div>
                   
@@ -205,9 +221,19 @@ function QuizResultsPage() {
                     <BookOpen className="h-6 w-6 text-indigo-600" />
                     <div>
                       <p className="text-sm font-medium text-gray-600">Questions Answered</p>
-                      <p className="text-lg font-semibold text-gray-900">{answered}</p>
+                      <p className="text-lg font-semibold text-gray-900">{answered} / {totalQuestions}</p>
                     </div>
                   </div>
+
+                  {attemptId && (
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                      <BookOpen className="h-6 w-6 text-orange-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Attempt ID</p>
+                        <p className="text-sm font-semibold text-gray-900 font-mono">{attemptId}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Remarks Display */}
@@ -240,15 +266,6 @@ function QuizResultsPage() {
                   
                 </div>
 
-                {/* Grade Display */}
-                {grade && grade !== 'N/A' && (
-                  <div className="mb-4">
-                    <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold text-xl">
-                      Grade: {grade}
-                    </div>
-                  </div>
-                )}
-
                 {/* Status Badge */}
                 <div className="mb-4">
                   <Badge 
@@ -264,7 +281,7 @@ function QuizResultsPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-600">Correct Answers</span>
                     <span className="font-semibold text-green-600">
-                      {Math.round((score / 100) * answered)} / {answered}
+                      {correctAnswers} / {totalQuestions}
                     </span>
                   </div>
                   <Progress value={score} className="h-3" />
@@ -276,7 +293,7 @@ function QuizResultsPage() {
       </Card>
 
       {/* Performance Analysis */}
-      {results && (
+      {detailedAnswers && detailedAnswers.length > 0 && (
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-2xl font-bold flex items-center gap-2">
@@ -287,52 +304,74 @@ function QuizResultsPage() {
           <CardContent>
             <div className="space-y-6">
               {/* Question Review */}
-              {quizData?.questions && (
-                <div>
-                  <h4 className="font-semibold mb-3">Question Review</h4>
+              <div>
+                <h4 className="font-semibold mb-3">Question Review</h4>
                   <div className="space-y-4">
-                    {quizData.questions.map((question, index) => {
-                      const userAnswer = answers?.[question.id];
-                      const isCorrect = score > 0; // This is simplified - you might want to add correct answer tracking
+                    {detailedAnswers.map((answer, index) => {
+                      // Get the question data from the quiz session or answers
+                      const questionData = quizData?.questions?.find(q => 
+                        String(q.id) === String(answer.questionId) || 
+                        String(q._id) === String(answer.questionId) ||
+                        String(q.questionId) === String(answer.questionId)
+                      );
+                      
+                      // Get user's actual answer text from the answers passed via navigation
+                      const userAnswerData = answers?.[answer.questionId];
                       
                       return (
-                        <div key={question.id} className="p-4 border rounded-lg">
+                        <div key={`${answer.questionId}-${index}`} className="p-4 border rounded-lg">
                           <div className="flex items-start gap-3">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                              isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                              answer.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                             }`}>
                               {index + 1}
                             </div>
                             <div className="flex-1">
-                              <p className="font-medium mb-2">{question.text}</p>
-                              <div className="space-y-2">
-                                {question.options?.map((option) => (
-                                  <div key={option.id} className={`flex items-center gap-2 p-2 rounded ${
-                                    userAnswer === option.id ? 'bg-blue-50 border border-blue-200' : ''
-                                  }`}>
-                                    <input
-                                      type="radio"
-                                      checked={userAnswer === option.id}
-                                      disabled
-                                      className="w-4 h-4"
-                                    />
-                                    <span className={userAnswer === option.id ? 'font-medium' : ''}>
-                                      {option.text}
-                                    </span>
-                                    {userAnswer === option.id && (
-                                      <span className="text-sm text-gray-500">(Your answer)</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                              {/* Question Text */}
+                              <p className="font-medium mb-3 text-lg">
+                                {questionData?.question || questionData?.questionText || questionData?.text || questionData?.content || `Question ${index + 1}`}
+                              </p>
+                              
+                              {/* Options Display */}
+                              {questionData?.options && Array.isArray(questionData.options) && (
+                                <div className="space-y-2 mb-3">
+                                  <p className="text-sm font-medium text-gray-700 mb-2">Options:</p>
+                                  {questionData.options.map((option, optIndex) => {
+                                    const optionText = option?.text || option?.label || option?.value || String(option);
+                                    const optionId = option?.id || option?._id || option?.optionId || option?.value || optIndex;
+                                    
+                                    // Check if this option was selected by user
+                                    const isSelected = Array.isArray(userAnswerData) 
+                                      ? userAnswerData.some(ans => String(ans) === String(optionId) || String(ans) === String(optIndex))
+                                      : String(userAnswerData) === String(optionId) || String(userAnswerData) === String(optIndex);
+                                    
+                                    // Determine option styling based on selection and correctness
+                                    let optionStyle = "p-2 rounded border";
+                                    if (isSelected && answer.isCorrect) {
+                                      optionStyle += " bg-green-100 border-green-300 text-green-800";
+                                    } else if (isSelected && !answer.isCorrect) {
+                                      optionStyle += " bg-red-100 border-red-300 text-red-800";
+                                    } else {
+                                      optionStyle += " bg-gray-50 border-gray-200 text-gray-700";
+                                    }
+                                    
+                                    return (
+                                      <div key={optIndex} className={optionStyle}>
+                                        <span className="font-medium">{optionText}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              
                             </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              )}
+              </div>
               
               {/* Time Analysis */}
               {results.timeSpent && (

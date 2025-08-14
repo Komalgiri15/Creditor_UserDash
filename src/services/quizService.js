@@ -1,4 +1,5 @@
 // Quiz Service for handling quiz-related API calls
+import { getAuthHeader } from './authHeader';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -7,6 +8,7 @@ const getAuthHeaders = () => {
   // Backend handles authentication via cookies
   return {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   };
 };
 
@@ -54,7 +56,7 @@ export async function submitQuiz(quizId, answers = {}) {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify({ answers })
+      body: JSON.stringify(answers)
     });
 
     if (!response.ok) {
@@ -63,7 +65,7 @@ export async function submitQuiz(quizId, answers = {}) {
     }
 
     const data = await response.json();
-    return data.data || data;
+    return data;
   } catch (error) {
     console.error('Error submitting quiz:', error);
     throw error;

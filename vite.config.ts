@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://creditor-backend-1-iijy.onrender.com'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('https://sharebackend-sdkp.onrender.com'),
   },
 }));
 
