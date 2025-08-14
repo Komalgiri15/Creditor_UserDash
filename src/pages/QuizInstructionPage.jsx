@@ -1,189 +1,317 @@
-import React, { useState } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, Clock, AlertTriangle, CheckCircle, BookOpen, Info } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, Clock, BookOpen, AlertTriangle, Loader2, CheckCircle, Award, BarChart2 } from "lucide-react";
+import { getModuleQuizById, startQuiz } from "@/services/quizService";
+import { toast } from "sonner";
 
 function QuizInstructionPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
-  const navigate = useNavigate();
+  
   const [agreed, setAgreed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isStarting, setIsStarting] = useState(false);
+  const [quizData, setQuizData] = useState(null);
+  const [error, setError] = useState("");
 
-  const quizInfo = {
-    title: `Quiz ${quizId}`,
-    totalQuestions: 10,
-    duration: "25 minutes",
-    passingScore: 70,
-    attempts: 3,
-    description: "This quiz contains various types of questions including Multiple Choice, True/False, Fill-ups, Matching, One Word, and Descriptive questions."
-  };
+  useEffect(() => {
+    const fetchQuizData = async () => {
+      try {
+        setIsLoading(true);
+        // Prefer quiz data passed via navigation state
+        if (location.state && location.state.quiz) {
+          setQuizData(location.state.quiz);
+        } else {
+          const data = await getModuleQuizById(moduleId, quizId);
+          setQuizData(data);
+        }
+      } catch (err) {
+        console.error('Error fetching quiz:', err);
+        setError('Failed to load quiz data');
+        toast.error('Failed to load quiz instructions');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    if (quizId && moduleId) {
+      fetchQuizData();
+    }
+  }, [quizId, moduleId, location.state]);
+
+  // Consolidated instructions
   const instructions = [
-    "Read each question carefully before selecting your answer.",
-    "You have 25 minutes to complete all 10 questions.",
-    "Each question has different scoring based on its type and difficulty.",
-    "Multiple Choice Questions (MCQ) - Select the best answer from given options.",
-    "Single Choice Questions (SCQ) - Choose only one correct answer.",
-    "True/False Questions - Determine if the statement is correct or incorrect.",
-    "Fill-up Questions - Complete the sentence with appropriate words.",
-    "Matching Questions - Connect related items from two columns.",
-    "One Word Questions - Provide a single word answer.",
-    "Descriptive Questions - Write detailed explanations in your own words.",
-    "You can navigate between questions using Next/Previous buttons.",
-    "Your progress will be saved automatically.",
-    "Once submitted, you cannot change your answers.",
-    "You must score at least 70% to pass this quiz.",
-    "You have 3 attempts to complete this quiz successfully."
+    ` Time Limit: ${quizData?.timeLimit || 25} minutes`,
+    ` Questions: ${quizData?.questionCount || 'Multiple'} questions of various types`,
+    ` Passing Score: ${quizData?.passingScore || 70}% required`,
+    ` Attempts: ${quizData?.maxAttempts || 3} attempts allowed`,
+    " Your progress will be saved automatically",
+    " No changes allowed after submission"
   ];
 
-  const handleStartQuiz = () => {
+  const handleStartQuiz = async () => {
     if (!agreed) {
+      toast.error('Please agree to the terms before starting the quiz.');
       return;
     }
-    navigate(`/quiz-take/${quizId}?module=${moduleId}&category=${category}`);
+    try {
+      setIsStarting(true);
+      
+      // Start the quiz session - this should return quiz data including questions
+      const startResponse = await startQuiz(quizId);
+      console.log('Quiz started - Full response:', startResponse);
+      console.log('Response structure:', {
+        hasQuestions: !!startResponse.questions,
+        hasQuiz: !!startResponse.quiz,
+        hasData: !!startResponse.data,
+        keys: Object.keys(startResponse || {}),
+        questionsType: typeof startResponse?.questions,
+        questionsLength: startResponse?.questions?.length
+      });
+      
+      // Try to get questions from multiple possible sources
+      let questions = [];
+      
+      // 1. Check if questions are in the start response
+      if (startResponse.questions && Array.isArray(startResponse.questions)) {
+        questions = startResponse.questions;
+        console.log('Questions found in start response');
+      } else if (startResponse.quiz && startResponse.quiz.questions) {
+        questions = startResponse.quiz.questions;
+        console.log('Questions found in start response.quiz');
+      } else if (startResponse.data && startResponse.data.questions) {
+        questions = startResponse.data.questions;
+        console.log('Questions found in start response.data');
+      }
+      
+      // 2. If no questions in start response, try to get from existing quiz data
+      if (questions.length === 0 && quizData?.questions) {
+        questions = quizData.questions;
+        console.log('Questions found in existing quiz data');
+      }
+      
+      // 3. If still no questions, try to fetch them from the module quiz endpoint
+      if (questions.length === 0) {
+        try {
+          console.log('Attempting to fetch questions from module quiz endpoint...');
+          const moduleQuizData = await getModuleQuizById(moduleId, quizId);
+          if (moduleQuizData?.questions) {
+            questions = moduleQuizData.questions;
+            console.log('Questions found in module quiz data');
+          }
+        } catch (moduleError) {
+          console.log('Module quiz endpoint failed:', moduleError);
+        }
+      }
+      
+      // 4. Final check - if we still have no questions, show error
+      if (questions.length === 0) {
+        console.error('No questions found in any source:', {
+          startResponse,
+          quizData,
+          moduleId,
+          quizId
+        });
+        toast.error('Unable to load quiz questions. Please contact support or try again later.');
+        return;
+      }
+      
+      console.log('Quiz questions loaded successfully:', questions.length, 'questions');
+      
+      // Navigate to quiz take page with questions data
+      navigate(`/dashboard/quiz/take/${quizId}?module=${moduleId}&category=${category}`, { 
+        state: { 
+          questions,
+          quizSession: startResponse,
+          startedAt: new Date().toISOString()
+        } 
+      });
+    } catch (err) {
+      console.error('Error starting quiz:', err);
+      toast.error('Failed to start quiz. Please try again.');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto" />
+          <p className="text-gray-600 text-lg">Loading quiz instructions...</p>
+          <p className="text-sm text-gray-500">Preparing your assessment</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !quizData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4 mx-auto">
+            <AlertTriangle className="h-10 w-10 text-red-600" />
+          </div>
+          <h3 className="text-xl font-medium text-gray-900">Failed to load quiz</h3>
+          <p className="text-gray-600 mb-6">{error || 'Quiz not found'}</p>
+          <div className="space-x-3">
+            <Button onClick={() => navigate(-1)}>Go Back</Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container py-6 max-w-4xl mx-auto">
+    <div className="container py-8 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/courses/module/${moduleId}/assessments`)}>
-          <ChevronLeft size={16} />
+      <div className="flex items-center justify-between mb-8">
+        <Button variant="outline" onClick={() => navigate(-1)} className="border-gray-300">
+          <ChevronLeft className="mr-2 h-4 w-4" />
           Back to Assessments
         </Button>
-        <Badge variant={category === 'general' ? 'outline' : 'default'}>
+        <Badge variant={category === 'general' ? 'outline' : 'default'} className="px-4 py-1.5">
           {category === 'general' ? 'Practice Quiz' : 'Assessment Quiz'}
         </Badge>
       </div>
 
-      {/* Quiz Info Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white">
-            <BookOpen size={32} />
+      {/* Quiz Info Card */}
+      <Card className="mb-6 overflow-hidden shadow-sm border border-gray-200">
+        <CardContent className="p-6 bg-gradient-to-r from-indigo-50 to-blue-50">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm flex items-center justify-center">
+              <BookOpen className="h-8 w-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                {quizData.title || `Quiz ${quizId}`}
+              </h1>
+              <p className="text-gray-700 mb-4">
+                {quizData.description || 'Test your knowledge with this comprehensive quiz'}
+              </p>
+              
+              {/* Quiz Details */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <Clock className="h-5 w-5 text-indigo-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Duration</p>
+                    <p className="font-bold">{quizData.timeLimit || 25} min</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Questions</p>
+                    <p className="font-bold">{quizData.questionCount || 'Multiple'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <Award className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Passing</p>
+                    <p className="font-bold">{quizData.passingScore || 70}%</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                  <BarChart2 className="h-5 w-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Attempts</p>
+                    <p className="font-bold">{quizData.maxAttempts || 3}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-              {quizInfo.title}
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {quizInfo.description}
-            </p>
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className="text-center p-3 bg-white rounded-lg border">
-            <div className="text-2xl font-bold text-blue-600">{quizInfo.totalQuestions}</div>
-            <div className="text-sm text-muted-foreground">Questions</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-lg border">
-            <div className="text-2xl font-bold text-green-600">{quizInfo.duration}</div>
-            <div className="text-sm text-muted-foreground">Duration</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-lg border">
-            <div className="text-2xl font-bold text-purple-600">{quizInfo.passingScore}%</div>
-            <div className="text-sm text-muted-foreground">Pass Score</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-lg border">
-            <div className="text-2xl font-bold text-orange-600">{quizInfo.attempts}</div>
-            <div className="text-sm text-muted-foreground">Attempts</div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Instructions Card */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2">
-            <Info size={24} className="text-blue-500" />
-            Quiz Instructions
+      {/* Instructions */}
+      <Card className="mb-6 border border-gray-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl font-bold flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-indigo-600" />
+            Quick Instructions
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {instructions.map((instruction, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold mt-0.5">
+              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                   {index + 1}
                 </div>
-                <p className="text-sm leading-relaxed">{instruction}</p>
+                <p className="text-gray-700 text-sm">{instruction}</p>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Important Notes */}
-      <div className="mb-6 space-y-4">
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-          <div>
-            <p className="font-medium text-amber-800">Important Notes</p>
-            <ul className="text-sm text-amber-700 mt-2 space-y-1">
-              <li>•  Ensure you have a stable internet connection</li>
-              <li>• Do not refresh the page during the quiz</li>
-              <li>• Your timer will start immediately after clicking "Start Quiz"</li>
-              <li>• Late submissions will not be accepted</li>
-            </ul>
-          </div>
-        </div>
-
-        {category === 'final' && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-red-800">Assessment Quiz Warning</p>
-              <p className="text-sm text-red-700 mt-1">
-                This is a graded assessment that will impact your final course grade. Make sure you are well-prepared before starting.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Agreement and Start */}
-      <Card className="border-2 border-primary/20">
+      {/* Terms Agreement */}
+      <Card className="mb-6 border border-gray-200">
         <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="agree" 
-                checked={agreed}
-                onCheckedChange={(checked) => setAgreed(checked === true)}
-              />
-              <label 
-                htmlFor="agree" 
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-              >
-                I have read and understood all the instructions above, and I agree to follow the quiz rules and regulations.
-              </label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              You must agree to the instructions before starting the quiz
-            </p>
-            
-            <div className="flex gap-4 pt-4">
-              <Button variant="outline" className="flex-1" onClick={() => navigate(`/courses/module/${moduleId}/assessments`)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleStartQuiz}
-                disabled={!agreed}
-                className="flex-1"
-              >
-                <CheckCircle size={16} className="mr-2" />
-                Start Quiz
-              </Button>
-            </div>
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="terms"
+              checked={agreed}
+              onCheckedChange={(checked) => setAgreed(checked)}
+              className="mt-0.5"
+            />
+            <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
+              I agree to complete this quiz independently without any external assistance and understand 
+              that my answers cannot be changed after submission.
+            </Label>
           </div>
         </CardContent>
       </Card>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-4">
+        <Button variant="outline" onClick={() => navigate(-1)} className="w-full md:w-auto">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Back to Assessments
+        </Button>
+        
+        <Button 
+          onClick={handleStartQuiz}
+          disabled={!agreed || isStarting}
+          className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white px-6 py-3 font-medium shadow-sm"
+        >
+          {isStarting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Starting Quiz...
+            </>
+          ) : (
+            <>
+              <BookOpen className="mr-2 h-4 w-4" />
+              Start Quiz Now
+            </>
+          )}
+        </Button>
+      </div>
+
+      {/* Warning */}
+      {!agreed && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2 text-yellow-800">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm">Please agree to the terms before starting the quiz.</span>
+        </div>
+      )}
     </div>
   );
 }

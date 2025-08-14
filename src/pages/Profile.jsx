@@ -350,6 +350,7 @@ function Profile() {
                               <SelectItem value="America/Denver">MST (Mountain Time US & Canada)</SelectItem>
                               <SelectItem value="America/New_York">EST (Eastern Time US & Canada)</SelectItem>
                               <SelectItem value="Europe/London">GMT/BST (Greenwich Mean Time)</SelectItem>
+                              <SelectItem value="America/Chicago">CT (Central Time)</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>

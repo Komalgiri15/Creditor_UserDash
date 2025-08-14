@@ -239,19 +239,19 @@ const AddUsersForm = () => {
       }
 
       let response;
-      const token = localStorage.getItem('token') || document.cookie.split('token=')[1]?.split(';')[0];
-
-                    // Always send as JSON array, whether from Excel or manual entry
-        const payload = validUsers;
+      // Backend handles authentication via cookies
+      
+      // Always send as JSON array, whether from Excel or manual entry
+      const payload = validUsers;
       
       response = await axios.post(
         `${API_BASE}/api/auth/admin/create-users`,
         payload,
         {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
+          withCredentials: true,
         }
       );
 

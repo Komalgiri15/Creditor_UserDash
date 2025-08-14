@@ -248,71 +248,36 @@ const CatelogCourses = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <main className="flex-1">
-        <div className="container py-8 max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Enhanced Catalog Header */}
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl shadow-lg border border-blue-100 p-8 mb-8">
-            <div className="flex flex-col lg:flex-row gap-8 items-start">
-              {/* Catalog Thumbnail */}
-              <div className="flex-shrink-0">
-                {catalog?.thumbnail ? (
-                  <div className="relative">
-                    <img
-                      src={catalog.thumbnail}
-                      alt={catalog.name}
-                      className="w-40 h-40 object-cover rounded-2xl shadow-xl border-4 border-white"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-3 shadow-lg border-2 border-blue-100">
-                      <BookOpen className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-40 h-40 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-xl border-4 border-white flex items-center justify-center">
-                    <BookOpen className="h-16 w-16 text-white" />
-                  </div>
-                )}
+        <div className="container pt-4 pb-8 max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Catalog Header - Compact, Beautiful, and Aligned */}
+          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl shadow-lg border border-blue-100/50 px-6 pt-4 pb-6 mb-6 relative overflow-hidden">
+            {/* Decorative Background Elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-200/30 to-blue-200/30 rounded-full blur-2xl translate-y-12 -translate-x-12"></div>
+            <div className="relative z-10">
+              {/* Top Bar: Back Button (left) and Course Count (right) */}
+              <div className="flex items-center justify-between mb-2">
+                <Link
+                  to="/dashboard/catalog"
+                  className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-800 font-medium transition-colors text-sm bg-white/80 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-100 hover:bg-white hover:border-blue-200"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Catalogs
+                </Link>
+                <span className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl shadow-sm border border-blue-100 text-sm font-medium text-gray-700">
+                  <BookOpen className="h-4 w-4 text-blue-600" />
+                  {filteredCourses.length} {filteredCourses.length === 1 ? 'Course' : 'Courses'}
+                </span>
               </div>
-                  
-              {/* Catalog Info */}
-              <div className="flex-1 min-w-0">
-                <div className="space-y-4">
-                  {/* Back Button */}
-                  <div className="flex items-center gap-2">
-                    <Link
-                      to="/dashboard/catalog"
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Back to Catalogs
-                    </Link>
-                  </div>
-                  
-                  {/* Catalog Title */}
-                  <div>
-                    <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-3">
-                      {catalog?.name || "Catalog"}
-                    </h1>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
-                        <BookOpen className="h-4 w-4 text-blue-600" />
-                        {filteredCourses.length} {filteredCourses.length === 1 ? 'Course' : 'Courses'}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        Last updated {new Date(catalog?.updated_at || Date.now()).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Catalog Description */}
-                  <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-white/50">
-                    <p className="text-lg text-gray-700 leading-relaxed">
-                      {catalog?.description || "Explore our comprehensive collection of courses designed to help you achieve your learning goals."}
-                    </p>
-                  </div>
-                </div>
+              {/* Catalog Title */}
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                {catalog?.name || "Catalog"}
+              </h1>
+              {/* Description Box - Compact and Justified */}
+              <div className="bg-white/90 backdrop-blur-md rounded-4xl p-5 border border-white/50 shadow-xl">
+                <p className="text-gray-700 text-sm leading-relaxed text-justify">
+                  {catalog?.description || "Explore our comprehensive collection of courses designed to help you achieve your learning goals. This catalog provides a structured learning path with carefully curated content to enhance your knowledge and skills in your chosen field."}
+                </p>
               </div>
             </div>
           </div>
@@ -387,14 +352,14 @@ const CatelogCourses = () => {
                 const cardContent = (
                   <div 
                     key={course.id || course._id || course.uuid || idx} 
-                    className="group flex flex-col border border-gray-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden h-full"
+                    className="group flex flex-col border border-gray-200 rounded-2xl bg-white shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden h-full hover:border-blue-200 hover:scale-[1.02]"
                   >
                     {/* Course Image */}
                     <div className="relative h-48 overflow-hidden">
                       <img
                         src={course.thumbnail || course.image || course.coverImage || course.course_image || course.thumbnail_url || "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000"}
                         alt={course.title || course.name || course.courseName || course.course_title || 'Course image'}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         onError={(e) => {
                           e.target.src = "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1000";
                         }}
@@ -402,7 +367,7 @@ const CatelogCourses = () => {
                       
                       {/* Course Level and Price Badges */}
                       <div className="absolute bottom-3 left-3 flex gap-2">
-                        <Badge key={`${course.id}-level`} variant="secondary" className="bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm">
+                        <Badge key={`${course.id}-level`} variant="secondary" className="bg-white/95 backdrop-blur-sm text-gray-800 shadow-lg border border-gray-200 font-medium">
                           {formatCourseLevel(course.course_level || course.level || course.difficulty)}
                         </Badge>
                       </div>
@@ -410,60 +375,43 @@ const CatelogCourses = () => {
                       {/* Category Badge */}
                       {course.category && (
                         <div className="absolute top-3 right-3">
-                          <Badge key={`${course.id}-category`} variant="outline" className="bg-white/90 backdrop-blur-sm text-gray-800 shadow-sm">
+                          <Badge key={`${course.id}-category`} variant="outline" className="bg-white/95 backdrop-blur-sm text-gray-800 shadow-lg border border-gray-200 font-medium">
                             {course.category}
                           </Badge>
                         </div>
                       )}
+                      
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                     
                     {/* Course Content */}
-                    <div className="p-5 flex flex-col flex-1">
+                    <div className="p-6 flex flex-col flex-1">
                       <div className="flex-1">
                         {/* Course Title */}
-                        <h2 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                        <h2 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                           {course.title || course.name || course.courseName || course.course_title || course.courseName || <span className="text-red-500">Missing title</span>}
                         </h2>
                         
                         {/* Course Description */}
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
                           {course.description || course.summary || course.shortDescription || course.course_description || course.desc || course.content || course.overview || course.synopsis || course.details || course.about || <span className="text-red-500">No description available</span>}
                         </p>
                         
-                        {/* Learning Objectives */}
-                        {course.learning_objectives && course.learning_objectives.length > 0 && (
-                          <div className="mb-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">Learning Objectives:</h4>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {course.learning_objectives.slice(0, 2).map((objective, index) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="text-blue-500 mr-1">•</span>
-                                  <span className="line-clamp-2">{objective}</span>
-                                </li>
-                              ))}
-                              {course.learning_objectives.length > 2 && (
-                                <li className="text-gray-500 italic">
-                                  +{course.learning_objectives.length - 2} more objectives
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                        
                         {/* Course Tags/Skills */}
                         {course.tags && course.tags.length > 0 && (
-                          <div className="mb-3">
-                            <div className="flex flex-wrap gap-1">
+                          <div className="mb-4">
+                            <div className="flex flex-wrap gap-2">
                               {course.tags.slice(0, 3).map((tag, index) => (
                                 <span 
                                   key={`${course.id}-tag-${index}`} 
-                                  className="inline-block px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full"
+                                  className="inline-block px-3 py-1 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 rounded-full border border-blue-200 font-medium hover:from-blue-100 hover:to-indigo-100 transition-all duration-200"
                                 >
                                   {tag}
                                 </span>
                               ))}
                               {course.tags.length > 3 && (
-                                <span key={`${course.id}-more-tags`} className="inline-block px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded-full">
+                                <span key={`${course.id}-more-tags`} className="inline-block px-3 py-1 text-xs bg-gray-50 text-gray-600 rounded-full border border-gray-200 hover:bg-gray-100 transition-colors">
                                   +{course.tags.length - 3} more
                                 </span>
                               )}
@@ -472,70 +420,63 @@ const CatelogCourses = () => {
                         )}
                       </div>
                       
-                                                                  {/* Course Details */}
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            {/* Duration and Modules */}
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
-                              <span key={`${course.id}-duration`} className="flex items-center gap-1.5">
-                                <Clock size={14} className="text-gray-400 shrink-0" />
-                                {formatDuration(course.estimated_duration || course.duration || course.timeEstimate || course.timeRequired || course.duration_hours || course.hours || course.time || course.length || course.course_duration)}
-                              </span>
-                              <span key={`${course.id}-modules`} className="flex items-center gap-1.5">
-                                <BookOpen size={14} className="text-gray-400 shrink-0" />
-                                {courseModuleCounts[course.id] || 0} modules
-                              </span>
-                              {course.rating && (
-                                <span key={`${course.id}-rating`} className="flex items-center gap-1.5">
-                                  <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292z" />
-                                  </svg>
-                                  {course.rating}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Course Status */}
-                            {course.course_status && (
-                              <div className="text-xs text-gray-500 mb-2">
-                                <span className="font-medium">Status:</span> 
-                                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                                  course.course_status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
-                                  course.course_status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {course.course_status}
-                                </span>
-                              </div>
-                            )}
-                            
-                            {/* Max Students */}
-                            {/* {course.max_students && (
-                              <div className="text-xs text-gray-500 mb-2">
-                                <span className="font-medium">Max Students:</span> {course.max_students}
-                              </div>
-                            )} */}
+                      {/* Course Details */}
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        {/* Duration and Modules */}
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 mb-3">
+                          <span key={`${course.id}-duration`} className="flex items-center gap-1.5">
+                            <Clock size={14} className="text-blue-500 shrink-0" />
+                            {formatDuration(course.estimated_duration || course.duration || course.timeEstimate || course.timeRequired || course.duration_hours || course.hours || course.time || course.length || course.course_duration)}
+                          </span>
+                          <span key={`${course.id}-modules`} className="flex items-center gap-1.5">
+                            <BookOpen size={14} className="text-indigo-500 shrink-0" />
+                            {courseModuleCounts[course.id] || 0} modules
+                          </span>
+                          {course.rating && (
+                            <span key={`${course.id}-rating`} className="flex items-center gap-1.5">
+                              <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292z" />
+                              </svg>
+                              {course.rating}
+                            </span>
+                          )}
+                        </div>
                         
-                        {/* Language */}
-                        {course.language && (
-                          <div className="text-sm text-gray-700 mb-2">
-                            <span className="font-medium">Language:</span> {course.language}
+                        {/* Course Status */}
+                        {course.course_status && (
+                          <div className="text-xs text-gray-500 mb-3">
+                            <span className="font-medium">Status:</span> 
+                            <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              course.course_status === 'PUBLISHED' ? 'bg-green-100 text-green-800 border border-green-200' :
+                              course.course_status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
+                              'bg-gray-100 text-gray-800 border border-gray-200'
+                            }`}>
+                              {course.course_status}
+                            </span>
                           </div>
                         )}
                         
-                        {/* Last Updated */}
-                        {course.updatedAt && (
-                          <div className="text-xs text-gray-500">
-                            Updated: {new Date(course.updatedAt).toLocaleDateString()}
+                        {/* Max Students */}
+                        {course.maxStudents && (
+                          <div className="text-xs text-gray-500 mb-3">
+                            <span className="font-medium">Max Students:</span> {course.maxStudents}
+                          </div>
+                        )}
+                        
+                        {/* Language */}
+                        {course.language && (
+                          <div className="text-xs text-gray-500 mb-3">
+                            <span className="font-medium">Language:</span> {course.language}
                           </div>
                         )}
                         
                         {/* Enrollment Status */}
                         {course.enrollmentStatus && (
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <Badge 
                               key={`${course.id}-enrollment`}
                               variant={course.enrollmentStatus === 'enrolled' ? 'default' : 'outline'}
-                              className="text-xs"
+                              className="text-xs bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 hover:from-blue-100 hover:to-indigo-100 font-medium"
                             >
                               {course.enrollmentStatus === 'enrolled' ? 'Enrolled' : 'Available'}
                             </Badge>
