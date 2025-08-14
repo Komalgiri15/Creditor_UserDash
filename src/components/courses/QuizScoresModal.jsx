@@ -16,11 +16,12 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { fetchQuizScores, fetchUserQuizAttempts, fetchQuizAnalytics, fetchQuizAdminAnalytics } from '@/services/quizServices';
+import { fetchQuizAdminAnalytics, fetchQuizAdminScores } from '@/services/quizServices';
 import { fetchCourseUsers } from '@/services/courseService';
 
 const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
   const [scores, setScores] = useState([]);
+  const [adminScores, setAdminScores] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [adminAnalytics, setAdminAnalytics] = useState(null);
@@ -39,38 +40,32 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all data in parallel
-      const [scoresData, attemptsData, analyticsData, adminAnalyticsData, usersData] = await Promise.allSettled([
-        fetchQuizScores(quiz.id),
-        fetchUserQuizAttempts(quiz.id),
-        fetchQuizAnalytics(quiz.id),
+      // Fetch only admin endpoints (non-admin endpoints 404 on this backend)
+      const [adminScoresData, adminAnalyticsData, usersData] = await Promise.allSettled([
+        fetchQuizAdminScores(quiz.id),
         fetchQuizAdminAnalytics(quiz.id),
         fetchCourseUsers(courseId)
       ]);
 
-      // Handle scores data
-      if (scoresData.status === 'fulfilled') {
-        setScores(scoresData.value || []);
-      }
-
-      // Handle attempts data
-      if (attemptsData.status === 'fulfilled') {
-        setAttempts(attemptsData.value || []);
-      }
-
-      // Handle analytics data
-      if (analyticsData.status === 'fulfilled') {
-        setAnalytics(analyticsData.value);
+      // Handle admin scores data
+      if (adminScoresData.status === 'fulfilled') {
+        setAdminScores(Array.isArray(adminScoresData.value) ? adminScoresData.value : []);
+      } else {
+        setAdminScores([]);
       }
 
       // Handle admin analytics data
       if (adminAnalyticsData.status === 'fulfilled') {
-        setAdminAnalytics(adminAnalyticsData.value);
+        setAdminAnalytics(adminAnalyticsData.value || null);
+      } else {
+        setAdminAnalytics(null);
       }
 
       // Handle course users data
       if (usersData.status === 'fulfilled') {
         setCourseUsers(usersData.value || []);
+      } else {
+        setCourseUsers([]);
       }
 
     } catch (err) {
@@ -108,21 +103,21 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
   };
 
   const calculateStats = () => {
-    if (!scores.length) return null;
+    if (!adminScores.length) return null;
 
-    const totalAttempts = scores.length;
-    const averageScore = scores.reduce((sum, score) => sum + score.score, 0) / totalAttempts;
-    const passingScores = scores.filter(score => score.score >= (quiz.min_score || 70)).length;
-    const passRate = (passingScores / totalAttempts) * 100;
-    const highestScore = Math.max(...scores.map(s => s.score));
-    const lowestScore = Math.min(...scores.map(s => s.score));
-
+    const flatAttempts = adminScores.flatMap(u => u.attempts || []);
+    if (flatAttempts.length === 0) return null;
+    const averageScore = flatAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / flatAttempts.length;
+    const passing = flatAttempts.filter(a => a.passed).length;
+    const passRate = (passing / flatAttempts.length) * 100;
+    const highest = Math.max(...flatAttempts.map(a => a.score || 0));
+    const lowest = Math.min(...flatAttempts.map(a => a.score || 0));
     return {
-      totalAttempts,
+      totalAttempts: flatAttempts.length,
       averageScore: Math.round(averageScore),
       passRate: Math.round(passRate),
-      highestScore,
-      lowestScore
+      highestScore: highest,
+      lowestScore: lowest,
     };
   };
 
@@ -269,7 +264,67 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
               {activeTab === 'scores' && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold mb-4">User Scores</h3>
-                  {scores.length === 0 ? (
+                  {adminScores.length ? (
+                    <div className="space-y-4">
+                      {adminScores.map((user) => {
+                        const attemptsArr = Array.isArray(user.attempts) ? user.attempts : [];
+                        const latestAttempt = attemptsArr
+                          .slice()
+                          .sort((a, b) => {
+                            const dateDiff = new Date(b.attemptDate || 0) - new Date(a.attemptDate || 0);
+                            if (dateDiff !== 0) return dateDiff;
+                            return (b.attemptNumber || 0) - (a.attemptNumber || 0);
+                          })[0];
+                        return (
+                          <Card key={user.userId}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-medium">
+                                      {user?.name?.charAt(0) || 'U'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{user.name}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Attempts: {user.totalAttempts || attemptsArr.length}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  {latestAttempt && (
+                                    <Badge className={getGradeColor(latestAttempt.score)}>
+                                      {getGrade(latestAttempt.score)} ({latestAttempt.score}%)
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {attemptsArr.length ? (
+                                <div className="mt-3 space-y-2">
+                                  {attemptsArr.map((attempt) => (
+                                    <div key={attempt.attemptId} className="flex items-center justify-between border rounded p-2">
+                                      <div className="text-sm">
+                                        Attempt #{attempt.attemptNumber} • {formatDate(attempt.attemptDate)}
+                                      </div>
+                                      <div className="flex items-center space-x-2">
+                                        <Badge className={getGradeColor(attempt.score)}>{attempt.score}%</Badge>
+                                        {attempt.passed ? (
+                                          <CheckCircle className="w-4 h-4 text-green-600" />
+                                        ) : (
+                                          <X className="w-4 h-4 text-red-600" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 mt-2">No attempts yet</p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  ) : scores.length === 0 ? (
                     <div className="text-center py-8">
                       <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500">No scores available yet</p>
@@ -297,22 +352,20 @@ const QuizScoresModal = ({ isOpen, onClose, quiz, courseId }) => {
                                   </div>
                                 </div>
                                 
-                                <div className="flex items-center space-x-4">
-                                  <div className="text-right">
-                                    <div className="flex items-center space-x-2">
-                                      <Badge className={gradeColor}>
-                                        {grade} ({score.score}%)
-                                      </Badge>
-                                      {score.score >= (quiz.min_score || 70) ? (
-                                        <CheckCircle className="w-4 h-4 text-green-600" />
-                                      ) : (
-                                        <X className="w-4 h-4 text-red-600" />
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {formatDate(score.completed_at || score.created_at)}
-                                    </p>
+                                <div className="text-right">
+                                  <div className="flex items-center space-x-2">
+                                    <Badge className={gradeColor}>
+                                      {grade} ({score.score}%)
+                                    </Badge>
+                                    {score.score >= (quiz.min_score || 70) ? (
+                                      <CheckCircle className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <X className="w-4 h-4 text-red-600" />
+                                    )}
                                   </div>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {formatDate(score.completed_at || score.created_at)}
+                                  </p>
                                 </div>
                               </div>
                             </CardContent>

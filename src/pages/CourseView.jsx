@@ -253,10 +253,10 @@ export function CourseView() {
                                 </Button>
                               </Link>
                               <Link to={`/dashboard/courses/${courseId}/modules/${module.id}/assessments`} className="w-full">
-                                <Button variant="outline" className="w-full">
+                                {/* <Button variant="outline" className="w-full">
                                   <FileText size={16} className="mr-2" />
                                   Start Assessment
-                                </Button>
+                                </Button> */}
                               </Link>
                             </>
                           ) : (

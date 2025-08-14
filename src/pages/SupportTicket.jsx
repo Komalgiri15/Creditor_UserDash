@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { getAuthHeader } from "@/services/authHeader";
 import axios from "axios";
 import { createTicket } from "@/services/ticketService";
 
@@ -28,6 +29,7 @@ function SupportTicket() {
   const [files, setFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [ticketId, setTicketId] = useState(null);
   const [formData, setFormData] = useState({
     category: "",
     priority: "",
@@ -83,7 +85,12 @@ function SupportTicket() {
         }
       }
 
-      await createTicket(formDataToSend);
+      const response = await createTicket(formDataToSend, getAuthHeader());
+      
+      // Extract ticket ID from response if available
+      if (response?.data?.data?.id) {
+        setTicketId(response.data.data.id);
+      }
       
       toast.success("Support ticket submitted successfully!");
       setFormData({
@@ -131,20 +138,20 @@ function SupportTicket() {
           <p className="text-muted-foreground mb-6">
             Your support ticket #12495 has been received. We'll get back to you within 24 hours.
           </p>
-          <div className="mb-6 bg-muted p-4 rounded-lg">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Ticket ID</span>
-              <span className="text-sm">#12495</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Status</span>
-              <Badge variant="outline">Open</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm font-medium">Estimated Response</span>
-              <span className="text-sm">Within 24 hours</span>
-            </div>
-          </div>
+                     <div className="mb-6 bg-muted p-4 rounded-lg">
+             <div className="flex justify-between mb-2">
+               <span className="text-sm font-medium">Ticket ID</span>
+               <span className="text-sm">#{ticketId || 'Generated'}</span>
+             </div>
+             <div className="flex justify-between mb-2">
+               <span className="text-sm font-medium">Status</span>
+               <Badge variant="outline">PENDING</Badge>
+             </div>
+             <div className="flex justify-between">
+               <span className="text-sm font-medium">Estimated Response</span>
+               <span className="text-sm">Within 24 hours</span>
+             </div>
+           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Button variant="outline" asChild>
               <Link to="/dashboard">

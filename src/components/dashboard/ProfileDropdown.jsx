@@ -45,16 +45,15 @@ export function ProfileDropdown() {
     };
   }, []);
 
-  const handleLogout = () => {
-    // Clear all user data
-    clearUserData();
-    logoutAuth(); // Use AuthContext logout
-    
-    // Dispatch event to trigger UserContext refresh
-    window.dispatchEvent(new Event('userRoleChanged'));
-    
-    // Redirect to landing page
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      // Use the logout function from AuthContext which handles everything
+      await logoutAuth();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, redirect to home
+      window.location.href = '/';
+    }
   };
   
   return (

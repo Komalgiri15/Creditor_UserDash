@@ -5,18 +5,139 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gavel, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, BookOpen, Users, Award } from "lucide-react";
+import { Gavel, Mail, Lock, Eye, EyeOff, ArrowRight, Shield, BookOpen, Users, Award, ArrowLeft, CheckCircle } from "lucide-react";
 import axios from "axios";
 import { fetchUserProfile, setUserRole, setUserRoles } from "@/services/userService";
 import logoCreditor from "@/assets/logo_creditor.png";
+import { useAuth } from "@/contexts/AuthContext";
+
+// ForgotPassword Component
+function ForgotPassword({ onBack, email, onEmailChange }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEmailSent, setIsEmailSent] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await axios.post(`${API_BASE}/api/auth/forgot-password`, { email });
+      
+      // Simulate API call for now
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setIsEmailSent(true);
+      toast.success("Password reset email sent successfully!");
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      toast.error("Failed to send reset email. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isEmailSent) {
+    return (
+      <div className="text-center space-y-6">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle className="h-8 w-8 text-green-600" />
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">Check Your Email</h3>
+          <p className="text-slate-600">
+            We've sent a password reset link to <span className="font-medium text-slate-800">{email}</span>
+          </p>
+        </div>
+        <div className="space-y-3">
+          <p className="text-sm text-slate-500">
+            Didn't receive the email? Check your spam folder or try again.
+          </p>
+          <Button
+            onClick={() => setIsEmailSent(false)}
+            variant="outline"
+            className="w-full"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-xl font-semibold text-slate-800 mb-2">Forgot Password?</h3>
+        <p className="text-slate-600">
+          Enter your email address and we'll send you a link to reset your password.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="forgot-email" className="text-sm font-medium text-slate-700 flex items-center gap-2">
+            <Mail className="h-4 w-4 text-blue-500" />
+            Email Address
+          </Label>
+          <Input 
+            id="forgot-email" 
+            type="email" 
+            placeholder="Enter your email address" 
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            disabled={isLoading}
+            required
+            className="h-11 px-4 border-2 border-slate-200 hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
+          />
+        </div>
+
+        <Button 
+          type="submit" 
+          className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Sending...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              Send Reset Link
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          )}
+        </Button>
+      </form>
+
+      <div className="text-center">
+        <Button
+          onClick={onBack}
+          variant="ghost"
+          className="text-slate-600 hover:text-slate-800"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Sign In
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function Login() {
+  const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ email: false, password: false });
   const [animateCard, setAnimateCard] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -38,31 +159,42 @@ export function Login() {
       });
 
       if (response.data.success && response.data.accessToken) {
-        // Store accessToken as authToken for future API calls
+        // Store tokens
         localStorage.setItem('authToken', response.data.accessToken);
+        localStorage.setItem('token', response.data.accessToken); // For backward compatibility
+        
+        // Set authentication state
+        setAuth(response.data.accessToken);
 
         // Set default role first
         setUserRole('user');
-        // Fetch user profile and set single user role in localStorage
+        
+        // Fetch user profile and set roles
         try {
           const profile = await fetchUserProfile();
           console.log('Fetched user profile after login:', profile);
-          if (profile && Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
-            // Extract role names and use the highest priority role (admin > instructor > user)
-            const roles = profile.user_roles.map(roleObj => roleObj.role);
-            const priorityRoles = ['admin', 'instructor', 'user'];
-            const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+          
+          if (profile) {
+            // Store user ID if available
+            if (profile.id) {
+              localStorage.setItem('userId', profile.id);
+            }
             
-            // Set single role (enforces single role system)
-            setUserRoles([highestRole]);
-            console.log('Set user single role to:', highestRole);
-          } else {
-            // If no roles found, set default user role
-            setUserRoles(['user']);
+            // Handle user roles
+            if (Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
+              const roles = profile.user_roles.map(roleObj => roleObj.role);
+              const priorityRoles = ['admin', 'instructor', 'user'];
+              const highestRole = priorityRoles.find(role => roles.includes(role)) || 'user';
+              
+              // Set single role (enforces single role system)
+              setUserRoles([highestRole]);
+              console.log('Set user single role to:', highestRole);
+            } else {
+              setUserRoles(['user']);
+            }
           }
         } catch (profileErr) {
           console.warn("Could not fetch user profile:", profileErr);
-          // Keep default 'user' role
           setUserRoles(['user']);
         }
         
@@ -73,16 +205,16 @@ export function Login() {
       }
     } catch (err) {
       console.error("Login error:", err);
+      // Clear any partial auth state on error
+      setAuth(null);
+      
       if (err.response) {
         const errorMessage = err.response.data?.message || "Login failed";
         toast.error(errorMessage);
-        console.error("Server error details:", err.response.data);
       } else if (err.request) {
         toast.error("Network error. Please check your connection.");
-        console.error("Network error details:", err.request);
       } else {
         toast.error("An unexpected error occurred.");
-        console.error("Other error details:", err.message);
       }
     } finally {
       setIsLoading(false);
@@ -192,86 +324,106 @@ export function Login() {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-blue-500" />
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="Enter your email address" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onFocus={() => setIsFocused({ ...isFocused, email: true })}
-                      onBlur={() => setIsFocused({ ...isFocused, email: false })}
-                      disabled={isLoading}
-                      required
-                      className={`h-11 px-4 border-2 transition-all duration-300 ${
-                        isFocused.email 
-                          ? 'border-blue-500 ring-2 ring-blue-200' 
-                          : 'border-slate-200 hover:border-blue-300'
-                      } focus:border-blue-500 focus:ring-2 focus:ring-blue-200`}
-                    />
+              {showForgotPassword ? (
+                <ForgotPassword 
+                  onBack={() => setShowForgotPassword(false)}
+                  email={email}
+                  onEmailChange={setEmail}
+                />
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Email Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-blue-500" />
+                      Email Address
+                    </Label>
+                    <div className="relative">
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="Enter your email address" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onFocus={() => setIsFocused({ ...isFocused, email: true })}
+                        onBlur={() => setIsFocused({ ...isFocused, email: false })}
+                        disabled={isLoading}
+                        required
+                        className={`h-11 px-4 border-2 transition-all duration-300 ${
+                          isFocused.email 
+                            ? 'border-blue-500 ring-2 ring-blue-200' 
+                            : 'border-slate-200 hover:border-blue-300'
+                        } focus:border-blue-500 focus:ring-2 focus:ring-blue-200`}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-blue-500" />
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => setIsFocused({ ...isFocused, password: true })}
-                      onBlur={() => setIsFocused({ ...isFocused, password: false })}
-                      disabled={isLoading}
-                      required
-                      className={`h-11 px-4 pr-12 border-2 transition-all duration-300 ${
-                        isFocused.password 
-                          ? 'border-blue-500 ring-2 ring-blue-200' 
-                          : 'border-slate-200 hover:border-blue-300'
-                      } focus:border-blue-500 focus:ring-2 focus:ring-blue-200`}
-                    />
+                  {/* Password Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-blue-500" />
+                      Password
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onFocus={() => setIsFocused({ ...isFocused, password: true })}
+                        onBlur={() => setIsFocused({ ...isFocused, password: false })}
+                        disabled={isLoading}
+                        required
+                        className={`h-11 px-4 pr-12 border-2 transition-all duration-300 ${
+                          isFocused.password 
+                            ? 'border-blue-500 ring-2 ring-blue-200' 
+                            : 'border-slate-200 hover:border-blue-300'
+                        } focus:border-blue-500 focus:ring-2 focus:ring-blue-200`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
+                        tabIndex={-1}
+                        onClick={() => setShowPassword((v) => !v)}
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Forgot Password Link */}
+                  {/* <div className="text-right">
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 focus:outline-none transition-colors"
-                      tabIndex={-1}
-                      onClick={() => setShowPassword((v) => !v)}
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors hover:underline"
+                      disabled={isLoading}
                     >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      Forgot Password?
                     </button>
-                  </div>
-                </div>
+                  </div> */}
 
-                {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Signing in...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      Sign In
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  )}
-                </Button>
-              </form>
+                  {/* Submit Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold text-base transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Signing in...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        Sign In
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
+                    )}
+                  </Button>
+                </form>
+              )}
             </CardContent>
 
             <CardFooter className="pt-4">

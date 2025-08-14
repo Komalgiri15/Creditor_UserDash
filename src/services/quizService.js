@@ -22,8 +22,7 @@ const getCurrentUserId = () => {
  */
 export async function startQuiz(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/start`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/start`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -45,17 +44,16 @@ export async function startQuiz(quizId) {
 /**
  * Submit a completed quiz
  * @param {string} quizId - The ID of the quiz to submit
- * @param {Object} answers - User's answers to the quiz questions
+ * @param {Object} answers - Object containing question IDs and user answers
  * @returns {Promise<Object>} Quiz results and score
  */
-export async function submitQuiz(quizId, answers) {
+export async function submitQuiz(quizId, answers = {}) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/submit`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/submit`, {
       method: 'POST',
       headers: getAuthHeaders(),
       credentials: 'include',
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ answers })
     });
 
     if (!response.ok) {
@@ -111,8 +109,7 @@ export async function getModuleQuizzes(moduleId) {
  */
 export async function getQuizById(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -138,8 +135,7 @@ export async function getQuizById(quizId) {
  */
 export async function getQuizQuestions(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/questions`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/questions`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -165,8 +161,7 @@ export async function getQuizQuestions(quizId) {
  */
 export async function getQuizResults(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/results`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/results`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -192,8 +187,7 @@ export async function getQuizResults(quizId) {
  */
 export async function getQuizProgress(quizId) {
   try {
-    const userId = getCurrentUserId();
-    const response = await fetch(`${API_BASE}/api/quiz/user/${userId}/quizzes/${quizId}/progress`, {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/progress`, {
       method: 'GET',
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -208,6 +202,35 @@ export async function getQuizProgress(quizId) {
     return data.data || data;
   } catch (error) {
     console.error('Error fetching quiz progress:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save an individual answer for a question
+ * @param {string} quizId - The ID of the quiz
+ * @param {string} questionId - The ID of the question
+ * @param {any} answer - The user's answer
+ * @returns {Promise<Object>} Response indicating success
+ */
+export async function saveAnswer(quizId, questionId, answer) {
+  try {
+    const response = await fetch(`${API_BASE}/api/quiz/quizzes/${quizId}/answers`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ questionId, answer })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to save answer: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.data || data;
+  } catch (error) {
+    console.error('Error saving answer:', error);
     throw error;
   }
 }

@@ -85,6 +85,7 @@ import { WebsiteCreation } from './pages/WebsiteCreation';
 import MerchantProcessing from './pages/MerchantProcessing';
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "@/pages/Auth/Login";
+import ResetPassword from "@/pages/Auth/ResetPassword";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsAndConditions from "@/pages/TermCondition";
 import ReturnRefund from "@/pages/ReturnRefund";
@@ -111,6 +112,7 @@ function App() {
           <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<LandingPage />} />
           <Route path="/sov" element={<Sov />} />
           <Route path="/sophomore" element={<Sophomore />} />

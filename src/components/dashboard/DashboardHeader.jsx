@@ -22,6 +22,7 @@ export function DashboardHeader() {
   const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
   const [showEnrollmentAlert, setShowEnrollmentAlert] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(null);
+  const [unreadNotifications, setUnreadNotifications] = useState(2); // Default count
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -120,6 +121,11 @@ export function DashboardHeader() {
     setSelectedCourseId(null);
   };
 
+  // Handle notification updates
+  const handleNotificationUpdate = (newCount) => {
+    setUnreadNotifications(newCount);
+  };
+
   return (
     <>
       <header className="sticky top-0 z-30 w-full bg-white border-b border-gray-200 shadow-sm backdrop-blur-md bg-white/95">
@@ -215,6 +221,7 @@ export function DashboardHeader() {
 
           {/* Right - Enhanced Icons and Profile */}
           <div className="flex items-center gap-3">
+            
             {/* Profile Dropdown */}
             <div className="ml-2">
               <ProfileDropdown />
@@ -231,7 +238,8 @@ export function DashboardHeader() {
         {/* Notification Modal */}
         <NotificationModal 
           open={notificationModalOpen} 
-          onOpenChange={setNotificationModalOpen} 
+          onOpenChange={setNotificationModalOpen}
+          onNotificationUpdate={handleNotificationUpdate}
         />
         
         {/* Inbox Modal */}

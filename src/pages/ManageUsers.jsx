@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import UserDetailsModal from "@/components/UserDetailsModal";
 import { getAuthHeader } from "../services/authHeader";
 
-
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://creditor-backend-9upi.onrender.com";
 
 const ManageUsers = () => {
@@ -28,6 +27,19 @@ const ManageUsers = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successData, setSuccessData] = useState({ courseTitle: "", addedUsers: [] });
+  
+  // Password change modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccessData, setPasswordSuccessData] = useState({ 
+    changedUsers: [], 
+    newPassword: "", 
+    failedUpdates: [] 
+  });
+  const [showPasswordSuccessModal, setShowPasswordSuccessModal] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [updatingRole, setUpdatingRole] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1061,6 +1073,102 @@ const ManageUsers = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match. Please try again.');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      setPasswordError("");
+      
+      // console.log('🔄 Changing password API call:', {
+      //   url: `${API_BASE}/api/user/change-password`,
+      //   payload: { user_ids: selectedUsers, new_password: newPassword },
+      //   selectedUsers
+      // });
+      
+      // Make API call to change password for users
+      const response = await axios.post(
+        `${API_BASE}/api/user/change-password`,
+        { user_ids: selectedUsers, new_password: newPassword },
+        getAuthConfig()
+      );
+
+      if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
+        // console.log('✅ Password changed successfully');
+        
+        // Get the selected users data
+        const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+        
+        // Set success data and show success modal
+        setPasswordSuccessData({
+          changedUsers: updatedUsers,
+          newPassword: newPassword,
+          failedUpdates: []
+        });
+        setShowPasswordSuccessModal(true);
+        
+        // Close password change modal and reset
+        setShowPasswordModal(false);
+        setNewPassword("");
+        setConfirmPassword("");
+        
+        // Send email to users with new password information
+        // console.log('📨 Sending email to users with new password information...');
+        try {
+          const emailResponse = await axios.post(
+            `${API_BASE}/api/user/send-password-email`,
+            { user_ids: selectedUsers, new_password: newPassword },
+            getAuthConfig()
+          );
+          
+          // console.log('✅ Email sent successfully:', emailResponse.data);
+        } catch (emailError) {
+          console.error('❌ Error sending email:', emailError);
+          // console.error('❌ Email error details:', {
+          //   status: emailError.response?.status,
+          //   statusText: emailError.response?.statusText,
+          //   data: emailError.response?.data,
+          //   message: emailError.message,
+          //   url: emailError.config?.url,
+          //   method: emailError.config?.method,
+          //   payload: emailError.config?.data
+          // });
+        }
+      } else {
+        throw new Error(response.data?.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      console.error('❌ Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method,
+        payload: error.config?.data
+      });
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        setPasswordError('Invalid request. Please check your selection and try again.');
+      } else if (error.response?.status === 401) {
+        setPasswordError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setPasswordError('You do not have permission to perform this action.');
+      } else if (error.response?.status === 500) {
+        setPasswordError(`Server error: ${error.response?.data?.message || 'Internal server error occurred. Please try again.'}`);
+      } else {
+        setPasswordError('Failed to change password. Please try again.');
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -1219,13 +1327,58 @@ const ManageUsers = () => {
                 </button>
               )}
               {filterRole === "instructor" && (
-                <div className="text-sm text-gray-500 italic">
-                  {/* No role changes available for instructors */}
+                <div className="flex gap-2">
+                  {/* <button
+                    onClick={handleMakeAdmin}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Promote to Admin (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    {updatingRole ? 'Updating...' : 'Make Admin'}
+                  </button>
+                  <button
+                    onClick={handleMakeUser}
+                    disabled={updatingRole}
+                    className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Demote to User (replaces all existing roles)"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {updatingRole ? 'Updating...' : 'Make User'}
+                  </button> */}
                 </div>
               )}
+              {filterRole === "admin" && (
+                <button
+                  onClick={handleMakeUser}
+                  disabled={updatingRole}
+                  className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Demote to User (replaces all existing roles)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {updatingRole ? 'Updating...' : 'Make User'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                title="Change Password"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0v4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+                </svg>
+                Change Password
+              </button>
               <button
                 onClick={() => setShowCourseModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1405,6 +1558,235 @@ const ManageUsers = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Change Password for {selectedUsers.length} User(s)</h3>
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setPasswordError("");
+                }}
+                className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+            
+            {passwordError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{passwordError}</p>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> An email will be sent to the selected users with their new password information.
+              </p>
+            </div>
+            
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setPasswordError("");
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={!newPassword || !confirmPassword || changingPassword}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {changingPassword ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Changing...
+                  </>
+                ) : (
+                  'Change Password'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Success Modal */}
+      {showPasswordSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-lg w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {passwordSuccessData.failedUpdates.length === 0 
+                  ? 'Password Changed Successfully!'
+                  : 'Password Update Completed'
+                }
+              </h3>
+              <button
+                onClick={() => {
+                  setShowPasswordSuccessModal(false);
+                  setPasswordSuccessData({ changedUsers: [], newPassword: "", failedUpdates: [] });
+                }}
+                className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              {/* Summary Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {passwordSuccessData.changedUsers.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-blue-800">✅ Success:</span>
+                        <span className="text-sm text-blue-700">{passwordSuccessData.changedUsers.length} user(s)</span>
+                      </div>
+                    )}
+                    {passwordSuccessData.failedUpdates.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-red-800">❌ Failed:</span>
+                        <span className="text-sm text-red-700">{passwordSuccessData.failedUpdates.length} user(s)</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-blue-600">
+                    Total: {passwordSuccessData.changedUsers.length + passwordSuccessData.failedUpdates.length} user(s)
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-3">
+                {passwordSuccessData.failedUpdates.length === 0 
+                  ? `You have successfully changed the password for ${passwordSuccessData.changedUsers.length} user(s).`
+                  : `Password update completed with some issues.`
+                }
+              </p>
+              
+              {/* Show successful updates */}
+              {passwordSuccessData.changedUsers.length > 0 && (
+                <>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm font-medium text-green-800">New Password Set</p>
+                    <p className="text-sm text-green-700 font-mono bg-green-100 px-2 py-1 rounded mt-1">{passwordSuccessData.newPassword}</p>
+                    <p className="text-xs text-green-600 mt-2">
+                      An email has been sent to each user with their new password information.
+                    </p>
+                  </div>
+                  
+                  <div className="max-h-48 overflow-y-auto mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      ✅ Successfully updated passwords for:
+                    </p>
+                    <div className="space-y-2">
+                      {passwordSuccessData.changedUsers.map((user) => (
+                        <div key={user.id} className="flex items-center gap-3 p-2 bg-green-50 rounded-lg border border-green-200">
+                          <div className="h-8 w-8 rounded-full bg-green-300 flex items-center justify-center">
+                            <span className="text-xs font-medium text-green-700">
+                              {user.first_name?.[0]}{user.last_name?.[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {user.first_name} {user.last_name}
+                            </p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {/* Show failed updates */}
+              {passwordSuccessData.failedUpdates.length > 0 && (
+                <div className="max-h-48 overflow-y-auto mb-4">
+                  <p className="text-sm font-medium text-red-700 mb-2">
+                    ❌ Failed to update passwords for:
+                  </p>
+                  <div className="space-y-2">
+                    {passwordSuccessData.failedUpdates.map((failedUpdate) => (
+                      <div key={failedUpdate.user.id} className="flex items-center gap-3 p-2 bg-red-50 rounded-lg border border-red-200">
+                        <div className="h-8 w-8 rounded-full bg-red-300 flex items-center justify-center">
+                          <span className="text-xs font-medium text-red-700">
+                            {failedUpdate.user.first_name?.[0]}{failedUpdate.user.last_name?.[0]}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {failedUpdate.user.first_name} {failedUpdate.user.last_name}
+                          </p>
+                          <p className="text-xs text-gray-500">{failedUpdate.user.email}</p>
+                          <p className="text-xs text-red-600 mt-1">
+                            Error: {failedUpdate.error}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowPasswordSuccessModal(false);
+                  setPasswordSuccessData({ changedUsers: [], newPassword: "", failedUpdates: [] });
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                {passwordSuccessData.failedUpdates.length === 0 ? 'Close' : 'Done'}
               </button>
             </div>
           </div>

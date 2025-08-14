@@ -53,6 +53,7 @@ export async function createCourse(courseData) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(courseData),
@@ -72,6 +73,7 @@ export async function updateCourse(courseId, courseData) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(courseData),
@@ -91,6 +93,7 @@ export async function fetchCourseUsers(courseId) {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
   });
@@ -125,6 +128,7 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   },
   credentials: 'include',
   body: JSON.stringify(moduleData),
@@ -145,6 +149,7 @@ const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/course/${
   method: 'PUT',
   headers: {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   },
   credentials: 'include',
   body: JSON.stringify(moduleData),
@@ -162,6 +167,7 @@ export async function deleteModule(courseId, moduleId, moduleData) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'text/plain',
+      ...getAuthHeader(),
     },
     credentials: 'include',
     body: JSON.stringify(moduleData),
@@ -180,6 +186,7 @@ export async function deleteCourse(courseId) {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeader(),
     },
     credentials: 'include',
   });

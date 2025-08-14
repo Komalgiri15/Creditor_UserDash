@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, XCircle, Clock, BookOpen, Trophy, AlertTriangle, Loader2 } from "lucide-react";
-import { getQuizResults, getQuizById } from "@/services/quizService";
 import { toast } from "sonner";
 
 function QuizResultsPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const moduleId = searchParams.get('module');
   const category = searchParams.get('category');
-  const score = parseInt(searchParams.get('score') || '0');
-  const answered = parseInt(searchParams.get('answered') || '0');
+  
+  // Get results data from navigation state
+  const { quizResults, answers, quizSession, startedAt } = location.state || {};
   
   const [isLoading, setIsLoading] = useState(true);
   const [quizData, setQuizData] = useState(null);
@@ -23,20 +24,35 @@ function QuizResultsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchResults = async () => {
+    const initializeResults = async () => {
       try {
         setIsLoading(true);
         
-        // Fetch quiz data and results in parallel
-        const [quizResponse, resultsResponse] = await Promise.all([
-          getQuizById(quizId),
-          getQuizResults(quizId)
-        ]);
+        // Check if we have results data from navigation state
+        if (!quizResults) {
+          console.error('No quiz results found in navigation state');
+          setError('No quiz results found. Please complete the quiz first.');
+          return;
+        }
         
-        setQuizData(quizResponse);
-        setResults(resultsResponse);
+        // Set the data from navigation state
+        setQuizData(quizSession);
+        setResults(quizResults);
+        
+        console.log('Quiz results loaded:', {
+          quizResults,
+          answers,
+          quizSession,
+          startedAt
+        });
+        
+        // Validate that we have the expected data
+        if (!quizResults.score && !quizResults.data?.score) {
+          console.warn('Quiz results missing score data:', quizResults);
+        }
+        
       } catch (err) {
-        console.error('Error fetching results:', err);
+        console.error('Error initializing results:', err);
         setError('Failed to load quiz results');
         toast.error('Failed to load quiz results');
       } finally {
@@ -44,10 +60,8 @@ function QuizResultsPage() {
       }
     };
 
-    if (quizId) {
-      fetchResults();
-    }
-  }, [quizId]);
+    initializeResults();
+  }, [quizResults, quizSession, answers, startedAt]);
 
   const getScoreColor = (score) => {
     if (score >= 90) return 'text-green-600';
@@ -70,7 +84,45 @@ function QuizResultsPage() {
     return "Keep practicing! You'll do better next time.";
   };
 
-  const isPassed = score >= (quizData?.passingScore || 70);
+  // Extract score and other data from results
+  let score = 0;
+  let grade = 'N/A';
+  
+  if (results?.score) {
+    // Backend returns score as "85 (B)" format
+    const scoreMatch = results.score.toString().match(/(\d+)\s*\(([A-Z])\)/);
+    if (scoreMatch) {
+      score = parseInt(scoreMatch[1]);
+      grade = scoreMatch[2];
+    } else {
+      // Try to extract just the number
+      const numMatch = results.score.toString().match(/(\d+)/);
+      if (numMatch) {
+        score = parseInt(numMatch[1]);
+      }
+    }
+  }
+  
+  const remarks = results?.remarks || '';
+  const passed = results?.passed || false;
+  const answered = Object.keys(answers || {}).length;
+  
+  // Debug logging to see what we received
+  console.log('Quiz Results Page - Data received:', {
+    quizResults: results,
+    answers: answers,
+    quizSession: quizData,
+    startedAt: startedAt,
+    extractedData: {
+      score,
+      grade,
+      remarks,
+      passed,
+      answered
+    }
+  });
+  
+  const isPassed = passed || score >= (quizData?.passingScore || 70);
 
   if (isLoading) {
     return (
@@ -97,7 +149,7 @@ function QuizResultsPage() {
   }
 
   return (
-    <div className="container py-6 max-w-4xl mx-auto">
+    <div className="container py-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -109,97 +161,113 @@ function QuizResultsPage() {
         </Badge>
       </div>
 
-      {/* Results Header */}
-      <Card className="mb-8 overflow-hidden shadow-xl border-0">
-        <CardContent className="p-8 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              {getScoreIcon(score)}
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Quiz Results
-            </h1>
-            <p className="text-xl text-gray-700 mb-6">
-              {getScoreMessage(score)}
-            </p>
-            
-            {/* Score Display */}
-            <div className="inline-block bg-white rounded-2xl p-6 shadow-lg border border-blue-200">
-              <div className="text-6xl font-bold mb-2">
-                <span className={getScoreColor(score)}>{score}%</span>
+      {/* Main Results Card - Quiz Info Left, Score Right */}
+      <Card className="mb-8 shadow-lg border-0 bg-gradient-to-br from-white to-blue-50">
+        <CardContent className="p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[400px]">
+            {/* Left Side - Quiz Information */}
+            <div className="p-8 border-r border-gray-200">
+              <div className="flex items-center gap-3 mb-6">
+                
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Quiz Results</h1>
+                  <p className="text-lg text-gray-600">{getScoreMessage(score)}</p>
+                </div>
               </div>
-              <div className="text-lg text-gray-600">
-                {isPassed ? 'PASSED' : 'NOT PASSED'}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Quiz Details */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-blue-600" />
-            Quiz Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Quiz Title</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.title || `Quiz ${quizId}`}</p>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <BookOpen className="h-6 w-6 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Quiz Title</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.title || quizData?.title || `Quiz ${quizId}`}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <Clock className="h-6 w-6 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Duration</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.time_limit || quizData?.timeLimit || 25} minutes</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <CheckCircle className="h-6 w-6 text-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Passing Score</p>
+                      <p className="text-lg font-semibold text-gray-900">{quizData?.quiz?.min_score || quizData?.passingScore || 70}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                    <BookOpen className="h-6 w-6 text-indigo-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Questions Answered</p>
+                      <p className="text-lg font-semibold text-gray-900">{answered}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Duration</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.timeLimit || 25} minutes</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-purple-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Passing Score</p>
-                  <p className="text-lg font-semibold text-gray-900">{quizData.passingScore || 70}%</p>
-                </div>
+
+                {/* Remarks Display */}
+                {remarks && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-lg font-medium text-blue-800">
+                      {remarks}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5 text-indigo-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Questions Answered</p>
-                  <p className="text-lg font-semibold text-gray-900">{answered}</p>
+
+            {/* Right Side - Score Display */}
+            <div className="p-8 bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col justify-center items-center">
+              <div className="text-center">
+                {/* Score Circle */}
+                <div className="relative mb-6">
+                  <div className="w-48 h-48 rounded-full bg-white shadow-xl border-8 border-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className={`text-5xl font-bold mb-2 ${getScoreColor(score)}`}>
+                        {score}%
+                      </div>
+                      <div className="text-lg text-gray-600 font-medium">
+                        {isPassed ? 'PASSED' : 'NOT PASSED'}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Status Icon Overlay */}
+                  
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Trophy className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Your Score</p>
-                  <p className={`text-lg font-semibold ${getScoreColor(score)}`}>{score}%</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {isPassed ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <XCircle className="h-5 w-5 text-red-600" />
+
+                {/* Grade Display */}
+                {grade && grade !== 'N/A' && (
+                  <div className="mb-4">
+                    <div className="inline-block bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold text-xl">
+                      Grade: {grade}
+                    </div>
+                  </div>
                 )}
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Status</p>
-                  <p className={`text-lg font-semibold ${isPassed ? 'text-green-600' : 'text-red-600'}`}>
+
+                {/* Status Badge */}
+                <div className="mb-4">
+                  <Badge 
+                    variant={isPassed ? "default" : "destructive"}
+                    className={`text-lg px-6 py-2 ${isPassed ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                  >
                     {isPassed ? 'PASSED' : 'FAILED'}
-                  </p>
+                  </Badge>
+                </div>
+
+                {/* Score Breakdown */}
+                <div className="bg-white rounded-lg p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-600">Correct Answers</span>
+                    <span className="font-semibold text-green-600">
+                      {Math.round((score / 100) * answered)} / {answered}
+                    </span>
+                  </div>
+                  <Progress value={score} className="h-3" />
                 </div>
               </div>
             </div>
@@ -218,19 +286,53 @@ function QuizResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {/* Score Breakdown */}
-              <div>
-                <h4 className="font-semibold mb-3">Score Breakdown</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Correct Answers</span>
-                    <span className="font-semibold text-green-600">
-                      {Math.round((score / 100) * answered)} / {answered}
-                    </span>
+              {/* Question Review */}
+              {quizData?.questions && (
+                <div>
+                  <h4 className="font-semibold mb-3">Question Review</h4>
+                  <div className="space-y-4">
+                    {quizData.questions.map((question, index) => {
+                      const userAnswer = answers?.[question.id];
+                      const isCorrect = score > 0; // This is simplified - you might want to add correct answer tracking
+                      
+                      return (
+                        <div key={question.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                              isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium mb-2">{question.text}</p>
+                              <div className="space-y-2">
+                                {question.options?.map((option) => (
+                                  <div key={option.id} className={`flex items-center gap-2 p-2 rounded ${
+                                    userAnswer === option.id ? 'bg-blue-50 border border-blue-200' : ''
+                                  }`}>
+                                    <input
+                                      type="radio"
+                                      checked={userAnswer === option.id}
+                                      disabled
+                                      className="w-4 h-4"
+                                    />
+                                    <span className={userAnswer === option.id ? 'font-medium' : ''}>
+                                      {option.text}
+                                    </span>
+                                    {userAnswer === option.id && (
+                                      <span className="text-sm text-gray-500">(Your answer)</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <Progress value={score} className="h-2" />
                 </div>
-              </div>
+              )}
               
               {/* Time Analysis */}
               {results.timeSpent && (
