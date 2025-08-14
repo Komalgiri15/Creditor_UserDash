@@ -147,13 +147,13 @@ export function Sidebar({ collapsed, setCollapsed }) {
   const isScormAllowed = allowedScormUserIds.includes(currentUserId);
 
   // Help section navigation items
-  // const helpItems = [
-  //   // { icon: FileQuestion, label: "FAQs", path: "/dashboard/faqs" },
-  //   // { icon: MessageSquare, label: "Contact Support", path: "/dashboard/support" },
-  //   // { icon: BookOpen, label: "User Guides", path: "/dashboard/guides" },
-  //   { icon: Contact, label: "Create Ticket", path: "/dashboard/support/ticket" },
-  //   { icon: FileQuestion, label: "My Tickets", path: "/dashboard/support/tickets" }
-  // ];
+  const helpItems = [
+    // { icon: FileQuestion, label: "FAQs", path: "/dashboard/faqs" },
+    // { icon: MessageSquare, label: "Contact Support", path: "/dashboard/support" },
+    // { icon: BookOpen, label: "User Guides", path: "/dashboard/guides" },
+    { icon: Contact, label: "Create Ticket", path: "/dashboard/support/ticket" },
+    { icon: FileQuestion, label: "My Tickets", path: "/dashboard/support/tickets" }
+  ];
 
   // Animation variants with smooth transition
   const sidebarVariants = {
@@ -372,8 +372,8 @@ export function Sidebar({ collapsed, setCollapsed }) {
         </motion.div>
       </div>
 
-      {/* Help & Support Footer */}
-      {/* <motion.div 
+      {/* Help & Support Footer  */}
+      <motion.div 
         className="border-t border-gray-200 p-4 bg-gradient-to-r from-gray-50 to-gray-100"
         variants={itemVariants}
       >
@@ -443,7 +443,7 @@ export function Sidebar({ collapsed, setCollapsed }) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-      </motion.div> */}
+      </motion.div> 
     </motion.div>
   );
 }

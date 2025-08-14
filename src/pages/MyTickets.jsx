@@ -4,6 +4,8 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getAuthHeader } from '../services/authHeader';
+
 import { 
   Search, 
   Plus, 
@@ -73,6 +75,7 @@ export default function MyTickets() {
       const response = await axios.get(`${API_BASE}/api/support-tickets/user/me`, {
         headers: {
           'Content-Type': 'application/json',
+      ...getAuthHeader(),
         },
         withCredentials: true,
       });
