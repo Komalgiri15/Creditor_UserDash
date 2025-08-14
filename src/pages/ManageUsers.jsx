@@ -1082,64 +1082,46 @@ const ManageUsers = () => {
     try {
       setChangingPassword(true);
       setPasswordError("");
-      
-      // console.log('🔄 Changing password API call:', {
-      //   url: `${API_BASE}/api/user/change-password`,
-      //   payload: { user_ids: selectedUsers, new_password: newPassword },
-      //   selectedUsers
-      // });
-      
-      // Make API call to change password for users
-      const response = await axios.post(
-        `${API_BASE}/api/user/change-password`,
-        { user_ids: selectedUsers, new_password: newPassword },
-        getAuthConfig()
-      );
 
-      if (response.data && (response.data.success || response.data.code === 200 || response.data.code === 201)) {
-        // console.log('✅ Password changed successfully');
-        
-        // Get the selected users data
-        const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
-        
-        // Set success data and show success modal
-        setPasswordSuccessData({
-          changedUsers: updatedUsers,
-          newPassword: newPassword,
-          failedUpdates: []
-        });
-        setShowPasswordSuccessModal(true);
-        
-        // Close password change modal and reset
-        setShowPasswordModal(false);
-        setNewPassword("");
-        setConfirmPassword("");
-        
-        // Send email to users with new password information
-        // console.log('📨 Sending email to users with new password information...');
+      const changedUsers = [];
+      const failedUpdates = [];
+
+      // Call backend reset endpoint per user: { email, password }
+      for (const userId of selectedUsers) {
+        const user = users.find(u => u.id === userId);
+        if (!user || !user.email) {
+          failedUpdates.push({ user: user || { id: userId }, error: 'User or email not found' });
+          continue;
+        }
         try {
-          const emailResponse = await axios.post(
-            `${API_BASE}/api/user/send-password-email`,
-            { user_ids: selectedUsers, new_password: newPassword },
+          const resp = await axios.post(
+            `${API_BASE}/api/auth/reset-password`,
+            { email: user.email, password: newPassword },
             getAuthConfig()
           );
-          
-          // console.log('✅ Email sent successfully:', emailResponse.data);
-        } catch (emailError) {
-          console.error('❌ Error sending email:', emailError);
-          // console.error('❌ Email error details:', {
-          //   status: emailError.response?.status,
-          //   statusText: emailError.response?.statusText,
-          //   data: emailError.response?.data,
-          //   message: emailError.message,
-          //   url: emailError.config?.url,
-          //   method: emailError.config?.method,
-          //   payload: emailError.config?.data
-          // });
+          if (resp.status >= 200 && resp.status < 300) {
+            changedUsers.push(user);
+          } else {
+            failedUpdates.push({ user, error: resp.data?.message || 'Failed to change password' });
+          }
+        } catch (err) {
+          failedUpdates.push({ user, error: err.response?.data?.message || err.message });
         }
-      } else {
-        throw new Error(response.data?.message || 'Failed to change password');
       }
+
+      // Prepare results UI
+      const updatedUsers = users.filter(user => selectedUsers.includes(user.id));
+      setPasswordSuccessData({
+        changedUsers: changedUsers.length ? changedUsers : updatedUsers,
+        newPassword: newPassword,
+        failedUpdates
+      });
+      setShowPasswordSuccessModal(true);
+
+      // Close password change modal and reset fields
+      setShowPasswordModal(false);
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (error) {
       console.error('Error changing password:', error);
       console.error('❌ Error details:', {
@@ -1151,19 +1133,7 @@ const ManageUsers = () => {
         method: error.config?.method,
         payload: error.config?.data
       });
-      
-      // Handle specific error cases
-      if (error.response?.status === 400) {
-        setPasswordError('Invalid request. Please check your selection and try again.');
-      } else if (error.response?.status === 401) {
-        setPasswordError('Authentication failed. Please log in again.');
-      } else if (error.response?.status === 403) {
-        setPasswordError('You do not have permission to perform this action.');
-      } else if (error.response?.status === 500) {
-        setPasswordError(`Server error: ${error.response?.data?.message || 'Internal server error occurred. Please try again.'}`);
-      } else {
-        setPasswordError('Failed to change password. Please try again.');
-      }
+      setPasswordError('Failed to change password. Please try again.');
     } finally {
       setChangingPassword(false);
     }
