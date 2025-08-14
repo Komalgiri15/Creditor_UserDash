@@ -7,12 +7,28 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Lock, Eye, EyeOff, ArrowRight, Shield, CheckCircle, ArrowLeft } from "lucide-react";
 import logoCreditor from "@/assets/logo_creditor.png";
+import axios from "axios";
+
+// Helper to decode JWT and extract payload safely
+function decodeJwtPayload(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const jsonPayload = decodeURIComponent(atob(padded).split('').map(c => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 export function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
-  const email = searchParams.get('email');
   
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,14 +37,30 @@ export function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isFocused, setIsFocused] = useState({ newPassword: false, confirmPassword: false });
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  const [decodedEmail, setDecodedEmail] = useState("");
+  const [tokenError, setTokenError] = useState("");
 
   useEffect(() => {
-    // Validate that we have the required parameters
-    if (!token || !email) {
+    // Validate & decode token, extract email and check expiry
+    if (!token) {
+      setTokenError("Missing token");
       toast.error("Invalid reset link. Please request a new password reset.");
-      navigate("/login");
+      return;
     }
-  }, [token, email, navigate]);
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.email) {
+      setTokenError("Invalid token payload");
+      toast.error("Invalid reset link. Please request a new password reset.");
+      return;
+    }
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      setTokenError("Token expired");
+      toast.error("This reset link has expired. Please request a new one.");
+      return;
+    }
+    setDecodedEmail(payload.email);
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,23 +76,24 @@ export function ResetPassword() {
       return;
     }
 
+    if (tokenError || !decodedEmail) {
+      toast.error("Invalid or expired reset link");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await axios.post(`${API_BASE}/api/auth/reset-password`, {
-      //   token,
-      //   email,
-      //   newPassword
-      // });
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      const response = await axios.post(`${API_BASE}/api/auth/reset-password`, {
+        email: decodedEmail,
+        password: newPassword,
+        // Optionally include token if backend adds verification later
+        // token
+      });
       setIsSuccess(true);
-      toast.success("Password reset successfully!");
+      toast.success(response.data?.message || "Password reset successfully!");
     } catch (error) {
       console.error("Reset password error:", error);
-      toast.error("Failed to reset password. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to reset password. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +134,7 @@ export function ResetPassword() {
     );
   }
 
-  if (!token || !email) {
+  if (tokenError) {
     return (
       <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 relative overflow-hidden">
         <div className="relative w-full max-w-md mx-auto flex items-center justify-center p-4">
