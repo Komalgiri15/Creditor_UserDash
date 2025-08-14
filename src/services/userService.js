@@ -81,29 +81,24 @@ export function clearUserData() {
 
 export async function fetchUserProfile() {
   try {
-    console.log("🔍 userService: Fetching profile from:", `${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`);
-    
+    const token = localStorage.getItem('authToken');
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/user/getUserProfile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       credentials: 'include',
     });
-    
-    console.log("🔍 userService: Response status:", response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("❌ userService: Fetch profile failed:", response.status, errorText);
       throw new Error(`Failed to fetch user profile: ${response.status} ${errorText}`);
     }
-    
+
     const result = await response.json();
-    console.log("✅ userService: Fetch profile success:", result);
-    return result.data; // Return only the user object
+    return result.data;
   } catch (error) {
-    console.error("❌ userService: Fetch profile error:", error);
     throw error;
   }
 }

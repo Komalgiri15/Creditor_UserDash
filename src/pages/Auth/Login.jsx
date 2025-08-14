@@ -149,7 +149,6 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      console.log("Attempting login with:", { email, API_BASE });
       const response = await axios.post(`${API_BASE}/api/auth/login`, {
         email,
         password,
@@ -157,12 +156,12 @@ export function Login() {
         withCredentials: true
       });
 
-      console.log('Login response from backend:', response.data);
+      if (response.data.success && response.data.accessToken) {
+        // Store accessToken as authToken for future API calls
+        localStorage.setItem('authToken', response.data.accessToken);
 
-      if (response.data.success) {
         // Set default role first
         setUserRole('user');
-        
         // Fetch user profile and set single user role in localStorage
         try {
           const profile = await fetchUserProfile();

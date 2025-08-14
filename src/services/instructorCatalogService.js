@@ -1,3 +1,5 @@
+import { getAuthHeader } from './authHeader';
+
 // Instructor Catalog Service for managing catalogs in the instructor portal
 
 // Helper function to get auth headers
@@ -5,6 +7,7 @@ const getAuthHeaders = () => {
   // Backend handles authentication via cookies
   return {
     'Content-Type': 'application/json',
+    ...getAuthHeader(),
   };
 };
 

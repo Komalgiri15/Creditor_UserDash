@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Book, Library, GraduationCap } from "lucide-react";
-import { getUserAvatarUrl } from "@/lib/avatar-utils";
+import { getUserAvatarUrl, getUserAvatarUrlSync, refreshAvatarFromBackend } from "@/lib/avatar-utils";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { fetchUserProfile, clearUserData } from "@/services/userService";
@@ -19,18 +19,28 @@ import { useUser } from "@/contexts/UserContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function ProfileDropdown() {
-  const [userAvatar, setUserAvatar] = useState(getUserAvatarUrl());
+  const [userAvatar, setUserAvatar] = useState(getUserAvatarUrlSync());
   const { userProfile } = useUser();
   const { logout: logoutAuth } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Load avatar from localStorage if available
-    setUserAvatar(getUserAvatarUrl());
+    // Load avatar from backend on component mount
+    const loadAvatarFromBackend = async () => {
+      try {
+        const avatarUrl = await refreshAvatarFromBackend();
+        setUserAvatar(avatarUrl);
+      } catch (error) {
+        console.warn('Failed to load avatar from backend:', error);
+        // Keep using localStorage fallback
+      }
+    };
+
+    loadAvatarFromBackend();
     
     // Set up event listener for avatar changes
     const handleAvatarChange = () => {
-      setUserAvatar(getUserAvatarUrl());
+      setUserAvatar(getUserAvatarUrlSync());
     };
     
     window.addEventListener("storage", handleAvatarChange);
