@@ -24,12 +24,12 @@ export const getAllTickets = async () => {
 
 // Add a new support ticket
 export const createSupportTicket = async (ticketData) => {
-  // Remove the Content-Type header to let the browser set it with the correct boundary
   return axios.post(
     joinUrl(baseUrl, 'api/support-tickets/'),
     ticketData,
     {
       headers: {
+        'Content-Type': 'application/json',
         ...getAuthHeader(),
       },
       withCredentials: true
